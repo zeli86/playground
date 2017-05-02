@@ -1,0 +1,120 @@
+Install and compile options for the packages mentioned in the article: "ATUS-PRO: A FEM-based solver for the time-dependent and stationary Gross-Pitaevskii equation".
+ 
+## MPI ##
+
+cd $HOME # start from top level of your home folder
+mkdir temp # create temporary folder 
+cd temp
+wget http://www.open-mpi.org/software/ompi/v1.8/downloads/openmpi-1.8.5.tar.gz
+tar xfvz openmpi-2.0.1.tar.gz
+cd openmpi-2.0.1
+./configure --prefix=/opt/openmpi-2.0.1 --enable-mpi-fortran
+make -j 
+sudo make install
+export PATH=$PATH:/opt/openmpi-2.0.1/bin
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/openmpi-2.0.1/lib64
+ # alternativly: export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/openmpi-2.0.1/lib
+check the path with: which mpicc
+check the lib folder naming
+
+## GSL ##
+
+cd $HOME/temp
+wget ftp://ftp.gnu.org/gnu/gsl/gsl-2.2.1.tar.gz
+tar xfvz gsl-2.2.1.tar.gz
+cd gsl-2.2.1
+./configure --prefix=/opt/gsl-2.2.1
+make CFLAGS="-march=native -O3" 
+sudo make install
+
+## LAPACK ##
+
+cd $HOME/temp
+wget http://www.netlib.org/lapack/lapack-3.6.1.tgz
+tar xfvz lapack-3.6.1.tgz
+cd lapack-3.6.1
+mkdir build
+cd build
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_Fortran_FLAGS_RELEASE="-march=native -fpic -O3" -DCMAKE_INSTALL_PREFIX=/opt/lapack-3.6.1 ..
+make -j4
+sudo make install
+
+## PETSc ##
+
+cd $HOME/temp
+wget http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-3.6.3.tar.gz
+tar xfvz petsc-3.6.3.tar.gz
+cd petsc-3.6.3
+export PETSC_ARCH=x86_64
+./configure --prefix=/opt/petsc-3.6.3 --with-shared-libraries --with-x=0 --with-debugging=0 --with-mpi=1 --download-hypre=yes --download-fblaslapack=1 --download-scalapack --download-mumps --download-ptscotch
+make PETSC_DIR=$HOME/temp/petsc-3.6.3 PETSC_ARCH=x86_64 all
+sudo make PETSC_DIR=$HOME/temp/petsc-3.6.3 PETSC_ARCH=x86_64 install
+
+## SLEPc ##
+
+cd $HOME/temp
+wget http://slepc.upv.es/download/download.php?filename=slepc-3.6.2.tar.gz
+tar xfvz slepc-3.6.2.tar.gz
+cd slepc-3.6.2
+unset PETSC_ARCH
+export LD_LIBRARY_PATH=/opt/petsc-3.6.3/lib64:$LD_LIBRARY_PATH
+./configure --prefix=/opt/petsc-3.6.3 
+make SLEPC_DIR=$PWD PETSC_DIR=/opt/petsc-3.6.3
+sudo make SLEPC_DIR=/home/zeli/tmp/slepc-3.6.2 PETSC_DIR=/opt/petsc-3.6.3 install
+
+## p4est ##
+
+cd $HOME/temp
+wget http://p4est.github.io/release/p4est-1.1.tar.gz
+tar xfvz p4est-1.1.tar.gz
+cd p4est-1.1
+./configure --prefix=/opt/p4est-1.1 --enable-mpi --enable-shared --disable-vtk-binary --without-blas
+make CFLAGS="-O3 -march=native"
+sudo make install
+
+## deal.II ##
+
+cd $HOME/temp
+wget https://github.com/dealii/dealii/releases/download/v8.4.1/dealii-8.4.1.tar.gz
+tar xfvz dealii-8.4.1.tar.gz
+cd dealii-8.4.1
+mkdir build
+cd build
+
+(without slepc)
+cmake -DDEAL_II_WITH_UMFPACK=ON -DDEAL_II_WITH_LAPACK=ON -DLAPACK_DIR=/opt/lapack-3.6.1 -DPETSC_ARCH=x86_64 -DPETSC_DIR=/opt/petsc-3.6.3 -DP4EST_DIR=/opt/p4est-1.1 -DDEAL_II_WITH_THREADS=OFF -DDEAL_II_WITH_MPI=ON -DDEAL_II_WITH_HDF5=OFF -DCMAKE_INSTALL_PREFIX=/opt/deal.II-8.4.1 ..
+
+(with slepc)
+cmake -DDEAL_II_WITH_UMFPACK=ON -DDEAL_II_WITH_LAPACK=ON -DLAPACK_DIR=/opt/lapack-3.6.1 -DPETSC_ARCH=x86_64 -DPETSC_DIR=/opt/petsc-3.6.3 -DP4EST_DIR=/opt/p4est-1.1 -DDEAL_II_WITH_THREADS=OFF -DDEAL_II_WITH_MPI=ON -DDEAL_II_WITH_HDF5=OFF -DDEAL_II_WITH_SLEPC=/opt/petsc-3.6.3 -DCMAKE_INSTALL_PREFIX=/opt/deal.II-8.4.1 ..
+
+make
+sudo make install
+
+## .my_bashrc ##
+
+create a file in your home folder via the command: touch .my_bashrc
+copy the following content 
+
+export PATH=$PATH:$HOME/bin:/opt/openmpi-2.0.1/bin
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/openmpi-2.0.1/lib64:/opt/gsl-2.2.1/lib64:/opt/p4est-1.1/lib64:/opt/petsc-3.6.3/lib:/opt/deal.II-8.4.1/lib
+
+  # alternatively
+  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/openmpi-2.0.1/lib:/opt/gsl-2.2.1/lib:/opt/p4est-1.1/lib:/opt/petsc-3.6.3/lib:/opt/deal.II-8.4.1/lib
+  
+into this file.
+You can setup the path then via the command source $HOME/.my_bashrc
+
+atp/2.0.5 lib path war nicht LD_LIBRARY_PATH
+
+
+## atus-pro ##
+
+source $HOME/.my_bashrc
+cd $HOME/temp
+tar xfvz atus-pro_v1.0.tar.gz
+cd atus-pro_v1.0
+mkdir build
+cd build
+cmake ..
+make -j 
+make doc

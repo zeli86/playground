@@ -1,0 +1,22 @@
+<SIMULATION>
+  <FILENAME>0.0000_1.bin</FILENAME>
+  <VCONSTANTS>
+    <xrange>-15,15</xrange>
+    <yrange>-15,15</yrange>
+    <zrange>-15,15</zrange>
+    <beta>1,0,0</beta>
+    <omega>0.5,0.5,0.5</omega>
+    <GS_1>0,0</GS_1> 
+    <GS_2>0,0</GS_2> 
+    <QN>0,0,0</QN>
+    <N>10</N>
+    <MU>5</MU>
+  </VCONSTANTS>
+  <ALGORITHM>
+    <Global_Refinement>7</Global_Refinement>
+    <NK>25</NK>
+    <NA>700</NA>
+    <EPSILON>1e-6</EPSILON>
+  </ALGORITHM>
+</SIMULATION>
+

@@ -1,0 +1,74 @@
+
+## GSL ##
+
+./configure --prefix=/home/h/hbpzeli4/opt/gsl-2.3
+make CFLAGS="-march=native -O3" 
+make install
+
+## LAPACK ##
+
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_Fortran_FLAGS_RELEASE="-march=native -fpic -O3" -DCMAKE_INSTALL_PREFIX=/home/h/hbpzeli4/opt/lapack-3.7.0 -DBUILD_SHARED_LIBS=ON ..
+make -j12
+make install
+
+## p4est ##
+export CC=cc \
+export CXX=CC \
+export FC=ftn 
+
+./configure --prefix=/home/h/hbpzeli4/opt/p4est-1.1 --enable-mpi --enable-shared --disable-vtk-binary --without-blas
+make FFLAGS="-O3 -march=native -dynamic" CFLAGS="-O3 -march=native -dynamic"
+make install
+
+## PETSc ##
+
+export PETSC_ARCH=x86_64 	
+export CRAYPE_LINK_TYPE=dynamic
+./configure FC=ftn F77=ftn CC=cc CXX=CC --prefix=/home/h/hbpzeli4/opt/petsc-3.6.3 --with-shared-libraries --with-x=0 --with-debugging=0 --with-mpi=1 --download-hypre=hypre-2.10.0b-p2.tar.gz --download-fblaslapack=fblaslapack-3.4.2.tar.gz --download-scalapack=scalapack-2.0.2.tgz --download-mumps=MUMPS_5.0.0-p1.tar.gz --download-ptscotch=scotch_6.0.3.tar.gz
+make PETSC_DIR=/home/h/hbpzeli4/tmp/petsc-3.6.3 PETSC_ARCH=x86_64 all
+make PETSC_DIR=/home/h/hbpzeli4/tmp/petsc-3.6.3 PETSC_ARCH=x86_64 install
+
+## SLEPc ##
+
+export CRAYPE_LINK_TYPE=dynamic
+unset PETSC_ARCH
+export CFLAGS="-O3 -march=native -dynamic"
+./configure --prefix=/home/h/hbpzeli4/opt/petsc-3.6.3
+make SLEPC_DIR=$PWD PETSC_DIR=/home/h/hbpzeli4/opt/petsc-3.6.3
+sudo make SLEPC_DIR=/home/zeli/tmp/slepc-3.6.2 PETSC_DIR=/home/h/hbpzeli4/petsc-3.6.3 install
+
+
+## deal.II ##
+
+export CRAYPE_LINK_TYPE=dynamic
+
+(without slepc)
+cmake -DMPI_LIBRARIES=/opt/cray/mpt/default/gni/mpich-gnu/51/lib -DMPI_INCLUDE_DIRS=/opt/cray/mpt/default/gni/mpich-gnu/51/include -DBOOST_DIR=/home/h/hbpzeli4/opt/boost-1.56.0 -DDEAL_II_WITH_UMFPACK=ON -DDEAL_II_WITH_LAPACK=ON -DLAPACK_DIR=/home/h/hbpzeli4/opt/lapack-3.7.0 -DPETSC_ARCH=x86_64 -DPETSC_DIR=/home/h/hbpzeli4/opt/petsc-3.6.3 -DP4EST_DIR=/home/h/hbpzeli4/opt/p4est-1.1 -DDEAL_II_WITH_THREADS=OFF -DDEAL_II_WITH_MPI=ON -DDEAL_II_WITH_HDF5=OFF -DCMAKE_INSTALL_PREFIX=/home/h/hbpzeli4/opt/deal.II-8.4.1 ..
+
+comment lines 26 to 33 in 
+dealii/cmake/configure/configure_1_mpi.cmake 
+
+
+
+(with slepc)
+cmake  \
+-DBOOST_DIR=/home/h/hbpzeli4/opt/boost-1.56.0 \
+-DMPI_LIBRARIES=/opt/cray/mpt/7.2.5/gni/mpich2-gnu/51/lib \
+-DMPI_INCLUDE_DIRS=/opt/cray/mpt/7.2.5/gni/mpich2-gnu/51/include \
+-DDEAL_II_WITH_UMFPACK=ON -DDEAL_II_WITH_LAPACK=ON \
+-DLAPACK_DIR=/home/h/hbpzeli4/opt/lapack-3.7.0 \
+-DPETSC_ARCH=x86_64 \
+-DPETSC_DIR=/home/h/hbpzeli4/opt/petsc-3.6.3 \
+-DP4EST_DIR=/home/h/hbpzeli4/opt/p4est-1.1 \
+-DDEAL_II_WITH_THREADS=OFF \
+-DDEAL_II_WITH_MPI=ON \
+-DDEAL_II_WITH_HDF5=OFF \
+-DDEAL_II_WITH_SLEPC=/opt/petsc-3.6.3 \
+-DCMAKE_INSTALL_PREFIX=/home/h/hbpzeli4/opt/deal.II-8.4.1 ..
+
+make
+make install
+
+
+## testing ##
+

@@ -1,0 +1,29 @@
+#!/bin/bash
+
+#FOLDERS=( 0000 0010 0020 0030 0040 0050 0060 0070 0080 0090 )
+FOLDERS=( 0075 )
+
+export LC_NUMERIC=en_US.utf-8
+
+cwd=$(pwd)
+str1=`basename "$cwd"`
+ordner=`dirname "$cwd"`
+
+for i in "${FOLDERS[@]}"
+do 
+  cd $i
+  pwd
+  rm unsort.txt
+  FILES=$(find . -type f -name "step-*.bin" | sort) 
+  anzahl=`find . -type f -name "step-*.bin" | wc -l`
+  counter=1
+  for j in $FILES 
+  do
+   echo "($counter/$anzahl) $i $j"
+   mpirun -np 4 pp_compute_norm_L2_gradient "$j" >> unsort.txt
+   let counter=counter+1
+  done 
+  sort -g unsort.txt > "$ordner/$str1-$i.txt"
+  cd ..
+done
+

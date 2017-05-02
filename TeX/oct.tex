@@ -1,0 +1,166 @@
+%%% Zelimir Marojevic
+
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[german]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[fleqn]{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage[left=2cm,right=2cm,top=2cm,bottom=2cm]{geometry}
+%\usepackage{bbm}
+\newcommand{\iu}{\ensuremath{i}}
+%\newcommand{\iu}{\ensuremath{\mathbbm{i}}}
+%%\newcommand{\rn}{\ensuremath{\mathbbm{R}}}
+%\newcommand{\cn}{\ensuremath{\mathbbm{C}}}
+
+\newcommand{\intT}{\ensuremath{\int_0^T d\tau\,}}
+\newcommand{\intV}{\ensuremath{\int_{\Omega} dV\,}}
+\newcommand{\intTV}{\ensuremath{\int_0^T d\tau\,\int_{\Omega} dV\,}}
+\newcommand{\skalarprodukt}[2]{\left< #1 \vert #2 \right>}
+
+\begin{document}
+
+\begin{align}
+\skalarprodukt{a}{b} := \intV a^* b
+\end{align}
+
+
+definition of the variational derivative
+
+\begin{align}
+\delta_x A h := \frac{d}{d\epsilon} A \left[ x+\epsilon h \right] \vert_{\epsilon=0}
+\end{align}
+
+\section{Hohenester}
+
+\begin{align}
+J = \frac{1}{2} \left(1 - \vert\skalarprodukt{\Psi_d}{\Psi(T)}\vert^2 \right) + \frac{\alpha}{2} \intT \left( \partial_{\tau} \lambda(\tau) \right)^2
+\end{align}
+
+\begin{align}
+L = J + \text{Re} \intT \skalarprodukt{p(\tau)}{\left( \iu \partial_{\tau} + \Delta - V_{\lambda}(\tau) - \gamma \vert \Psi(\tau) \vert^2 \right)\Psi(\tau)}
+\end{align}
+
+$\Psi_d$ ist der gewünscht Zustand, $p(\tau)$ ist der Lagrangemultiplier (hängt auch vom Ort ab), $\lambda(\tau)$ ist die Kontrollfunktion.
+
+Gesucht ist das Minimum von $L$.
+
+Variationsableitungen von $L$ mit der Bedingung, dass diese verschwinden müssen, führen zu folgenden Gleichungen
+
+\begin{subequations}
+\begin{align}
+\iu \partial_t \Psi &= \left( -\Delta + V_{\lambda}(t) + \gamma \vert \Psi \vert^2 \right) \Psi \text{,  } \Psi(0) = \Psi_0 \label{eq:eins} \\
+\iu \partial_t p &= \left( -\Delta + V_{\lambda}(t) + 2 \gamma \vert \Psi \vert^2 \right) p + \gamma \Psi^2 p^* \text{,  } \iu p(T) = \skalarprodukt{\Psi_d}{\Psi(T)} \Psi_d \label{eq:zwei}  \\
+0 &= - \alpha \partial_t^2 \lambda -\text{Re} \skalarprodukt{p}{\partial_{\lambda} V_{\lambda}(t) \Psi(t)} \text{,  } \lambda(0)=c_0 \text{, } \lambda(T)=c_T \label{eq:drei}
+\end{align}
+\end{subequations}
+
+Gleichungen (\ref{eq:eins}), (\ref{eq:zwei}), (\ref{eq:drei}) sind alle erfüllt an einem Minimum von $L$. Ist $\lambda(t)$ unbekannt, dann startet man mit einem Guess der die Randbedingungen  $\lambda(0)=c_0 \text{, } \lambda(T)=c_T$ erfüllt und löst (\ref{eq:eins}) Vorwärts in der Zeit, (\ref{eq:zwei}) Rückwärts in der Zeit und setzt $\Psi$, $p$ und $\lambda$ in (\ref{eq:drei}) ein und stellt fest der Ausdruck ist ja gar nicht 0. 
+
+Die Suchrichtung $d(t)$ zur Minimierung von $J$ wird dann mit folgernder Gleichung berechnet
+
+\begin{align}
+\partial_t^2 d(t) = - \alpha \partial_t^2 \lambda -\text{Re} \skalarprodukt{p}{\partial_{\lambda} V_{\lambda}(t) \Psi(t)} \text{,  } d(0)=0 \text{, } d(T)=0 
+\end{align}
+
+
+\section{Functional}
+
+\begin{align}
+J_1 &= \frac{1}{2} \left( 1 - \intT \frac{\vert\skalarprodukt{\Psi_d}{\Psi(T)}\vert^2}{\Vert \Psi_d \Vert^2} \delta(T-\tau) \right) \\
+J_2 &= \frac{\alpha}{2} \intT \left( \partial_{\tau} \lambda(\tau) \right)^2 \\
+J_3 &= \intT \skalarprodukt{p(\tau)}{\left( \iu \partial_{\tau} + \Delta - V_{\lambda}(\tau) - \gamma \vert \Psi(\tau) \vert^2 \right)\Psi(\tau)} \\
+&= \intT \skalarprodukt{\left( \iu \partial_{\tau} + \Delta - V_{\lambda}(\tau) - \gamma \vert \Psi(\tau) \vert^2 \right)\Psi(\tau)}{p(\tau)}^* \\
+&= \intT \skalarprodukt{\iu \partial_{\tau} \Psi(\tau)}{p(\tau)}^* + \intT \skalarprodukt{\left( \Delta - V_{\lambda}(\tau) - \gamma \vert \Psi(\tau) \vert^2 \right)\Psi(\tau)}{p(\tau)}^* \\
+&= \skalarprodukt{\Psi(\tau)}{p(\tau)}^*\vert_0^T - \intT \skalarprodukt{\Psi(\tau)}{\iu \partial_{\tau} p(\tau)}^* + \intT \skalarprodukt{\left( \Delta - V_{\lambda}(\tau) - \gamma \vert \Psi(\tau) \vert^2 \right)\Psi(\tau)}{p(\tau)}^* \\
+&= \skalarprodukt{\Psi(\tau)}{p(\tau)}^*\vert_0^T - \intT \skalarprodukt{\Psi(\tau)}{\iu \partial_{\tau} p(\tau)}^* + \intT \skalarprodukt{\Psi(\tau)}{\left( \Delta - V_{\lambda}(\tau) - \gamma \vert \Psi(\tau) \vert^2 \right) p(\tau)}^* \\
+&= \skalarprodukt{p(\tau)}{\Psi(\tau)} \vert_0^T - \intT \skalarprodukt{\iu \partial_{\tau} p(\tau)}{\Psi(\tau)} + \intT \skalarprodukt{\left( \Delta - V_{\lambda}(\tau) - \gamma \vert \Psi(\tau) \vert^2 \right) p(\tau)}{\Psi(\tau)} \\
+&= \skalarprodukt{p(\tau)}{\Psi(\tau)} \vert_0^T - \intT \skalarprodukt{\left(\iu \partial_{\tau} + \Delta - V_{\lambda}(\tau) - \gamma \vert \Psi(\tau) \vert^2 \right) p(\tau)}{\Psi(\tau)}
+\end{align}
+
+oder alternativ 
+\begin{align}
+J_{1b} = \intT \intV \Vert \Psi_d - \Psi(\tau) \Vert^2 \delta(T-\tau)
+\end{align}
+
+$\text{Re} z = \frac{1}{2} ( z + z^* )$
+
+\begin{multline}
+\text{Re} J_3 = \frac{1}{2} \skalarprodukt{p(\tau)}{\Psi(\tau)} \vert_0^T + \frac{1}{2} \skalarprodukt{\Psi(\tau)}{p(\tau)} \vert_0^T - \frac{1}{2} \intT \skalarprodukt{\left(\iu \partial_{\tau} + \Delta - V_{\lambda}(\tau) - \gamma \vert \Psi(\tau) \vert^2 \right) p(\tau)}{\Psi(\tau)} - \\ \frac{1}{2} \intT \skalarprodukt{\Psi(\tau)}{\left(\iu \partial_{\tau} + \Delta - V_{\lambda}(\tau) - \gamma \vert \Psi(\tau) \vert^2 \right) p(\tau)}
+\end{multline}
+
+$\alpha$ ist ein Penalty parameter
+
+\begin{equation}
+L = J_1 + J_2 + \text{Re} J_3 
+\end{equation}
+
+
+\section{Ableitung nach $\lambda$}
+
+\begin{align}
+\delta_{\lambda} J_1 h = 0
+\end{align}
+
+\begin{align}
+\delta_{\lambda} J_2 h = \alpha \intT \left( \partial_{\tau} \lambda(\tau) \right) \left( \partial_{\tau} h \right) = -\alpha \intT \left( \partial_{\tau}^2 \lambda(\tau) \right) h
+\end{align}
+
+\begin{align}
+\delta_{\lambda} J_3 h = \intT \skalarprodukt{\partial_{\lambda} V_{\lambda}(\tau) \Psi(\tau) h}{p(\tau)}^*
+\end{align}
+
+\begin{align}
+\delta_{\lambda} J_2 h  + \delta_{\lambda} J_3 h = \alpha \intT \partial_{\tau}^2 \lambda(\tau) h  + \text{Re} \intT \skalarprodukt{\partial_{\lambda} V_{\lambda}(\tau) \Psi(\tau) p(\tau)^* }{h}^*
+\end{align}
+
+Hieraus folgt (\ref{eq:drei})
+
+\section{Ableitung $\Psi$}
+
+\begin{align}
+\delta_{\Psi} J_1 h = \intT \frac{\skalarprodukt{\Psi_d}{\Psi(\tau)}^* \skalarprodukt{\Psi_d}{h}}{\Vert \Psi_d \Vert^2} \delta(T-\tau)
+\end{align}
+
+\begin{align}
+\delta_{\Psi} J_2 h = 0
+\end{align}
+
+\begin{multline}
+\delta_{\Psi} \text{Re} J_3 h = \frac{1}{2} \skalarprodukt{p(\tau)}{h}\vert_0^T -  \frac{1}{2} \intT \skalarprodukt{\left(\iu \partial_{\tau} + \Delta - V_{\lambda}(\tau) - \gamma \vert \Psi(\tau) \vert^2 \right) p(\tau)}{h} - \\  \frac{1}{2} \intT \skalarprodukt{ \gamma  \Psi(\tau) p(\tau)}{\Psi(\tau) h} - \frac{1}{2} \intT \skalarprodukt{\gamma \Psi^2 p(\tau)^*}{h}
+\end{multline}
+
+\begin{align}
+\delta_{\Psi} \text{Re} J_3 h = \frac{1}{2} \skalarprodukt{p(\tau)}{h}\vert_0^T -  \frac{1}{2} \intT \skalarprodukt{\left(\iu \partial_{\tau} + \Delta - V_{\lambda}(\tau) - 2 \gamma \vert \Psi(\tau) \vert^2 \right) p(\tau) - \gamma \Psi^2 p(\tau)^*}{h}
+\end{align}
+
+\begin{align}
+\delta_{\Psi} \text{Re} J_3 h = \frac{1}{2} \skalarprodukt{p(T)}{h} - \frac{1}{2} \intT \skalarprodukt{\left(\iu \partial_{\tau} + \Delta - V_{\lambda}(\tau) - 2 \gamma \vert \Psi(\tau) \vert^2 \right) p(\tau) - \gamma \Psi^2 p(\tau)^*}{h}
+\end{align}
+
+$ \skalarprodukt{p(0)}{h}=0 $ da $\Psi_0$ fest ist
+
+\begin{align}
+\delta_{\Psi} J_1 h + \delta_{\Psi} J_3 h = \frac{\skalarprodukt{\Psi_d}{\Psi(T)}^*}{\Vert \Psi_d \Vert^2} \skalarprodukt{\Psi_d}{h} + \skalarprodukt{p(T)}{h} - \intT \skalarprodukt{\left( \iu \partial_{\tau} + \Delta - V_{\lambda}(\tau) - 2 \gamma \vert \Psi(\tau) \vert^2 \right) p(\tau) - \gamma \Psi^2 p(\tau)^*}{h} 
+\end{align} 
+
+Hieraus folgt (\ref{eq:zwei})
+
+\section{Ableitung $p$}
+
+\begin{align}
+\delta_{p} J_1 h = 0
+\end{align}
+
+\begin{align}
+\delta_{p} J_2 h = 0
+\end{align}
+
+\begin{align}
+\delta_{p} J_3 h = \intT \skalarprodukt{\left( \iu \partial_{\tau} + \Delta - V_{\lambda}(\tau) - \gamma \vert \Psi(\tau) \vert^2 \right)\Psi(\tau)}{h}^*
+\end{align}
+
+Hieraus folgt (\ref{eq:eins})
+
+\end{document}

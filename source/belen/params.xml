@@ -1,0 +1,52 @@
+<!--
+    atus-pro testing - atus-pro testing playgroung
+    Copyright (C) 2017 Želimir Marojević <zelimir.marojevic@gmail.com>
+
+    This file is part of atus-pro testing.
+
+    atus-pro testing is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    atus-pro testing is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with atus-pro testing.  If not, see <http://www.gnu.org/licenses/>.
+-->
+<PARAMETER>
+    <filename>final_UGC1230.bin</filename>
+    <mass_dist>0.01*cosh(y/(0.2 * z_0))^(-2) / (0.2 * z_0) * M_L * 10^(-0.4*((mu_0 + m *10*x) - C))</mass_dist>
+    <mass_dist_z>0.1*cosh(y/(0.2 * z_0))^(-2) / (0.2 * z_0)</mass_dist_z>
+    <guess>exp(-0.5*x^2-0.5*y^2)</guess>
+    <PHYSICS>
+        <QN1>0,0,0</QN1>
+        <gs_1>1,1</gs_1>
+        <omega>0.503929,0.500000,0.500000</omega>
+        <z_0>0.434,0.434</z_0>
+        <M_L>0.45,0.45</M_L>
+        <C>24.8,24.8</C>
+        <mu_0>19.6504,19.6504</mu_0>
+        <m>0.330424,0.330424</m>
+        <xdata>0,0.1238,0.2175,0.3713,0.4951,0.6190,0.7427,0.8665,0.9903,1.1141,1.2379,1.3617,1.4854,1.6092,1.7330,1.8568,1.9806,2.1044,2.2282,2.3519,2.4757,2.5995,2.7233,2.8471,2.9709,3.0947,3.2118,3.3422,3.4660</xdata>
+        <ydata>11.91953,11.51426,11.109013,10.634986,10.1996026,9.750973,9.299773,8.8253,8.33348,7.81826,7.281973,6.724293,6.14753,5.610653,5.0776,4.548386,4.02304,3.510413,3.005173,2.507306,2.019906,1.621546,1.26412,0.947626,0.67216,0.454293,0.284,0.16126,0</ydata>
+    </PHYSICS>
+    <MESH>
+        <xrange>0,20</xrange>
+     	<yrange>-20,20</yrange>
+     	<zrange>-10,10</zrange>
+        <global_refinements>9</global_refinements>
+    </MESH>
+    <ALGORITHM>
+        <ti>1</ti>
+        <NA>10</NA>
+        <NK>10</NK>
+        <dmu>0.100000</dmu>
+        <Ndmu>40</Ndmu>
+        <dt>0.001</dt>
+        <epsilon>1e-5,1e-10</epsilon>
+    </ALGORITHM>
+</PARAMETER>
