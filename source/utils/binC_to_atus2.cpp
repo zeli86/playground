@@ -311,12 +311,9 @@ namespace HelperPrograms
 
     m_Psi.reinit (locally_owned_dofs, locally_relevant_dofs, mpi_communicator);
 
-    vector<bool> mask (dof_handler.get_fe().n_components(), true );
-    
     constraints.clear ();
     constraints.reinit (locally_relevant_dofs);
     DoFTools::make_hanging_node_constraints (dof_handler, constraints);
-    VectorTools::interpolate_boundary_values (dof_handler, 1, ZeroFunction<dim>(), constraints, ComponentMask(mask));
     constraints.close ();
   }
 
@@ -350,13 +347,11 @@ namespace HelperPrograms
     
     setup_system();
 
-    parallel::distributed::SolutionTransfer<dim,LA::MPI::Vector> solution_transfer(dof_handler);
-    solution_transfer.deserialize(m_Psi);
-    
     LA::MPI::Vector tmp;
     tmp.reinit (locally_owned_dofs, mpi_communicator);
-    
-    tmp=m_Psi;
+
+    parallel::distributed::SolutionTransfer<dim,LA::MPI::Vector> solution_transfer(dof_handler);
+    solution_transfer.deserialize(tmp);   
     constraints.distribute(tmp);
     m_Psi=tmp;
   }
