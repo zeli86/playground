@@ -108,14 +108,19 @@ int main( int argc, char *argv[] )
       node.append_child(pugi::node_pcdata).set_value("5,5");
 
       // MESH childs
+#if POTENTIAL==1
       node = mesh_node.append_child("xrange");
-      node.append_child(pugi::node_pcdata).set_value("0,30");
-
+      node.append_child(pugi::node_pcdata).set_value("-10,10");
+#endif 
+#if POTENTIAL==2
+      node = mesh_node.append_child("xrange");
+      node.append_child(pugi::node_pcdata).set_value("0,20");
+#endif 
       node = mesh_node.append_child("yrange");
-      node.append_child(pugi::node_pcdata).set_value("-15,15");
+      node.append_child(pugi::node_pcdata).set_value("-10,10");
 
-      node = mesh_node.append_child("yrange");
-      node.append_child(pugi::node_pcdata).set_value("-15,15");
+      node = mesh_node.append_child("zrange");
+      node.append_child(pugi::node_pcdata).set_value("-10,10");
 
       node = mesh_node.append_child("global_refinements");
       node.append_child(pugi::node_pcdata).set_value("9");
