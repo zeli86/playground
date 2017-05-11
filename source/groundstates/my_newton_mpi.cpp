@@ -764,9 +764,9 @@ namespace BreedSolver
   void MySolver<dim>::save( string filename )
   {
     constraints.distribute(m_Psi_ref);
+    m_workspace_1 = m_Psi_ref;
     parallel::distributed::SolutionTransfer<dim,LA::MPI::Vector> solution_transfer(dof_handler);
-    solution_transfer.prepare_serialization(m_Psi_ref);
-
+    solution_transfer.prepare_serialization(m_workspace_1);
     triangulation.save( filename.c_str() );
   }
   
