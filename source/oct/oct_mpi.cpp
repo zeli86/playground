@@ -78,6 +78,7 @@ namespace LA
 #include <iomanip>
 #include <array>
 
+#include "global.h"
 #include "mpi.h"
 #include "MyParameterHandler.h"
 #include "my_table.h"
@@ -93,21 +94,18 @@ namespace realtime_propagation
   class CPotential : public Function<dim> 
   {
     public:
-      CPotential ( array<array<double,no_time_steps>,no_lam>& lam, const int timeindex, const int sel=0 ) : Function<dim>(), m_lam(lam) 
+      CPotential ( vector<vector<double>>& lam, const int timeindex, const int sel=0 ) : Function<dim>(), m_lam(lam) 
       { 
         m_sel = sel;
         m_timeindex = timeindex;
       }
       
-      ~CPotential()
-      {
-      }
       virtual double value ( const Point<dim> &p, const unsigned component = 0) const;
       
       int m_sel;
       int m_timeindex;
-    protected:
-      array<array<double,no_time_steps>,no_lam>& m_lam;
+
+      vector<vector<double>>& m_lam;
   };
     
   /*************************************************************************************************/
@@ -147,8 +145,9 @@ namespace realtime_propagation
     void output_lambdas( const string& );
     void output_lambdas_grad( const string& );
 
-    array<array<double,no_time_steps>,no_lam> m_all_lambdas;
-    array<array<double,no_time_steps>,no_lam> m_all_lambdas_grad;
+    vector<vector<double>> m_all_lambdas;
+    vector<vector<double>> m_all_lambdas_grad;
+    vector<vector<double>> m_all_lambdas_t;    
   protected:
     void Scalar_product( LA::MPI::Vector&, LA::MPI::Vector&, double&, double& );
 
@@ -201,7 +200,6 @@ namespace realtime_propagation
     
     array<LA::MPI::Vector,no_time_steps> m_all_Psi;
     array<LA::MPI::Vector,no_time_steps> m_all_p;
-    array<array<double,no_time_steps>,no_lam> m_all_lambdas_t;
 
     ConditionalOStream pcout;
     ofstream m_computing_timer_log;
@@ -231,10 +229,13 @@ namespace realtime_propagation
   template <int dim, int no_time_steps, int no_lam>
   MySolver<dim,no_time_steps,no_lam>::MySolver ( const std::string& xmlfilename ) 
     : 
+    m_all_lambdas( no_lam, std::vector<double>(no_time_steps) ),
+    m_all_lambdas_grad( no_lam, std::vector<double>(no_time_steps) ),
+    m_all_lambdas_t( no_lam, std::vector<double>(no_time_steps) ),        
     m_ph(xmlfilename),
     mpi_communicator (MPI_COMM_WORLD),
     triangulation (mpi_communicator, typename Triangulation<dim>::MeshSmoothing(Triangulation<dim>::smoothing_on_refinement|Triangulation<dim>::smoothing_on_coarsening)),
-    fe (FE_Q<dim>(1), 2),
+    fe (FE_Q<dim>(gl_degree_fe), 2),
     dof_handler (triangulation),
     pcout (cout, (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)),
     m_computing_timer_log("benchmark.txt"),
@@ -469,8 +470,7 @@ namespace realtime_propagation
   {
     //TODO: setup m_Psi(0) and m_Psi_d and lambdas
 
-    //load( "psi0.bin" );
-    load( "final.bin" );
+    load( "oct_0.bin" );
 
     double p[] = {0,0,0};
     double pos[] = {0,0,0};
@@ -494,12 +494,15 @@ namespace realtime_propagation
     for( int i=1; i<=100; i++ )
     {
       m_Psi = m_all_Psi[0];
+      pcout << "Step 1" << endl;
       rt_propagtion_forward();
       Expectation_value_momentum( m_Psi, p );
       Expectation_value_position( m_Psi, pos );
       pcout << "p == " << p[0]/m_N << ", " << p[1]/m_N << ", " << p[2]/m_N << endl;
       pcout << "pos == " << pos[0]/m_N << ", " << pos[1]/m_N << ", " << pos[2]/m_N << endl;      
+      pcout << "Step 2" << endl;
       rt_propagtion_backward();
+      pcout << "Step 3" << endl;
       compute_correction();
       double cost = compute_costfunction();
       if(m_root) printf( "cost = %g\n", cost );
@@ -567,7 +570,7 @@ int main ( int argc, char *argv[] )
     const double T=10;
     const double dt=T/(NT-1);    
     
-    realtime_propagation::MySolver<DIMENSION,NT,no_lam> solver("params.xml");
+    realtime_propagation::MySolver<DIMENSION,NT,no_lam> solver("params_one.xml");
     solver.Set_dt(dt);
     realtime_propagation::Setup_initial_lambdas<DIMENSION,NT,no_lam>(solver);    
     solver.run();

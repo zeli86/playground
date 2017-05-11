@@ -202,6 +202,8 @@
   void MySolver<dim,no_time_steps,no_lam>::solve_eq2 ()
   {
     m_computing_timer.enter_section(__func__);
+
+/*  
     SolverControl solver_control (m_sol.size(), 1e-15);
     
     m_sol=0;
@@ -211,5 +213,13 @@
     
     constraints.distribute (m_sol);
     m_Psi = m_sol;
+*/
+    SolverControl solver_control;
+    PETScWrappers::SparseDirectMUMPS solver(solver_control, mpi_communicator);
+    solver.set_symmetric_mode(false);
+    solver.solve(system_matrix, m_sol, system_rhs);
+    constraints.distribute (m_sol);
+    m_Psi = m_sol;
+
     m_computing_timer.exit_section();
   }  

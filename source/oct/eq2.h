@@ -105,30 +105,30 @@
       fe_values.get_function_values(m_workspace, Psi1 );
       fe_values.get_function_values(m_workspace_2, Psi0 );
 
-      for( unsigned int qp=0; qp<n_q_points; qp++ )
+      for( unsigned qp=0; qp<n_q_points; qp++ )
       {
-	JxW = fe_values.JxW(qp);
- 	pot = 0.5*(Potential0.value(fe_values.quadrature_point(qp)) + Potential1.value(fe_values.quadrature_point(qp)));
-	pot += m_gs*(Psi0[qp][0]*Psi0[qp][0] + Psi0[qp][1]*Psi0[qp][1] + Psi1[qp][0]*Psi1[qp][0] + Psi1[qp][1]*Psi1[qp][1]);
+	      JxW = fe_values.JxW(qp);
+ 	      pot = 0.5*(Potential0.value(fe_values.quadrature_point(qp)) + Potential1.value(fe_values.quadrature_point(qp)));
+	      pot += m_gs*(Psi0[qp][0]*Psi0[qp][0] + Psi0[qp][1]*Psi0[qp][1] + Psi1[qp][0]*Psi1[qp][0] + Psi1[qp][1]*Psi1[qp][1]);
 	  
         tmp01 = 0.5*gamdt*(Psi1[qp][0]*Psi1[qp][1]+Psi0[qp][0]*Psi0[qp][1]);
-	tmp02 = 0.5*m_gs*(Psi0[qp][0]*Psi0[qp][0]+Psi1[qp][0]*Psi1[qp][0]-Psi0[qp][1]*Psi0[qp][1]-Psi1[qp][1]*Psi1[qp][1]);
+	      tmp02 = 0.5*m_gs*(Psi0[qp][0]*Psi0[qp][0]+Psi1[qp][0]*Psi1[qp][0]-Psi0[qp][1]*Psi0[qp][1]-Psi1[qp][1]*Psi1[qp][1]);
 	
-	for (unsigned i=0; i<dofs_per_cell; i++ )
+	      for( unsigned i=0; i<dofs_per_cell; i++ )
         {
-          for (unsigned j=0; j<dofs_per_cell; j++ )
+          for( unsigned j=0; j<dofs_per_cell; j++ )
           {
             cell_matrix(i,j) += JxW*((1.0-tmp01)*fe_values[rt].value(i,qp)*fe_values[rt].value(j,qp) - dth*(fe_values[rt].gradient(i,qp)*fe_values[it].gradient(j,qp) + (pot-tmp02)*fe_values[rt].value(i,qp)*fe_values[it].value(j,qp)) + 
 				     (1.0+tmp01)*fe_values[it].value(i,qp)*fe_values[it].value(j,qp) + dth*(fe_values[it].gradient(i,qp)*fe_values[rt].gradient(j,qp) + (pot+tmp02)*fe_values[it].value(i,qp)*fe_values[rt].value(j,qp)));
-	  }
+	        }
           cell_rhs(i) += JxW*((1.0+tmp01)*p[qp][0]*fe_values[rt].value(i,qp) + dth*(p_grad[qp][1]*fe_values[rt].gradient(i,qp) + (pot-tmp02)*p[qp][1]*fe_values[rt].value(i,qp)) + 
 			      (1.0-tmp01)*p[qp][1]*fe_values[it].value(i,qp) - dth*(p_grad[qp][0]*fe_values[it].gradient(i,qp) + (pot+tmp02)*p[qp][0]*fe_values[it].value(i,qp)));
-	}
+	      }
       }
       
-      for (unsigned int i=0; i<dofs_per_cell; ++i)
+      for( unsigned i=0; i<dofs_per_cell; ++i)
       {
-        for (unsigned int j=0; j<dofs_per_cell; ++j) 
+        for( unsigned j=0; j<dofs_per_cell; ++j) 
           system_matrix.add (local_dof_indices[i],local_dof_indices[j], cell_matrix(i,j));
         system_rhs(local_dof_indices[i]) += cell_rhs(i);
       }      
@@ -137,7 +137,6 @@
     VectorTools::interpolate_boundary_values (dof_handler, 0, ZeroFunction<1>(2), boundary_values);
     MatrixTools::apply_boundary_values (boundary_values, system_matrix, sol, system_rhs);
   }  
-
   
   template <int no_time_steps, int no_lam>
   void MySolver<no_time_steps,no_lam>::assemble_system_4_initial_p ( const double a, const double b )
@@ -179,24 +178,24 @@
 
       cell->get_dof_indices (local_dof_indices);
       
-      for( unsigned int qp=0; qp<n_q_points; qp++ )
+      for( unsigned qp=0; qp<n_q_points; qp++ )
       {
-	JxW = fe_values.JxW(qp);
-	for (unsigned int i=0; i<dofs_per_cell; i++ )
-	{
-	  for (unsigned int j=0; j<dofs_per_cell; j++ )
-	  {
+	      JxW = fe_values.JxW(qp);
+        for( unsigned i=0; i<dofs_per_cell; i++ )
+        {
+          for( unsigned  j=0; j<dofs_per_cell; j++ )
+          {
             cell_matrix(i,j) += JxW*(a1*fe_values[rt].value(i,qp)*fe_values[rt].value(j,qp) + b1*fe_values[rt].value(i,qp)*fe_values[it].value(j,qp) + a1*fe_values[it].value(i,qp)*fe_values[it].value(j,qp) - b1*fe_values[it].value(i,qp)*fe_values[rt].value(j,qp)); 
           }
           cell_rhs(i) += JxW* (Psi[qp][0]*fe_values[rt].value(i,qp) + Psi[qp][1]*fe_values[it].value(i,qp));
         }
       }
 
-      for (unsigned int i=0; i<dofs_per_cell; ++i)
+      for( unsigned i=0; i<dofs_per_cell; ++i)
       {
-        for (unsigned int j=0; j<dofs_per_cell; ++j) 
+        for( unsigned j=0; j<dofs_per_cell; ++j) 
           system_matrix.add (local_dof_indices[i],local_dof_indices[j], cell_matrix(i,j));
-	system_rhs(local_dof_indices[i]) = cell_rhs(i);
+	      system_rhs(local_dof_indices[i]) = cell_rhs(i);
       }
     }
     map<types::global_dof_index,double> boundary_values;

@@ -713,7 +713,7 @@ namespace BreedSolver
   void MySolver<dim>::make_grid ()
   {
     m_computing_timer.enter_section(__func__);
-    Point<dim,double> pt1(0,m_ymin); 
+    Point<dim,double> pt1(m_xmin,m_ymin); 
     Point<dim,double> pt2(m_xmax,m_ymax);
     
     GridGenerator::hyper_rectangle(triangulation, pt2, pt1);
@@ -850,7 +850,7 @@ namespace BreedSolver
       Project_gradient();
       m_res = m_sob_grad.l2_norm();
       
-      m_Psi.add( -1e-3, m_sob_grad);
+      m_Psi.add( -1e-2, m_sob_grad);
 
       //compute_mu(m_mu);
       m_N=Particle_Number(m_Psi);

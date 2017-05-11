@@ -93,9 +93,9 @@
           tmp1b = fak8*(sum_imq + 3*sum_req);
           tmp2 = fak4*sum_re*sum_im;
 
-          for (unsigned int i=0; i<dofs_per_cell; i++ )
+          for( unsigned i=0; i<dofs_per_cell; i++ )
           {
-            for (unsigned int j=0; j<dofs_per_cell; j++ )
+            for( unsigned j=0; j<dofs_per_cell; j++ )
             {
               cell_matrix(i,j) += JxW*(1.0-tmp2)*fe_values[rt].value(i,qp)*fe_values[rt].value(j,qp);
               cell_matrix(i,j) += JxW*(1.0+tmp2)*fe_values[it].value(i,qp)*fe_values[it].value(j,qp);
@@ -215,7 +215,7 @@
   void MySolver<dim,no_time_steps,no_lam>::solve_eq1 ()
   {
     m_computing_timer.enter_section(__func__);
-
+/*
     m_sol=0;
     PETScWrappers::PreconditionSOR preconditioner;
     PETScWrappers::PreconditionSOR::AdditionalData data;
@@ -225,6 +225,12 @@
     PETScWrappers::SolverGMRES solver(solver_control, mpi_communicator);
     
     solver.solve(system_matrix, m_sol, system_rhs, preconditioner);
+    constraints.distribute (m_sol);
+*/
+    SolverControl solver_control;
+    PETScWrappers::SparseDirectMUMPS solver(solver_control, mpi_communicator);
+    solver.set_symmetric_mode(false);
+    solver.solve(system_matrix, m_sol, system_rhs);
     constraints.distribute (m_sol);
 
     m_computing_timer.exit_section();
