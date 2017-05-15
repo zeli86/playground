@@ -35,6 +35,9 @@ TARGET_LINK_LIBRARIES( compute_lifetimes ${MPI_CXX_LIBRARIES} myatus ${GSL_LIBRA
 ADD_EXECUTABLE( compute_lin_op compute_lin_op.cpp )
 TARGET_LINK_LIBRARIES( compute_lin_op ${MPI_CXX_LIBRARIES} myatus ${GSL_LIBRARY_1} ${GSL_LIBRARY_2} m ${DEAL_II_LIBRARY} ${PETSC_LIBRARY} )
 
+ADD_EXECUTABLE( compute_inf_norm_atus2_wf compute_inf_norm_atus2_wf.cpp )
+TARGET_LINK_LIBRARIES( compute_inf_norm_atus2_wf ${MPI_CXX_LIBRARIES} myatus ${GSL_LIBRARY_1} ${GSL_LIBRARY_2} m ${DEAL_II_LIBRARY} ${PETSC_LIBRARY} )
+
 ADD_EXECUTABLE( test_ef test_ef.cpp )
 TARGET_LINK_LIBRARIES( test_ef ${MPI_CXX_LIBRARIES} myatus ${GSL_LIBRARY_1} ${GSL_LIBRARY_2} m ${DEAL_II_LIBRARY} ${PETSC_LIBRARY} )
 
