@@ -33,7 +33,7 @@
 
 int main(int argc, char *argv[])
 {
-  std::string filename;
+  std::string filename = argv[1];
   generic_header header = {};
 
   std::ifstream in;
@@ -48,9 +48,9 @@ int main(int argc, char *argv[])
     omp_set_num_threads( no_of_threads );
   }   
 
-  if ( header.bComplex == 0 )
+  if ( header.bComplex == true )
   {
-    const long long N = header.nDimX * header.nDimY * header.nDimZ;
+    const long long N = 2 * header.nDimX * header.nDimY * header.nDimZ;
     double * field = new double[N];
     in.read( reinterpret_cast<char*>(field), N*sizeof(double) );
 
@@ -62,7 +62,8 @@ int main(int argc, char *argv[])
     }
 
     pugi::xml_document doc;
-    if (!doc.load_file("params.xml")) throw;
+    pugi::xml_parse_result result = doc.load_file("info.xml");
+    std::cerr << "Load result: " << result.description() << std::endl; 
         
     double mu = std::stod( doc.child( "INFO" ).child( "MU" ).child_value() );
     
