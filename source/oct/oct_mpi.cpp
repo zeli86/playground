@@ -491,7 +491,7 @@ namespace realtime_propagation
     
     m_all_Psi[0] = m_Psi;
     
-    for( int i=1; i<=100; i++ )
+    for( int i=1; i<=10; i++ )
     {
       m_Psi = m_all_Psi[0];
       pcout << "Step 1" << endl;
