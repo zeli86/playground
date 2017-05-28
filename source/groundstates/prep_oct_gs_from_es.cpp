@@ -805,18 +805,13 @@ namespace BreedSolver
 
     string filename;
 
-    Vector<float> subdomain (triangulation.n_active_cells());
-    for (unsigned int i=0; i<subdomain.size(); ++i)
-      subdomain(i) = triangulation.locally_owned_subdomain();
-
     constraints.distribute(m_Psi);
     m_workspace_1=m_Psi;
 
     DataOut<dim> data_out;
     data_out.attach_dof_handler (dof_handler);
     data_out.add_data_vector (m_workspace_1, "Psi");
-    data_out.add_data_vector (m_error_per_cell, "error per cell");
-    data_out.add_data_vector (subdomain, "subdomain");
+    //data_out.add_data_vector (m_error_per_cell, "error per cell");
     data_out.build_patches ();
 
     filename = path + prefix + "-" + Utilities::int_to_string (m_counter,5) + ".vtu";
