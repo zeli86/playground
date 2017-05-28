@@ -293,8 +293,6 @@ namespace realtime_propagation
     vector<Vector<double>> Psi_t(n_q_points,Vector<double>(2));
     vector<vector<Tensor<1,dim>>> Psi_t_grad(n_q_points, vector<Tensor<1,dim>>(2));
 
-    double JxW, pot=0, tmp1a, tmp1b, tmp2, sum_re, sum_req, sum_im, sum_imq;
-
     const double fak2 = 0.5*m_dt;
     const double fak4 = 0.25*m_gs*m_dt;
     const double fak8 = 0.125*m_gs*m_dt;
@@ -314,16 +312,16 @@ namespace realtime_propagation
 
         for( unsigned qp=0; qp<n_q_points; qp++ )
         {
-          JxW = fe_values.JxW(qp)*fabs(fe_values.quadrature_point(qp)[1]);
-          pot = Potential.value(fe_values.quadrature_point(qp));
+          double JxW = fe_values.JxW(qp)*fabs(fe_values.quadrature_point(qp)[1]);
+          double pot = Potential.value(fe_values.quadrature_point(qp));
 
-          sum_re = Psi[qp][0]+Psi_t[qp][0];
-          sum_im = Psi[qp][1]+Psi_t[qp][1];
-          sum_req = sum_re*sum_re;
-          sum_imq = sum_im*sum_im;
-          tmp1a = fak8*(sum_req + 3*sum_imq);
-          tmp1b = fak8*(sum_imq + 3*sum_req);
-          tmp2 = fak4*sum_re*sum_im;
+          double sum_re = Psi[qp][0]+Psi_t[qp][0];
+          double sum_im = Psi[qp][1]+Psi_t[qp][1];
+          double sum_req = sum_re*sum_re;
+          double sum_imq = sum_im*sum_im;
+          double tmp1a = fak8*(sum_req + 3*sum_imq);
+          double tmp1b = fak8*(sum_imq + 3*sum_req);
+          double tmp2 = fak4*sum_re*sum_im;
 
           for( unsigned i=0; i<dofs_per_cell; i++ )
           {
@@ -427,18 +425,16 @@ namespace realtime_propagation
   {
     m_computing_timer.enter_section(__func__);
     SolverControl solver_control;
-    m_sol=0;
 
     PETScWrappers::SparseDirectMUMPS solver(solver_control, mpi_communicator);
     solver.set_symmetric_mode(false);
-    solver.solve(system_matrix, m_sol, system_rhs);
+    solver.solve(system_matrix, newton_update, system_rhs);
 
-    constraints.distribute (m_sol);
-    m_workspace = m_sol;
+    constraints.distribute (newton_update);
     m_computing_timer.exit_section();
   }
   */
-
+  
   template <int dim>
   void MySolver<dim>::solve ()
   {
@@ -532,7 +528,7 @@ namespace realtime_propagation
       pcout << "vis == " << vis << endl;
       pcout << "d == " << d << endl;
 
-      //output_vtu();
+      output_vtu();
       save( "step-" + to_string(m_t) + ".bin" );
     }
   }
