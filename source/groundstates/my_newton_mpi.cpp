@@ -114,6 +114,7 @@ namespace BreedSolver
     void run ();
     void run2 ();
     void run2b ();
+    void run2c ();
 
     double m_T[2];
     double m_W[5];
@@ -131,6 +132,7 @@ namespace BreedSolver
     void do_superposition();
     void estimate_error( double& );
     void Interpolate_R_to_C( string );
+    void compute_tangent();
 
     double Particle_Number( LA::MPI::Vector& );
     
@@ -534,7 +536,7 @@ namespace BreedSolver
     {
       output_results("","final");
       save(  path + "final.bin" );
-      Interpolate_R_to_C( path + "C-final.bin" );
+      Interpolate_R_to_C( path + "Cfinal.bin" );
       
       dump_info_xml();
     }
@@ -674,6 +676,90 @@ namespace BreedSolver
     }
     if( m_root ) m_results.dump_2_file( "results.csv" );
   }
+
+  template <int dim>
+  void MySolver<dim>::run2c ()
+  {
+    string path;
+    char shellcmd[255];
+    double T, N, W;
+    int status;
+
+    make_grid_custom();
+    setup_system();
+
+    CEigenfunctions<dim> Ef1( m_QN1, m_omega );
+    CEigenfunctions<dim> Ef2( m_QN2, m_omega );
+    
+    VectorTools::interpolate (dof_handler, Ef1, m_Psi_1 );
+
+    m_Psi_1 *= 1.0/sqrt(Particle_Number(m_Psi_1));
+    m_Psi_2 = 0; 
+
+    compute_E_lin( m_Psi_1, T, N, W );
+    double m_mu_0 = T/N;
+    m_mu[0] = ceil(10.0*m_mu_0)/10.0 + m_gs[0]/fabs(m_gs[0])*m_dmu;
+
+    pcout << "T = " << T << endl;
+    pcout << "N = " << N << endl;
+    pcout << "W = " << W << endl;
+    pcout << "m_mu = " << m_mu[0] << endl;
+
+    output_guess();
+    m_results.clear();
+    for( int i=0; i<m_Ndmu; i++ )
+    {
+      sprintf( shellcmd, "mkdir %.4d/", i );
+      if( m_root ) system(shellcmd);
+      sprintf( shellcmd, "%.4d/", i );
+      path = shellcmd;
+
+      // nehari
+      // sqrt((m_mu[0]*N-T)/(m_gs[0]*W)); if m_Psi_2 == 0
+      // sqrt((m_mu[0]*N-T)/(4.0*m_gs[0]*W)); if m_Psi_2 == m_Psi_1
+      m_ti = sqrt((m_mu[0]*N-T)/(m_gs[0]*W));
+      
+      status = DoIter(path);
+
+      columns& cols = m_results.new_line();
+      m_results.insert( cols, MyTable::MU, m_mu[0] );
+      m_results.insert( cols, MyTable::GS, m_gs[0] );
+      m_results.insert( cols, MyTable::PARTICLE_NUMBER, m_N[0] );
+      m_results.insert( cols, MyTable::COUNTER, double(m_counter) );
+      m_results.insert( cols, MyTable::STATUS, double(status) );
+
+      if( status == Status::SUCCESS )
+      {
+        save( path + "final.bin" );
+        save_one( path + "final_one.bin" );
+        vector<double> newgs = {m_gs[0]*m_N[0]}; 
+        m_ph.Set_Physics( "gs_1", newgs );
+        m_ph.SaveXMLFile( path + "params_one.xml" );
+        newgs[0] = m_gs[0];
+        m_ph.Set_Physics( "gs_1", newgs );
+        estimate_error(m_final_error);
+        output_results(path,"final");
+        dump_info_xml(path);
+        Interpolate_R_to_C( path + "Cfinal.bin" );
+
+        compute_tangent();
+        m_Psi_1 = m_Psi_ref;
+        m_Psi_1.sadd( 0.1, m_workspace_ng );
+        m_Psi_2 = 0;
+      }
+      else if( status == Status::SLOW_CONV )
+      {
+        m_Psi_2 = 0; 
+      }
+      else
+      {
+        break;
+      }
+      m_mu[0] += m_gs[0]/fabs(m_gs[0])*m_dmu;
+      compute_E_lin( m_Psi_ref, T, N, W ); // TODO: kommentier mich aus, falls ich kein nehari reset habe
+    }
+    if( m_root ) m_results.dump_2_file( "results.csv" );
+  }  
   
   template<int dim>
   void MySolver<dim>::Interpolate_R_to_C( string filename )
@@ -760,6 +846,78 @@ namespace BreedSolver
     m_computing_timer.exit_section();    
   }  
 
+  template <int dim>
+  void MySolver<dim>::compute_tangent ()
+  {
+    m_computing_timer.enter_section(__func__);
+
+    CPotential<dim> Potential( m_omega );
+    const QGauss<dim> quadrature_formula(fe.degree+1);
+    
+    constraints.distribute(m_Psi_ref);
+    m_workspace_1=m_Psi_ref;
+    
+    m_system_matrix=0;
+    m_system_rhs=0;
+
+    FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_gradients|update_JxW_values|update_quadrature_points);
+
+    const unsigned dofs_per_cell = fe.dofs_per_cell;
+    const unsigned n_q_points = quadrature_formula.size();
+
+    Vector<double> cell_rhs (dofs_per_cell);
+    FullMatrix<double> cell_matrix (dofs_per_cell, dofs_per_cell);
+
+    vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
+    vector<Tensor<1, dim> > Psi_grad(n_q_points);
+    vector<double> Psi(n_q_points);
+
+    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
+    for ( ; cell!=endc; ++cell )
+    {
+      if( cell->is_locally_owned() )
+      {
+        cell_rhs = 0;
+        cell_matrix = 0;
+
+        fe_values.reinit (cell);
+        fe_values.get_function_values(m_workspace_1, Psi);
+        fe_values.get_function_gradients(m_workspace_1, Psi_grad);
+
+        for ( unsigned qp=0; qp<n_q_points; qp++ )
+        {
+          double JxW = fe_values.JxW(qp);
+          double pq = m_gs[0]*Psi[qp]*Psi[qp];
+          double Q2 = Potential.value(fe_values.quadrature_point(qp)) - m_mu[0] + 3.0*pq;
+
+          for ( unsigned i=0; i<dofs_per_cell; ++i )
+          {
+            cell_rhs(i) -= JxW*Psi[qp]*fe_values.shape_value(i,qp);
+            for ( unsigned j=0; j<dofs_per_cell; ++j )
+              cell_matrix(i,j) += JxW*(fe_values.shape_grad(i,qp)*fe_values.shape_grad(j,qp) + Q2*fe_values.shape_value(i,qp)*fe_values.shape_value(j,qp));
+          }
+        }
+        cell->get_dof_indices (local_dof_indices);
+        constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, m_system_matrix, m_system_rhs);
+      }
+    }
+    m_system_rhs.compress(VectorOperation::add);
+    m_system_matrix.compress(VectorOperation::add);
+
+    pcout << "Solving..." << endl;
+    SolverControl solver_control;
+    PETScWrappers::SparseDirectMUMPS solver(solver_control, mpi_communicator);
+    solver.set_symmetric_mode(false);
+    solver.solve(m_system_matrix, m_workspace_ng, m_system_rhs);
+    constraints.distribute (m_workspace_ng);    
+
+    double N = Particle_Number(m_workspace_ng);
+    m_workspace_ng = 1/sqrt(1+N); // +/- 1 / sqrt(1+N) 
+
+    m_computing_timer.exit_section();
+
+  }  
+
   template<int dim>
   void MySolver<dim>::save( string filename )
   {
@@ -774,8 +932,9 @@ namespace BreedSolver
   void MySolver<dim>::save_one( string filename )
   {
     double tmp = Particle_Number(m_Psi_ref);
-    m_workspace_1=m_Psi_ref;
-    m_workspace_1*=sqrt(1/tmp);
+    m_workspace_ng=m_Psi_ref;
+    m_workspace_ng*=sqrt(1/tmp);
+    m_workspace_1 = m_workspace_ng; 
     parallel::distributed::SolutionTransfer<dim,LA::MPI::Vector> solution_transfer(dof_handler);
     solution_transfer.prepare_serialization(m_workspace_1);
     triangulation.save( filename.c_str() );
@@ -790,7 +949,7 @@ int main ( int argc, char *argv[] )
   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv );
   {
     BreedSolver::MySolver<DIMENSION> solver("params.xml");
-    solver.run2b ();
+    solver.run2c ();
   }
 return EXIT_SUCCESS;
 }
