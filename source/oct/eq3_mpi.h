@@ -26,7 +26,7 @@
     
     for( int s=0; s<no_lam; s++ )
       for( int i=1; i<no_time_steps-1; i++ )
-	m_all_lambdas_grad[s][i] = (m_all_lambdas[s][i-1]+m_all_lambdas[s][i+1]-2*m_all_lambdas[s][i])*fak;
+      	m_all_lambdas_grad[s][i] = (m_all_lambdas[s][i-1]+m_all_lambdas[s][i+1]-2*m_all_lambdas[s][i])*fak;
       
     for( int s=0; s<no_lam; s++ )
     {
@@ -52,7 +52,7 @@
     
     double retval, tmp1;
 
-   CPotential<dim,no_time_steps,no_lam> Potential ( m_all_lambdas, 0 );
+   CPotential<dim,no_time_steps,no_lam> Potential ( m_all_lambdas, m_omega, 0 );
     
     // loop over all lambdas
     for( int s=0; s<no_lam; s++ )
@@ -60,33 +60,32 @@
       // loop over all time steps
       for( int ti=1; ti<no_time_steps; ti++ )
       {
-	Potential.m_sel = 1+s;
-	Potential.m_timeindex = ti;
+	      Potential.m_sel = 1+s;
+	      Potential.m_timeindex = ti;
 
-	tmp1=0.0;
+	      tmp1=0.0;
 	
-	m_workspace = m_all_Psi[ti];
-	m_workspace_2 = m_all_p[ti];
+        m_workspace = m_all_Psi[ti];
+        m_workspace_2 = m_all_p[ti];
 	
-	typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-	for (; cell!=endc; ++cell)
-	{
-	  if( cell->is_locally_owned() )
-	  {
-	    fe_values.reinit (cell);
-	    fe_values.get_function_values( m_workspace, Psi );
-	    fe_values.get_function_values( m_workspace_2, p );
-	    
-	    for (unsigned int q_point = 0; q_point < n_q_points; ++q_point)
-	    {
-	      tmp1 += fe_values.JxW(q_point)*Potential.value(fe_values.quadrature_point(q_point))*(Psi[q_point][0]*p[q_point][0]+Psi[q_point][1]*p[q_point][1]);
-// 	      tmp1 += fe_values.JxW(q_point)*Potential.value(fe_values.quadrature_point(q_point))*(Psi[q_point][0]*p[q_point][1]-Psi[q_point][1]*p[q_point][0]);
-	    }
-	  }
-	}
-	MPI_Allreduce( &tmp1, &retval, 1, MPI_DOUBLE, MPI_SUM, mpi_communicator);
-	//m_all_lambdas_grad[s][ti] += retval;
-	m_all_lambdas_grad[s][ti] = retval;
+        typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
+        for (; cell!=endc; ++cell)
+        {
+          if( cell->is_locally_owned() )
+          {
+            fe_values.reinit (cell);
+            fe_values.get_function_values( m_workspace, Psi );
+            fe_values.get_function_values( m_workspace_2, p );
+            
+            for ( unsigned qp=0; qp<n_q_points; qp++ )
+            {
+              tmp1 += fe_values.JxW(qp) * Potential.value(fe_values.quadrature_point(qp)) * (Psi[qp][0]*p[qp][0]+Psi[qp][1]*p[qp][1]);
+            }
+          }
+        }
+        MPI_Allreduce( &tmp1, &retval, 1, MPI_DOUBLE, MPI_SUM, mpi_communicator);
+        m_all_lambdas_grad[s][ti] += retval;
+        //m_all_lambdas_grad[s][ti] = retval;
       }
     }    
 
@@ -112,14 +111,14 @@
     {
       for( int ti=1; ti<no_time_steps-1; ti++ )
       {
-	tmp_vec[ti] = m_dt*m_dt*m_all_lambdas_grad[s][ti];
+	      tmp_vec[ti] = m_dt*m_dt*m_all_lambdas_grad[s][ti];
       }
 
       lap.apply_lu_factorization(tmp_vec,false);
 
       for( int ti=0; ti<no_time_steps; ti++ )
       {
-	m_all_lambdas_grad[s][ti] = tmp_vec[ti];
+	      m_all_lambdas_grad[s][ti] = tmp_vec[ti];
       }
     }
 
@@ -127,7 +126,7 @@
     {
       for( int ti=1; ti<no_time_steps-1; ti++ )
       {
-	m_all_lambdas[s][ti] += 0.1*m_all_lambdas_grad[s][ti];
+	      m_all_lambdas[s][ti] += 0.1*m_all_lambdas_grad[s][ti];
       }
     }
     

@@ -72,9 +72,9 @@
             fe_values.get_function_values( m_workspace, Psi );
             fe_values.get_function_values( m_workspace_2, p );
             
-            for (unsigned int q_point = 0; q_point < n_q_points; ++q_point)
+            for ( unsigned qp=0; qp<n_q_points; qp++ )
             {
-              retval += fe_values.JxW(q_point)*Potential.value(fe_values.quadrature_point(q_point))*(Psi[q_point][0]*p[q_point][0]+Psi[q_point][1]*p[q_point][1]);
+              retval += fe_values.JxW(qp) * Potential.value(fe_values.quadrature_point(qp)) * (Psi[qp][0]*p[qp][0]+Psi[qp][1]*p[qp][1]);
             }
           }
         }

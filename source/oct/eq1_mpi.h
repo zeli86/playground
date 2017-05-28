@@ -40,8 +40,8 @@
     m_computing_timer.enter_section(__func__);
     const QGauss<dim> quadrature_formula(fe.degree+1);
 
-    CPotential<dim,no_time_steps,no_lam> Potential0 ( m_all_lambdas, m_timeindex );
-    CPotential<dim,no_time_steps,no_lam> Potential1 ( m_all_lambdas, m_timeindex+1 );
+    CPotential<dim,no_time_steps,no_lam> Potential0 ( m_all_lambdas, m_omega, m_timeindex );
+    CPotential<dim,no_time_steps,no_lam> Potential1 ( m_all_lambdas, m_omega, m_timeindex+1 );
 
     const FEValuesExtractors::Scalar rt (0);
     const FEValuesExtractors::Scalar it (1);
@@ -120,8 +120,8 @@
     m_computing_timer.enter_section(__func__);
     const QGauss<dim> quadrature_formula(fe.degree+1);
 
-    CPotential<dim,no_time_steps,no_lam> Potential0 ( m_all_lambdas, m_timeindex );
-    CPotential<dim,no_time_steps,no_lam> Potential1 ( m_all_lambdas, m_timeindex+1 );
+    CPotential<dim,no_time_steps,no_lam> Potential0 ( m_all_lambdas, m_omega, m_timeindex );
+    CPotential<dim,no_time_steps,no_lam> Potential1 ( m_all_lambdas, m_omega, m_timeindex+1 );
 
     const FEValuesExtractors::Scalar rt (0);
     const FEValuesExtractors::Scalar it (1);

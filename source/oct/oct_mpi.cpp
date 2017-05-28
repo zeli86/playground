@@ -19,6 +19,7 @@
 //
 
 /** Želimir Marojević
+ * DANGER Will Robinson!
  */
 
 #include <deal.II/lac/generic_linear_algebra.h>
@@ -94,10 +95,10 @@ namespace realtime_propagation
   class CPotential : public Function<dim> 
   {
     public:
-      CPotential ( vector<vector<double>>& lam, const int timeindex, const int sel=0 ) : Function<dim>(), m_lam(lam) 
+      CPotential ( vector<vector<double>>& lam, vector<double>& omega, const int timeindex, const int sel=0 ) : Function<dim>(), m_lam(lam), m_omega(omega)
       { 
         m_sel = sel;
-        m_timeindex = timeindex;
+        m_timeindex = timeindex;        
       }
       
       virtual double value ( const Point<dim> &p, const unsigned component = 0) const;
@@ -106,6 +107,7 @@ namespace realtime_propagation
       int m_timeindex;
 
       vector<vector<double>>& m_lam;
+      vector<double>& m_omega;
   };
     
   /*************************************************************************************************/
@@ -114,16 +116,23 @@ namespace realtime_propagation
   {
     double retval;
 
-    const double lam_1 = m_lam[0][m_timeindex];
+    const double lam1 = m_lam[0][m_timeindex];
+    const double lam2 = m_lam[1][m_timeindex];
+    const double lam3 = m_lam[2][m_timeindex];
+    const double lam4 = m_lam[3][m_timeindex];
     
     switch(m_sel) 
     {
-      case 0: retval =  0.5*(lam_1-p(0))*(lam_1-p(0)) + 0.5*p(1)*p(1); //0.5*(lam_1-p(0))*(lam_1-p(0)) + 0.5*p(1)*p(1);
+      case 0: retval =  m_omega[0]*m_omega[0]*p(0)*p(0) +  m_omega[1]*m_omega[1]*p(1)*p(1) + lam1 * sin(lam2*p(0)) + lam3 * sin(lam4*p(1));
       break;
-      case 1: retval = lam_1-p(0);
+      case 1: retval =  sin(lam2*p(0));
         break;
-//       case 2: retval = p(1)*p(1);
-//         break;
+      case 2: retval =  lam1 * cos(lam2*p(0));
+        break;
+      case 3: retval =  sin(lam4*p(1));
+        break;
+      case 4: retval =  lam3 * cos(lam4*p(1));
+        break;
     };
   return retval;
   }
@@ -382,28 +391,31 @@ namespace realtime_propagation
   }  
 
   template <int dim, int no_time_steps, int no_lam>
-  void MySolver<dim,no_time_steps,no_lam>::output_results ( string path ) 
+  void MySolver<dim,no_time_steps,no_lam>::output_results ( std::string filename ) 
   {
     m_computing_timer.enter_section(__func__);
-/*
-    string filename;
-    
-    vector<std::string> solution_names;
 
-    Vector<float> subdomain (triangulation.n_active_cells());
-    for (unsigned int i=0; i<subdomain.size(); ++i)
-      subdomain(i) = triangulation.locally_owned_subdomain();
+    vector<std::string> solution_names;
+    vector<std::string> solution_names_2;
+
+    constraints.distribute(m_Psi_d);
+    constraints.distribute(m_all_Psi[no_time_steps-1]);
+    m_workspace = m_Psi_d;
+    m_workspace_2 = m_all_Psi[no_time_steps-1];
 
     DataOut<dim> data_out;
     data_out.attach_dof_handler (dof_handler);
-    solution_names.push_back ("Re Psi");
-    solution_names.push_back ("Im Psi");    
-    data_out.add_data_vector (subdomain, "subdomain");
+    solution_names.push_back ("Re_Psi_d");
+    solution_names.push_back ("Im_Psi_d");    
+    data_out.add_data_vector (m_workspace, solution_names );
+    solution_names_2.push_back ("Re_Psi_f");
+    solution_names_2.push_back ("Im_Psi_f");    
+    data_out.add_data_vector (m_workspace_2, solution_names_2 );
     data_out.build_patches ();
     
-    filename = path + "solution-" + to_string(m_timeindex) + ".vtu";
+    //filename = path + "solution-" + to_string(m_timeindex) + ".vtu";
     data_out.write_vtu_in_parallel ( filename.c_str(), mpi_communicator );
-*/
+
     m_computing_timer.exit_section();
   }   
 
@@ -417,8 +429,8 @@ namespace realtime_propagation
     
     DataOut<dim> data_out;
     data_out.attach_dof_handler (dof_handler);
-    solution_names.push_back ("Re vec");
-    solution_names.push_back ("Im vec");    
+    solution_names.push_back ("Re_vec");
+    solution_names.push_back ("Im_vec");    
     data_out.add_data_vector (m_workspace, solution_names);
     data_out.build_patches ();
     data_out.write_vtu_in_parallel ( filename.c_str(), mpi_communicator );
@@ -443,10 +455,16 @@ namespace realtime_propagation
     setup_system();
     
     vector<LA::MPI::Vector*> x_system (2);
-    x_system[0] = &m_Psi;
-    x_system[1] = &m_Psi_d;
+    x_system[0] = &m_sol;
+    x_system[1] = &system_rhs;
     parallel::distributed::SolutionTransfer<dim,LA::MPI::Vector> solution_transfer(dof_handler);
     solution_transfer.deserialize(x_system);
+
+    constraints.distribute(m_sol);
+    constraints.distribute(system_rhs);
+
+    m_Psi = m_sol;
+    m_Psi_d = system_rhs;
   }    
 
   template <int dim, int no_time_steps, int no_lam>
@@ -476,7 +494,7 @@ namespace realtime_propagation
     double pos[] = {0,0,0};
     double var[] = {0,0,0};
 
-    output_results("");
+    output_results("bla.vtu");
 
     m_N = Particle_Number(m_Psi);
     pcout << "N == " << m_N << endl;
@@ -504,10 +522,13 @@ namespace realtime_propagation
       rt_propagtion_backward();
       pcout << "Step 3" << endl;
       compute_correction();
-      double cost = compute_costfunction();
-      if(m_root) printf( "cost = %g\n", cost );
+      //double cost = compute_costfunction();
+      //if(m_root) printf( "cost = %g\n", cost );
       if(m_root) output_lambdas( "lambda_" + to_string(i) + ".txt" );
     }
+
+    output_results( "oct_final.vtu");
+
   }
   
   template <int dim, int no_time_steps, int no_lam>
@@ -547,13 +568,14 @@ namespace realtime_propagation
     const double T=(no_time_steps-1)*dt;
     const double alp=6.0/T;
     const double x0=-3.0;
+    const double dom=M_PI/T;
     
     for( int s=0; s<no_lam; s++ )
       for( int i=0; i<no_time_steps; i++ )
       {
         double t = double(i)*dt;
-        solver.m_all_lambdas[s][i] = t*alp+x0;
-        //solver.m_all_lambdas[s][i] = 3*sin(0.523598775598*t);
+        //solver.m_all_lambdas[s][i] = 0; // t*alp+x0;
+        solver.m_all_lambdas[s][i] = -sin(2*dom*t);
       }
   }  
 } // end of namespace 
@@ -565,9 +587,9 @@ int main ( int argc, char *argv[] )
 
   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv);
   {
-    const int no_lam=1;
-    const int NT = 101;
-    const double T=10;
+    const int no_lam=4;
+    const int NT = 31;
+    const double T=3;
     const double dt=T/(NT-1);    
     
     realtime_propagation::MySolver<DIMENSION,NT,no_lam> solver("params_one.xml");
