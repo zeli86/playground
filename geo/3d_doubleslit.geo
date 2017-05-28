@@ -1164,3 +1164,28 @@ Physical Surface(2) = {7,15,14,13,12,60,59,58,57,57,106,109,112,61,66,67,108,111
 
 Mesh.CharacteristicLengthMin = 5;
 Mesh.CharacteristicLengthMax = 5;
+
+//+
+//Recombine Surface {1:12};
+
+//+
+Transfinite Line {1, 10, 11, 12, 88, 77, 49, 50, 48, 39, 87, 78} = 10 Using Progression 1;
+Transfinite Surface {1,16,125,140,114,105};
+Recombine Surface {1,16,125,140,114,105};
+Transfinite Volume {1};
+
+//+
+Transfinite Line {101, 112, 111, 201, 212, 173, 174, 202, 172, 211, 110, 163} = 10 Using Progression 1;
+Transfinite Surface {7,26,174,155,112,103};
+Recombine Surface {7,26,174,155,112,103};
+Transfinite Volume {3};
+//+
+Transfinite Line {178, 169, 167, 208, 205, 107, 116, 105, 206, 207, 168, 106} = 10 Using Progression 1;
+Transfinite Surface {12,30,67,76,170,159};
+Recombine Surface {12,30,67,76,170,159};
+Transfinite Volume {15};
+//+
+Transfinite Line {54, 43, 45, 44, 83, 82, 6, 16, 5, 7, 84, 81} = 10 Using Progression 1;
+Transfinite Surface {5,20,129,144,78,69};
+Recombine Surface {5,20,129,144,78,69};
+Transfinite Volume {13};
