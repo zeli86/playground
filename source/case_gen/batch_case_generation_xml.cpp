@@ -37,8 +37,8 @@ using namespace std;
 
 const long N1[] = {4,4,4};
 const long NA = 10000;
-const long Ndmu = 40;
-const double dmu = .1;
+const long Ndmu = 200;
+const double dmu = .049;
 double omega[] = {0.5, 0.5, 0.5};
 
 int main( int argc, char *argv[] )
