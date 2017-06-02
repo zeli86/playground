@@ -141,6 +141,7 @@ namespace BreedSolver
     void compute_E_lin( LA::MPI::Vector&, double&, double&, double& );
 
     void output_results ( string, string = "step" );
+    void output_vector ( LA::MPI::Vector&, string );
     void output_guess ();
 
     parallel::distributed::Triangulation<dim> triangulation;
@@ -387,6 +388,23 @@ namespace BreedSolver
 
     m_computing_timer.exit_section();    
   }
+
+  template <int dim>
+  void MySolver<dim>::output_vector ( LA::MPI::Vector& vec, string filename )
+  {
+    m_computing_timer.enter_section(__func__);
+
+    constraints.distribute(vec);
+    m_workspace_1=vec;
+
+    DataOut<dim> data_out;
+    data_out.attach_dof_handler (dof_handler);
+    data_out.add_data_vector (m_workspace_1, "vec");
+    data_out.build_patches ();
+    data_out.write_vtu_in_parallel (filename.c_str(), mpi_communicator);
+
+    m_computing_timer.exit_section();    
+  }  
 
   template <int dim>
   int MySolver<dim>::DoIter ( string path )
@@ -743,6 +761,7 @@ namespace BreedSolver
         Interpolate_R_to_C( path + "Cfinal.bin" );
 
         compute_tangent();
+        output_vector( m_workspace_ng, "tangent.vtu"  );
         m_Psi_1 = m_Psi_ref;
         m_Psi_1.sadd( 0.1, m_workspace_ng );
         m_Psi_2 = 0;
@@ -887,12 +906,11 @@ namespace BreedSolver
         for ( unsigned qp=0; qp<n_q_points; qp++ )
         {
           double JxW = fe_values.JxW(qp);
-          double pq = m_gs[0]*Psi[qp]*Psi[qp];
-          double Q2 = Potential.value(fe_values.quadrature_point(qp)) - m_mu[0] + 3.0*pq;
+          double Q2 = Potential.value(fe_values.quadrature_point(qp)) - m_mu[0] + 3.0*m_gs[0]*Psi[qp]*Psi[qp];
 
           for ( unsigned i=0; i<dofs_per_cell; ++i )
           {
-            cell_rhs(i) -= JxW*Psi[qp]*fe_values.shape_value(i,qp);
+            cell_rhs(i) += JxW*Psi[qp]*fe_values.shape_value(i,qp);
             for ( unsigned j=0; j<dofs_per_cell; ++j )
               cell_matrix(i,j) += JxW*(fe_values.shape_grad(i,qp)*fe_values.shape_grad(j,qp) + Q2*fe_values.shape_value(i,qp)*fe_values.shape_value(j,qp));
           }
@@ -912,7 +930,7 @@ namespace BreedSolver
     constraints.distribute (m_workspace_ng);    
 
     double N = Particle_Number(m_workspace_ng);
-    m_workspace_ng = 1/sqrt(1+N); // +/- 1 / sqrt(1+N) 
+    m_workspace_ng *= 1/sqrt(1+N); // +/- 1 / sqrt(1+N) 
 
     m_computing_timer.exit_section();
 

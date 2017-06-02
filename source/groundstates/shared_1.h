@@ -167,8 +167,8 @@
 
     FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_gradients|update_JxW_values|update_quadrature_points);
 
-    const unsigned int dofs_per_cell = fe.dofs_per_cell;
-    const unsigned int n_q_points    = quadrature_formula.size();
+    const unsigned dofs_per_cell = fe.dofs_per_cell;
+    const unsigned n_q_points    = quadrature_formula.size();
 
     Vector<double> cell_rhs (dofs_per_cell);
 

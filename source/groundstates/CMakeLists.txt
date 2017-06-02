@@ -14,6 +14,9 @@ TARGET_LINK_LIBRARIES( my_solver ${MPI_CXX_LIBRARIES} myatus ${GSL_LIBRARY_1} ${
 ADD_EXECUTABLE( prep_oct_gs prep_oct_gs_from_es.cpp )
 TARGET_LINK_LIBRARIES( prep_oct_gs ${MPI_CXX_LIBRARIES} myatus ${GSL_LIBRARY_1} ${GSL_LIBRARY_2} m ${DEAL_II_LIBRARY} ${PETSC_LIBRARY} )
 
+ADD_EXECUTABLE( testcmplx testcmplx.cpp )
+TARGET_LINK_LIBRARIES( testcmplx ${MPI_CXX_LIBRARIES} myatus ${GSL_LIBRARY_1} ${GSL_LIBRARY_2} m ${DEAL_II_LIBRARY} ${PETSC_LIBRARY} )
+
 #ADD_EXECUTABLE( breed_4_oct_mpi breed_4_oct_mpi.cpp )
 #TARGET_LINK_LIBRARIES( breed_4_oct_mpi ${MPI_CXX_LIBRARIES} myatus ${GSL_LIBRARY_1} ${GSL_LIBRARY_2} m ${DEAL_II_LIBRARY} ${PETSC_LIBRARY} )
 
