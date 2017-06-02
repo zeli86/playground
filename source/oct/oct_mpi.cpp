@@ -176,7 +176,7 @@ namespace realtime_propagation
     
     void assemble_rhs(); // required by DoIter
     void assemble_system(); // required by DoIter
-    void assemble_system_4_initial_p( const double, const double );
+    void assemble_system_4_initial_p( );
     void assemble_system_2(); // required by rt_propagtion_backward
     void assemble_system_3(); // required by compute_initial_p
     
@@ -205,6 +205,7 @@ namespace realtime_propagation
     LA::MPI::Vector m_Psi_t; // Psi trial
     LA::MPI::Vector m_workspace;
     LA::MPI::Vector m_workspace_2;
+    LA::MPI::Vector m_workspace_ng;
     Vector<double> m_error_per_cell;
     
     array<LA::MPI::Vector,no_time_steps> m_all_Psi;
@@ -367,6 +368,7 @@ namespace realtime_propagation
     system_rhs.reinit(locally_owned_dofs, mpi_communicator); // no ghosts
     m_workspace.reinit (locally_owned_dofs, locally_relevant_dofs, mpi_communicator);
     m_workspace_2.reinit (locally_owned_dofs, locally_relevant_dofs, mpi_communicator);
+    m_workspace_ng.reinit (locally_owned_dofs, mpi_communicator);
     m_Psi.reinit (locally_owned_dofs, locally_relevant_dofs, mpi_communicator);
     m_Psi_d.reinit (locally_owned_dofs, locally_relevant_dofs, mpi_communicator);
     m_Psi_t.reinit (locally_owned_dofs, locally_relevant_dofs, mpi_communicator);
@@ -509,7 +511,7 @@ namespace realtime_propagation
     
     m_all_Psi[0] = m_Psi;
     
-    for( int i=1; i<=10; i++ )
+    for( int i=1; i<=30; i++ )
     {
       m_Psi = m_all_Psi[0];
       pcout << "Step 1" << endl;
@@ -570,13 +572,19 @@ namespace realtime_propagation
     const double x0=-3.0;
     const double dom=M_PI/T;
     
-    for( int s=0; s<no_lam; s++ )
-      for( int i=0; i<no_time_steps; i++ )
-      {
-        double t = double(i)*dt;
-        //solver.m_all_lambdas[s][i] = 0; // t*alp+x0;
-        solver.m_all_lambdas[s][i] = -sin(2*dom*t);
-      }
+    for( int i=0; i<no_time_steps; i++ )
+    {
+      double t = double(i)*dt;
+      solver.m_all_lambdas[0][i] = 1; 
+      solver.m_all_lambdas[2][i] = 1; 
+    }
+
+    for( int i=0; i<no_time_steps; i++ )
+    {
+      double t = double(i)*dt;
+      solver.m_all_lambdas[1][i] = 0;
+      solver.m_all_lambdas[3][i] = -sin(2*dom*t);
+    }
   }  
 } // end of namespace 
 

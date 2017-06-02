@@ -44,6 +44,23 @@
   {
     m_computing_timer.enter_section(__func__);
 
+    assemble_system_4_initial_p( );
+
+    system_matrix.vmult( m_sol, system_rhs);
+    constraints.distribute(m_sol);
+
+    m_all_p[no_time_steps-1] = m_sol;
+    output_vec( "init_p.vtu", m_Psi );
+    
+    m_computing_timer.exit_section();
+  }
+
+/*
+  template <int dim, int no_time_steps, int no_lam>
+  void MySolver<dim,no_time_steps,no_lam>::compute_initial_p()
+  {
+    m_computing_timer.enter_section(__func__);
+
     double re, im;
     Scalar_product( m_Psi_d, m_Psi, re, im );
     m_overlap = sqrt(re*re+im*im);
@@ -56,7 +73,7 @@
     
     m_computing_timer.exit_section();
   }
-
+*/
   template <int dim, int no_time_steps, int no_lam>
   void MySolver<dim,no_time_steps,no_lam>::assemble_system_2 ()
   {
@@ -86,11 +103,9 @@
     vector<Vector<double>> p(n_q_points,Vector<double>(2));
     vector<vector<Tensor<1,dim>>> p_grad(n_q_points, vector<Tensor<1,dim>>(2));
  
-    double JxW, pot, tmp01, tmp02;
-    
     const double dt = -m_dt; //reversed time direction
     const double dth = 0.5*dt;
-    const double gamdt = m_gs*dt;
+    const double gamdth = m_gs*dth;
     
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
     for (; cell!=endc; ++cell)
@@ -101,30 +116,30 @@
         cell_rhs = 0;
 
         fe_values.reinit (cell);
-        fe_values.get_function_values(m_Psi, p);
-        fe_values.get_function_gradients(m_Psi, p_grad);
+        fe_values.get_function_values(m_workspace_2, p);
+        fe_values.get_function_gradients(m_workspace_2, p_grad);
 
         fe_values.get_function_values(m_workspace, Psi1 );
         fe_values.get_function_values(m_workspace_2, Psi0 );
 
         for( unsigned int qp=0; qp<n_q_points; qp++ )
         {
-          JxW = fe_values.JxW(qp);
-          pot = 0.5*(Potential0.value(fe_values.quadrature_point(qp)) + Potential1.value(fe_values.quadrature_point(qp)));
-          pot += m_gs*(Psi0[qp][0]*Psi0[qp][0] + Psi0[qp][1]*Psi0[qp][1] + Psi1[qp][0]*Psi1[qp][0] + Psi1[qp][1]*Psi1[qp][1]);
-  
-          tmp01 = 0.5*gamdt*(Psi1[qp][0]*Psi1[qp][1]+Psi0[qp][0]*Psi0[qp][1]);
-          tmp02 = 0.5*m_gs*(Psi0[qp][0]*Psi0[qp][0]+Psi1[qp][0]*Psi1[qp][0]-Psi0[qp][1]*Psi0[qp][1]-Psi1[qp][1]*Psi1[qp][1]);
+          double JxW = fe_values.JxW(qp);
+          double alpha = 0.5 * m_gs * ((Psi0[qp][0]*Psi0[qp][0] - Psi0[qp][1]*Psi0[qp][1]) + (Psi1[qp][0]*Psi1[qp][0] - Psi1[qp][1]*Psi1[qp][1])); 
+          double beta = gamdth * (Psi0[qp][0]*Psi0[qp][1] + Psi1[qp][0]*Psi1[qp][1]);
+
+          double pot = 0.5*(Potential0.value(fe_values.quadrature_point(qp)) + Potential1.value(fe_values.quadrature_point(qp))) 
+                     + m_gs*(Psi0[qp][0]*Psi0[qp][0] + Psi0[qp][1]*Psi0[qp][1] + Psi1[qp][0]*Psi1[qp][0] + Psi1[qp][1]*Psi1[qp][1]) + alpha;
   
           for (unsigned i=0; i<dofs_per_cell; i++ )
           {
             for (unsigned j=0; j<dofs_per_cell; j++ )
             {
-              cell_matrix(i,j) += JxW*((1.0-tmp01)*fe_values[rt].value(i,qp)*fe_values[rt].value(j,qp) - dth*(fe_values[rt].gradient(i,qp)*fe_values[it].gradient(j,qp) + (pot-tmp02)*fe_values[rt].value(i,qp)*fe_values[it].value(j,qp)) + 
-                                       (1.0+tmp01)*fe_values[it].value(i,qp)*fe_values[it].value(j,qp) + dth*(fe_values[it].gradient(i,qp)*fe_values[rt].gradient(j,qp) + (pot+tmp02)*fe_values[it].value(i,qp)*fe_values[rt].value(j,qp)));
+              cell_matrix(i,j) += JxW*((1.0-beta) * fe_values[rt].value(i,qp)*fe_values[rt].value(j,qp) - dth * (fe_values[rt].gradient(i,qp)*fe_values[it].gradient(j,qp) + pot*fe_values[rt].value(i,qp)*fe_values[it].value(j,qp)) 
+                                      +(1.0-beta) * fe_values[it].value(i,qp)*fe_values[it].value(j,qp) + dth * (fe_values[it].gradient(i,qp)*fe_values[rt].gradient(j,qp) + pot*fe_values[it].value(i,qp)*fe_values[rt].value(j,qp)));
             }
-            cell_rhs(i) += JxW*((1.0+tmp01)*p[qp][0]*fe_values[rt].value(i,qp) + dth*(p_grad[qp][1]*fe_values[rt].gradient(i,qp) + (pot-tmp02)*p[qp][1]*fe_values[rt].value(i,qp)) + 
-                                (1.0-tmp01)*p[qp][1]*fe_values[it].value(i,qp) - dth*(p_grad[qp][0]*fe_values[it].gradient(i,qp) + (pot+tmp02)*p[qp][0]*fe_values[it].value(i,qp)));
+            cell_rhs(i) += JxW*((1.0+beta)*p[qp][0]*fe_values[rt].value(i,qp) + dth * (p_grad[qp][1]*fe_values[it].gradient(i,qp) + pot*p[qp][1]*fe_values[it].value(i,qp)) 
+                               +(1.0+beta)*p[qp][1]*fe_values[it].value(i,qp) - dth * (p_grad[qp][0]*fe_values[rt].gradient(i,qp) + pot*p[qp][0]*fe_values[rt].value(i,qp)));
           }
         }
         cell->get_dof_indices (local_dof_indices);
@@ -136,6 +151,7 @@
     m_computing_timer.exit_section();
   }
 
+/*
   template <int dim, int no_time_steps, int no_lam>
   void MySolver<dim,no_time_steps,no_lam>::assemble_system_4_initial_p ( const double a, const double b )
   {
@@ -197,13 +213,72 @@
     system_rhs.compress(VectorOperation::add);
     m_computing_timer.exit_section();    
   }
+*/
+
+  template <int dim, int no_time_steps, int no_lam>
+  void MySolver<dim,no_time_steps,no_lam>::assemble_system_4_initial_p ()
+  {
+    m_computing_timer.enter_section(__func__);
+    const QGauss<dim> quadrature_formula(fe.degree+1);
+
+    const FEValuesExtractors::Scalar rt (0);
+    const FEValuesExtractors::Scalar it (1);
+
+    system_matrix = 0;
+    system_rhs = 0;
+
+    FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_gradients|update_quadrature_points|update_JxW_values);
+
+    const unsigned dofs_per_cell = fe.dofs_per_cell;
+    const unsigned n_q_points = quadrature_formula.size();
+
+    FullMatrix<double> cell_matrix (dofs_per_cell, dofs_per_cell);
+    Vector<double> cell_rhs (dofs_per_cell);
+
+    vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
+    vector<Vector<double>> Psi(n_q_points,Vector<double>(2));
+ 
+    m_workspace_ng = m_Psi;
+    m_workspace_ng -= m_Psi_d;
+    m_Psi = m_workspace_ng;
+    
+    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
+    for (; cell!=endc; ++cell)
+    {
+      if( cell->is_locally_owned() )
+      {
+        cell_matrix = 0;
+        cell_rhs = 0;
+
+        fe_values.reinit (cell);
+        fe_values.get_function_values(m_Psi, Psi);
+
+        for( unsigned qp=0; qp<n_q_points; qp++ )
+        {
+          //double JxW = fe_values.JxW(qp);
+          for ( unsigned i=0; i<dofs_per_cell; i++ )
+          {
+            for ( unsigned j=0; j<dofs_per_cell; j++ )
+            {
+               cell_matrix(i,j) += ( fe_values[rt].value(i,qp)*fe_values[it].value(j,qp) - fe_values[it].value(i,qp)*fe_values[rt].value(j,qp)); 
+            }
+            cell_rhs(i) += (Psi[qp][0]*fe_values[rt].value(i,qp) + Psi[qp][1]*fe_values[it].value(i,qp));
+          }
+        }        
+        cell->get_dof_indices (local_dof_indices);
+        constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, system_matrix, system_rhs);
+      }
+    }
+    system_matrix.compress(VectorOperation::add);
+    system_rhs.compress(VectorOperation::add);
+    m_computing_timer.exit_section();    
+  }
 
   template <int dim, int no_time_steps, int no_lam>
   void MySolver<dim,no_time_steps,no_lam>::solve_eq2 ()
   {
     m_computing_timer.enter_section(__func__);
 
-/*  
     SolverControl solver_control (m_sol.size(), 1e-15);
     
     m_sol=0;
@@ -213,13 +288,13 @@
     
     constraints.distribute (m_sol);
     m_Psi = m_sol;
-*/
+/*
     SolverControl solver_control;
     PETScWrappers::SparseDirectMUMPS solver(solver_control, mpi_communicator);
     solver.set_symmetric_mode(false);
     solver.solve(system_matrix, m_sol, system_rhs);
     constraints.distribute (m_sol);
     m_Psi = m_sol;
-
+*/
     m_computing_timer.exit_section();
   }  

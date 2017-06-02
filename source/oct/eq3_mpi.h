@@ -39,7 +39,7 @@
   template <int dim, int no_time_steps, int no_lam>
   void MySolver<dim,no_time_steps,no_lam>::compute_correction()
   {
-    compute_all_lambdas_tt();
+    //compute_all_lambdas_tt();
 
     m_computing_timer.enter_section(__func__);
     
@@ -84,8 +84,10 @@
           }
         }
         MPI_Allreduce( &tmp1, &retval, 1, MPI_DOUBLE, MPI_SUM, mpi_communicator);
-        m_all_lambdas_grad[s][ti] += retval;
-        //m_all_lambdas_grad[s][ti] = retval;
+        //m_all_lambdas_grad[s][ti] += retval;
+        m_all_lambdas_grad[s][ti] = retval;
+
+        printf( "%d %d %g\n", s, ti, retval );
       }
     }    
 
@@ -126,7 +128,7 @@
     {
       for( int ti=1; ti<no_time_steps-1; ti++ )
       {
-	      m_all_lambdas[s][ti] += 0.1*m_all_lambdas_grad[s][ti];
+	      m_all_lambdas[s][ti] -= 0.1*m_all_lambdas_grad[s][ti];
       }
     }
     
