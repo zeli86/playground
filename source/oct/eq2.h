@@ -43,16 +43,9 @@
   template <int no_time_steps, int no_lam>
   void MySolver<no_time_steps,no_lam>::compute_initial_p()
   {
-    double re, im;
-    Scalar_product( m_Psi_d, m_Psi, re, im );
-    
-    m_overlap = sqrt(re*re+im*im);
-    printf( "overlap = %g\n", m_overlap );
-    
-    assemble_system_4_initial_p( im, -re );
-    solve_eq1();
-    m_Psi=sol;
-
+    assemble_system_4_initial_p();
+    solve();
+    m_all_p[no_time_steps-1] = m_Psi;    
 //      output_vec( "init_p.gnuplot", m_Psi );
   }
 
@@ -72,8 +65,8 @@
 
     FEValues<1> fe_values (fe, quadrature_formula, update_values|update_gradients|update_quadrature_points|update_JxW_values);
 
-    const unsigned int dofs_per_cell = fe.dofs_per_cell;
-    const unsigned int n_q_points    = quadrature_formula.size();
+    const unsigned dofs_per_cell = fe.dofs_per_cell;
+    const unsigned n_q_points = quadrature_formula.size();
 
     FullMatrix<double> cell_matrix (dofs_per_cell, dofs_per_cell);
     Vector<double> cell_rhs (dofs_per_cell);
@@ -139,7 +132,7 @@
   }  
   
   template <int no_time_steps, int no_lam>
-  void MySolver<no_time_steps,no_lam>::assemble_system_4_initial_p ( const double a, const double b )
+  void MySolver<no_time_steps,no_lam>::assemble_system_4_initial_p ()
   {
     const QGauss<1> quadrature_formula(fe.degree+1);
 
@@ -149,10 +142,10 @@
     system_matrix = 0;
     system_rhs = 0;
 
-    FEValues<1> fe_values (fe, quadrature_formula, update_values|update_gradients|update_quadrature_points|update_JxW_values);
+    FEValues<1> fe_values (fe, quadrature_formula, update_values|update_quadrature_points|update_JxW_values);
 
-    const unsigned int dofs_per_cell = fe.dofs_per_cell;
-    const unsigned int n_q_points    = quadrature_formula.size();
+    const unsigned dofs_per_cell = fe.dofs_per_cell;
+    const unsigned n_q_points = quadrature_formula.size();
 
     FullMatrix<double> cell_matrix (dofs_per_cell, dofs_per_cell);
     Vector<double> cell_rhs (dofs_per_cell);
@@ -160,12 +153,7 @@
     vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
     vector<Vector<double>> Psi(n_q_points,Vector<double>(2));
  
-    m_Psi = m_Psi_d;
-    
-    double JxW;
-    
-    double a1 = a/(a*a+b*b);
-    double b1 = b/(a*a+b*b);
+    m_Psi -= m_Psi_d;
     
     DoFHandler<1>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
     for (; cell!=endc; ++cell)
@@ -180,14 +168,14 @@
       
       for( unsigned qp=0; qp<n_q_points; qp++ )
       {
-	      JxW = fe_values.JxW(qp);
+	      double JxW = fe_values.JxW(qp);
         for( unsigned i=0; i<dofs_per_cell; i++ )
         {
           for( unsigned  j=0; j<dofs_per_cell; j++ )
           {
-            cell_matrix(i,j) += JxW*(a1*fe_values[rt].value(i,qp)*fe_values[rt].value(j,qp) + b1*fe_values[rt].value(i,qp)*fe_values[it].value(j,qp) + a1*fe_values[it].value(i,qp)*fe_values[it].value(j,qp) - b1*fe_values[it].value(i,qp)*fe_values[rt].value(j,qp)); 
+            cell_matrix(i,j) += JxW*(fe_values[rt].value(i,qp)*fe_values[rt].value(j,qp) + fe_values[it].value(i,qp)*fe_values[it].value(j,qp)); 
           }
-          cell_rhs(i) += JxW* (Psi[qp][0]*fe_values[rt].value(i,qp) + Psi[qp][1]*fe_values[it].value(i,qp));
+          cell_rhs(i) += JxW*(Psi[qp][1]*fe_values[rt].value(i,qp) - Psi[qp][0]*fe_values[it].value(i,qp));
         }
       }
 

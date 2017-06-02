@@ -107,7 +107,6 @@ namespace realtime_propagation
     
   protected:
     void make_grid();
-    void set_im_to_zero();
     void setup_system( const bool );
     void assemble_system();
     void assemble_rhs();

@@ -201,8 +201,6 @@ namespace realtime_propagation
     dof_handler.clear ();
   }
 
-  #include "utils_complex.h"
-
   template<int dim>
   double MySolver<dim>::Particle_Number( LA::MPI::Vector& vec )
   {
@@ -212,7 +210,7 @@ namespace realtime_propagation
     const QGauss<dim> quadrature_formula(fe.degree+1);
     FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_JxW_values);
 
-    const unsigned int n_q_points = quadrature_formula.size();
+    const unsigned n_q_points = quadrature_formula.size();
     vector<Vector<double>> vec_vals(n_q_points,Vector<double>(2));
 
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
@@ -222,7 +220,7 @@ namespace realtime_propagation
       {
         fe_values.reinit (cell);
         fe_values.get_function_values( vec, vec_vals );
-        for( unsigned  qp=0; qp<n_q_points; qp++ )
+        for( unsigned qp=0; qp<n_q_points; qp++ )
          tmp1 += fe_values.JxW(qp)*(vec_vals[qp][0]*vec_vals[qp][0]+vec_vals[qp][1]*vec_vals[qp][1]);
       }
     }
@@ -393,22 +391,14 @@ namespace realtime_propagation
   {
     m_computing_timer.enter_section(__func__);
     string filename;
-    ComputeIntensity<dim> intensities;
-    ComputePhase<dim> phase;
     
     vector<std::string> solution_names;
-
-    Vector<float> subdomain (triangulation.n_active_cells());
-    for (unsigned int i=0; i<subdomain.size(); ++i)
-      subdomain(i) = triangulation.locally_owned_subdomain();
+    solution_names.push_back ("Re_Psi");
+    solution_names.push_back ("Im_Psi");    
 
     DataOut<dim> data_out;
     data_out.attach_dof_handler (dof_handler);
-    solution_names.push_back ("Re Psi");
-    solution_names.push_back ("Im Psi");    
-    data_out.add_data_vector (m_Psi, solution_names);
-    data_out.add_data_vector (m_Psi , intensities);
-    data_out.add_data_vector (subdomain, "subdomain");
+    data_out.add_data_vector ( m_Psi, solution_names );
     data_out.build_patches ();
     
     filename = path + "solution-" + to_string(m_t) + ".vtu";
@@ -435,7 +425,9 @@ namespace realtime_propagation
     setup_system();
 
     parallel::distributed::SolutionTransfer<dim,LA::MPI::Vector> solution_transfer(dof_handler);
-    solution_transfer.deserialize(m_Psi);
+    solution_transfer.deserialize(system_rhs);
+
+    m_Psi = system_rhs;
   }    
 
   template<int dim> 
@@ -474,8 +466,8 @@ namespace realtime_propagation
 
     FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_gradients|update_quadrature_points|update_JxW_values);
 
-    const unsigned int dofs_per_cell = fe.dofs_per_cell;
-    const unsigned int n_q_points    = quadrature_formula.size();
+    const unsigned dofs_per_cell = fe.dofs_per_cell;
+    const unsigned n_q_points = quadrature_formula.size();
 
     FullMatrix<double> cell_matrix (dofs_per_cell, dofs_per_cell);
     Vector<double> cell_rhs (dofs_per_cell);
@@ -484,8 +476,6 @@ namespace realtime_propagation
     vector<Vector<double>> Psi(n_q_points,Vector<double>(2));
     vector<vector<Tensor<1,dim>>> Psi_grad(n_q_points, vector<Tensor<1,dim>>(2));
  
-    double JxW, pot=0;
-    
     const double dth = 0.5*dt;
 
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
@@ -502,8 +492,8 @@ namespace realtime_propagation
 
         for( unsigned qp=0; qp<n_q_points; qp++ )
         {
-          JxW = fe_values.JxW(qp);
-          pot = Potential.value(fe_values.quadrature_point(qp));
+          double JxW = fe_values.JxW(qp);
+          double pot = Potential.value(fe_values.quadrature_point(qp));
           for( unsigned i=0; i<dofs_per_cell; i++ )
           {
             for( unsigned j=0; j<dofs_per_cell; j++ )
@@ -539,7 +529,7 @@ namespace realtime_propagation
     FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_gradients|update_quadrature_points|update_JxW_values);
 
     const unsigned dofs_per_cell = fe.dofs_per_cell;
-    const unsigned n_q_points    = quadrature_formula.size();
+    const unsigned n_q_points = quadrature_formula.size();
 
     FullMatrix<double> cell_matrix (dofs_per_cell, dofs_per_cell);
     Vector<double> cell_rhs (dofs_per_cell);
@@ -547,7 +537,7 @@ namespace realtime_propagation
     vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
     vector<Vector<double>> Psi(n_q_points,Vector<double>(2));
  
-    double JxW, n, re, im, a1, b1;
+    double JxW, a, b, c, d, n;
 
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
     for( ; cell!=endc; cell++ )
@@ -563,17 +553,18 @@ namespace realtime_propagation
         for( unsigned qp=0; qp<n_q_points; qp++ )
         {
           JxW = fe_values.JxW(qp);
-          n = Psi[qp][0]*Psi[qp][0] + Psi[qp][1]*Psi[qp][1];
-          sincos( -dt*n, &im, &re );
-          a1 = re/(re*re+im*im);
-          b1 = im/(re*re+im*im);
+          a = Psi[qp][0];
+          b = Psi[qp][1];
+          n = m_gs * (a*a + b*b);
+          sincos( -dt*n, &d, &c );
+
           for( unsigned i=0; i<dofs_per_cell; i++ )
           {
             for( unsigned j=0; j<dofs_per_cell; j++ )
             {
-              cell_matrix(i,j) += JxW*(a1*fe_values[rt].value(i,qp)*fe_values[rt].value(j,qp) + b1*fe_values[rt].value(i,qp)*fe_values[it].value(j,qp) + a1*fe_values[it].value(i,qp)*fe_values[it].value(j,qp) - b1*fe_values[it].value(i,qp)*fe_values[rt].value(j,qp)); 
+              cell_matrix(i,j) += JxW*(fe_values[rt].value(i,qp)*fe_values[rt].value(j,qp) + fe_values[it].value(i,qp)*fe_values[it].value(j,qp)); 
             }
-            cell_rhs(i) += JxW* (Psi[qp][0]*fe_values[rt].value(i,qp) + Psi[qp][1]*fe_values[it].value(i,qp));
+            cell_rhs(i) += JxW* ((a*c-b*d)*fe_values[rt].value(i,qp) + (a*d+b*c)*Psi[qp][1]*fe_values[it].value(i,qp));
           }
         }
         cell->get_dof_indices (local_dof_indices);
@@ -646,7 +637,7 @@ namespace realtime_propagation
       Do_Lin_Step( m_dth );
       for( unsigned j=2; j<=m_NK; j++ )
       {
-	Do_NL_Step();
+	      Do_NL_Step();
         Do_Lin_Step( m_dt );
       }
       Do_NL_Step();

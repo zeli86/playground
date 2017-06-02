@@ -271,41 +271,9 @@
     setup_system(true);
 
     parallel::distributed::SolutionTransfer<dim,LA::MPI::Vector> solution_transfer(dof_handler);
-    solution_transfer.deserialize(m_Psi);
-    
-    set_im_to_zero();
+    solution_transfer.deserialize(system_rhs);
+
+    m_Psi = system_rhs;
   }    
 
-  template<int dim>
-  void MySolver<dim>::set_im_to_zero ()
-  {
-    m_computing_timer.enter_section(__func__);
-    
-    //printf( "dof_handler.get_fe().n_components() = %d\n", dof_handler.get_fe().n_components() );
-    
-    vector<bool> selected_dofs ( dof_handler.n_locally_owned_dofs() );
-    vector<bool> mask (dof_handler.get_fe().n_components(), false);
-    
-    mask[1] = true;
-    DoFTools::extract_dofs (dof_handler, ComponentMask(mask), selected_dofs);
-
-    vector<types::global_dof_index> indices(dof_handler.n_locally_owned_dofs());
-    locally_owned_dofs.fill_index_vector ( indices );
-    
-
-    for( unsigned int i=0; i<indices.size(); i++ )
-    {
-      if( selected_dofs[i] == true )
-      {
-        m_Psi[indices[i]] = 0.0;
-      }
-    }
-    m_Psi.compress(VectorOperation::insert);
-
-    system_rhs=m_Psi;
-    constraints.distribute(system_rhs);
-    m_Psi=system_rhs;
-
-    m_computing_timer.exit_section();
-  }  
   

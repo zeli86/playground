@@ -193,16 +193,6 @@
     SparseDirectUMFPACK A_direct;
     A_direct.initialize(system_matrix);
     A_direct.vmult (sol, system_rhs);
-    
-//     SolverControl solver_control (sol.size(), 1e-15);
-//     
-//     sol=0;
-//     PETScWrappers::SolverGMRES solver (solver_control, mpi_communicator);
-//     PETScWrappers::PreconditionSOR preconditioner(system_matrix);
-//     solver.solve (system_matrix, sol, system_rhs, preconditioner);
-//     
-//     constraints.distribute (sol);
-//     m_Psi = sol;
   }
   
   template <int no_time_steps, int no_lam>

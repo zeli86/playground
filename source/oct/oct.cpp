@@ -162,13 +162,12 @@ namespace realtime_propagation
     
     void assemble_rhs(); // required by DoIter
     void assemble_system(); // required by DoIter
-    void assemble_system_4_initial_p( const double, const double );
+    void assemble_system_4_initial_p();
     void assemble_system_2(); // required by rt_propagtion_backward
     void assemble_system_3(); // required by compute_initial_p
     
     void solve();
     void solve_eq1();
-    void solve_eq2();
     void output_results ( string );
     void output_vec ( string, Vector<double>& );
 
