@@ -34,7 +34,7 @@ namespace LA
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/lac/solver_cg.h>
 #include <deal.II/lac/constraint_matrix.h>
-#include <deal.II/lac/compressed_simple_sparsity_pattern.h>
+#include <deal.II/lac/dynamic_sparsity_pattern.h>
 
 #include <deal.II/lac/petsc_parallel_sparse_matrix.h>
 #include <deal.II/lac/petsc_parallel_vector.h>
@@ -269,10 +269,10 @@ namespace realtime_propagation
     VectorTools::interpolate_boundary_values (dof_handler, 0, ZeroFunction<dim>(2), constraints);
     constraints.close ();
 
-    CompressedSimpleSparsityPattern csp (locally_relevant_dofs);
-    DoFTools::make_sparsity_pattern (dof_handler, csp, constraints, false);
-    SparsityTools::distribute_sparsity_pattern (csp, dof_handler.n_locally_owned_dofs_per_processor(), mpi_communicator, locally_relevant_dofs);
-    system_matrix.reinit (locally_owned_dofs, locally_owned_dofs, csp, mpi_communicator);
+    DynamicSparsityPattern dsp (locally_relevant_dofs);
+    DoFTools::make_sparsity_pattern (dof_handler, dsp, constraints, false);
+    SparsityTools::distribute_sparsity_pattern (dsp, dof_handler.n_locally_owned_dofs_per_processor(), mpi_communicator, locally_relevant_dofs);
+    system_matrix.reinit (locally_owned_dofs, locally_owned_dofs, dsp, mpi_communicator);
 
     m_computing_timer.exit_section();
   }  
