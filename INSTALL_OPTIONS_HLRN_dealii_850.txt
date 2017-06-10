@@ -1,0 +1,105 @@
+
+## GSL ##
+
+./configure --prefix=/home/h/niitcaju/opt/gsl-2.3
+make CFLAGS="-march=native -O3" 
+make install
+
+## LAPACK ##
+
+wget http://www.netlib.org/lapack/lapack-3.7.0.tgz
+
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_Fortran_FLAGS_RELEASE="-march=native -fpic -O3" -DCMAKE_INSTALL_PREFIX=/home/h/niitcaju/opt/lapack-3.7.0 -DBUILD_SHARED_LIBS=ON ..
+make -j 12
+make install
+
+## p4est ##
+export CC=cc \
+export CXX=CC \
+export FC=ftn
+export F77=ftn 
+
+wget http://p4est.github.io/release/p4est-1.1.tar.gz
+
+./configure --prefix=/home/h/niitcaju/opt/p4est-1.1 --enable-mpi --enable-shared --disable-vtk-binary --without-blas
+make FFLAGS="-O3 -march=native -dynamic" CFLAGS="-O3 -march=native -dynamic"
+make install
+
+## PETSc ##
+
+wget http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.7.6.tar.gz
+wget http://www.netlib.org/scalapack/scalapack-2.0.2.tgz
+wget http://ftp.mcs.anl.gov/pub/petsc/externalpackages/MUMPS_5.0.2-p2.tar.gz
+wget https://github.com/LLNL/hypre/archive/v2.11.1.tar.gz
+wget http://ftp.mcs.anl.gov/pub/petsc/externalpackages/fblaslapack-3.4.2.tar.gz
+wget http://ftp.mcs.anl.gov/pub/petsc/externalpackages/scotch_6.0.4-p1.tar.gz
+
+export PETSC_ARCH=x86_64 	
+export CRAYPE_LINK_TYPE=dynamic
+./configure FC=ftn F77=ftn CC=cc CXX=CC --prefix=/home/h/niitcaju/opt/petsc-3.7.6 --with-shared-libraries --with-x=0 --with-debugging=0 --with-mpi=1 --download-hypre=v2.11.1.tar.gz --download-fblaslapack=fblaslapack-3.4.2.tar.gz --download-scalapack=scalapack-2.0.2.tgz --download-mumps=MUMPS_5.0.2-p2.tar.gz --download-ptscotch=scotch_6.0.4-p1.tar.gz
+make PETSC_DIR=/home/h/niitcaju/tmp/petsc-3.6.3 PETSC_ARCH=x86_64 all
+make PETSC_DIR=/home/h/niitcaju/tmp/petsc-3.6.3 PETSC_ARCH=x86_64 install
+
+## Trilinos
+
+wget http://trilinos.csbsju.edu/download/files/trilinos-12.10.1-Source.tar.gz
+
+cmake                                            \
+    -DTrilinos_ENABLE_Amesos=ON                      \
+    -DTrilinos_ENABLE_Epetra=ON                      \
+    -DTrilinos_ENABLE_Ifpack=ON                      \
+    -DTrilinos_ENABLE_AztecOO=ON                     \
+    -DTrilinos_ENABLE_Sacado=ON                      \
+    -DTrilinos_ENABLE_Teuchos=ON                     \
+    -DTrilinos_ENABLE_MueLu=ON                       \
+    -DTrilinos_ENABLE_ML=ON                          \
+    -DTrilinos_VERBOSE_CONFIGURE=OFF                 \
+    -DTPL_ENABLE_MPI=ON                              \
+    -DBUILD_SHARED_LIBS=ON                           \
+    -DCMAKE_VERBOSE_MAKEFILE=OFF                     \
+    -DCMAKE_BUILD_TYPE=RELEASE                       \
+    -DCMAKE_INSTALL_PREFIX:PATH=/home/h/niitcaju/opt/trilinos-12.10.1 \
+    -DBLAS_LIBRARY_DIRS=/home/h/niitcaju/opt/lapack-3.7.0/lib64 \
+    -DLAPACK_LIBRARY_DIRS=/home/h/niitcaju/opt/lapack-3.7.0/lib64 \    
+    ../
+
+## deal.II ##
+
+export CRAYPE_LINK_TYPE=dynamic
+
+comment lines 26 to 33 in 
+dealii/cmake/configure/configure_1_mpi.cmake 
+
+cmake  \
+-DDEAL_II_WITH_UMFPACK=ON -DDEAL_II_WITH_LAPACK=ON \
+-DMPI_CXX_LIBRARIES=/opt/cray/mpt/7.5.1/gni/mpich-gnu/5.1/lib/libmpichcxx.so \
+-DMPI_INCLUDE_DIRS=/opt/cray/mpt/7.5.1/gni/mpich-gnu/5.1/include \
+-DLAPACK_DIR=/home/h/niitcaju/opt/lapack-3.7.0 \
+-DPETSC_ARCH=x86_64 \
+-DPETSC_DIR=/home/h/niitcaju/opt/petsc-3.7.6 \
+-DP4EST_DIR=/home/h/niitcaju/opt/p4est-1.1 \
+-DTRILINOS_DIR=/home/h/niitcaju/opt/trilinos-12.10.1 \
+-DDEAL_II_WITH_THREADS=OFF \
+-DDEAL_II_WITH_MPI=ON \
+-DDEAL_II_WITH_HDF5=OFF \
+-DCMAKE_INSTALL_PREFIX=/home/h/niitcaju/opt/deal.II-8.5.0 ..
+
+/opt/cray/atp/2.0.5/libApp"
+
+
+cmake  \
+-DDEAL_II_WITH_UMFPACK=ON -DDEAL_II_WITH_LAPACK=ON \
+-DMPI_FOUND=TRUE \
+-DLAPACK_DIR=/home/h/niitcaju/opt/lapack-3.7.0 \
+-DPETSC_ARCH=x86_64 \
+-DPETSC_DIR=/home/h/niitcaju/opt/petsc-3.7.6 \
+-DP4EST_DIR=/home/h/niitcaju/opt/p4est-1.1 \
+-DTRILINOS_DIR=/home/h/niitcaju/opt/trilinos-12.10.1 \
+-DDEAL_II_WITH_THREADS=OFF \
+-DDEAL_II_WITH_MPI=ON \
+-DDEAL_II_WITH_HDF5=OFF \
+-DCMAKE_INSTALL_PREFIX=/home/h/niitcaju/opt/deal.II-8.5.0 ..
+
+make
+make install
+
