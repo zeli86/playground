@@ -465,7 +465,6 @@ namespace BreedSolver
     vector<double> vals(n_q_points);
     vector<Tensor<1,dim>> grads(n_q_points);
     
-    double JxW, Q1;
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
     for ( ; cell!=endc; ++cell )
     {
@@ -479,10 +478,10 @@ namespace BreedSolver
 
         for ( unsigned qp=0; qp<n_q_points; qp++ )
         {
-          JxW = fe_values.JxW(qp);
-          Q1 = Potential.value(fe_values.quadrature_point(qp)) + m_gs*(vals[qp]*vals[qp]); 
+          double JxW = fe_values.JxW(qp);
+          double Q1 = Potential.value(fe_values.quadrature_point(qp)) + m_gs*(vals[qp]*vals[qp]); 
 
-          for (unsigned int i=0; i<dofs_per_cell; ++i)
+          for (unsigned i=0; i<dofs_per_cell; ++i)
             cell_rhs(i) += JxW*(grads[qp]*fe_values.shape_grad(i,qp) + Q1*vals[qp]*fe_values.shape_value(i,qp));
         }
         cell->get_dof_indices (local_dof_indices);
