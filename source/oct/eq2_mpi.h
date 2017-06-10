@@ -174,7 +174,7 @@
           {
             for ( unsigned j=0; j<dofs_per_cell; j++ )
             {
-               cell_matrix(i,j) += JxW*( fe_values[rt].value(i,qp)*fe_values[rt].value(j,qp) + fe_values[rt].value(i,qp)*fe_values[rt].value(j,qp)); 
+               cell_matrix(i,j) += JxW*( fe_values[rt].value(i,qp)*fe_values[rt].value(j,qp) + fe_values[it].value(i,qp)*fe_values[it].value(j,qp)); 
             }
             cell_rhs(i) += JxW*(Psi[qp][1]*fe_values[rt].value(i,qp) - Psi[qp][0]*fe_values[it].value(i,qp));
           }
