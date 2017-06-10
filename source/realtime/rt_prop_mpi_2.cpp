@@ -20,7 +20,7 @@
 
 /** Želimir Marojević
  * Purpose: Real time propagation for the Gross-Pitaevskii equation (cartesian coordinates)
- * Method: Operator splitting - linear and nonlinear step are solved with Crank-Nicolson 
+ * Method: Operator splitting - the linear step is solved with Crank-Nicolson 
  */
 
 #include <deal.II/lac/generic_linear_algebra.h>
@@ -83,6 +83,7 @@ namespace LA
 #include "MyParameterHandler.h"
 #include "my_table.h"
 #include "functions.h"
+#include "MyComplexTools.h"
 
 namespace realtime_propagation
 {
@@ -107,13 +108,9 @@ namespace realtime_propagation
   protected:
     void make_grid();
     void setup_system();
-    void assemble_system( const double );
-    void assemble_system_2( const double );
     
     void Do_NL_Step();
     void Do_Lin_Step( const double );
-    void solve();
-    void solve_2();
     void output_results ( string );
     void load( string );
     void save( string );
@@ -433,149 +430,45 @@ namespace realtime_propagation
   template<int dim> 
   void MySolver<dim>::Do_NL_Step()
   {
+    m_computing_timer.enter_section(__func__);
+
     pcout << "Computing nonlinear step, t = " << m_dt << endl;
 
-    assemble_system_2( m_dt );
-    //solve();
-    solve_2();
+    MPI::MyComplexTools::AssembleSystem_NL_Step<dim>( dof_handler, fe, constraints, m_Psi, m_gs*m_dt, system_matrix, system_rhs );
+
+    SolverControl solver_control (sol.size(), 1e-15);
+    PETScWrappers::SolverCG solver (solver_control, mpi_communicator);
+    PETScWrappers::PreconditionSSOR preconditioner(system_matrix);
+    solver.solve (system_matrix, sol, system_rhs, preconditioner);
+    
+    constraints.distribute (sol);
+    m_Psi = sol;
+
+    m_computing_timer.exit_section();   
   }
   
   template<int dim> 
   void MySolver<dim>::Do_Lin_Step( const double dt )
   {
-    pcout << "Computing linear step (" << dt << "), t = " << m_t << endl;
-    assemble_system( dt );
-    //solve();
-    solve_2();
-    m_t += dt;
-  }
-
-  template <int dim>
-  void MySolver<dim>::assemble_system ( const double dt )
-  {
     m_computing_timer.enter_section(__func__);
-    const QGauss<dim> quadrature_formula(fe.degree+1);
+    pcout << "Computing linear step (" << dt << "), t = " << m_t << endl;
 
     CPotential<dim> Potential ( m_omega );
+    MPI::MyComplexTools::AssembleSystem_LIN_Step<dim>( dof_handler, fe, constraints, m_Psi, Potential, dt, system_matrix, system_rhs );
+
+    SolverControl solver_control (sol.size(), 1e-15);
+    PETScWrappers::SolverCG solver (solver_control, mpi_communicator);
+    PETScWrappers::PreconditionSSOR preconditioner(system_matrix);
+    solver.solve (system_matrix, sol, system_rhs, preconditioner);
     
-    const FEValuesExtractors::Scalar rt (0);
-    const FEValuesExtractors::Scalar it (1);
-        
-    system_matrix = 0;
-    system_rhs = 0;
+    constraints.distribute (sol);
+    m_Psi = sol;    
 
-    FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_gradients|update_quadrature_points|update_JxW_values);
-
-    const unsigned dofs_per_cell = fe.dofs_per_cell;
-    const unsigned n_q_points = quadrature_formula.size();
-
-    FullMatrix<double> cell_matrix (dofs_per_cell, dofs_per_cell);
-    Vector<double> cell_rhs (dofs_per_cell);
-
-    vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
-    vector<Vector<double>> Psi(n_q_points,Vector<double>(2));
-    vector<vector<Tensor<1,dim>>> Psi_grad(n_q_points, vector<Tensor<1,dim>>(2));
- 
-    const double dth = 0.5*dt;
-
-    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for (; cell!=endc; ++cell)
-    {
-      if( cell->is_locally_owned() )
-      {
-        cell_matrix = 0;
-        cell_rhs = 0;
-
-        fe_values.reinit (cell);
-        fe_values.get_function_values(m_Psi, Psi);
-        fe_values.get_function_gradients(m_Psi, Psi_grad);
-
-        for( unsigned qp=0; qp<n_q_points; qp++ )
-        {
-          double JxW = fe_values.JxW(qp);
-          double pot = Potential.value(fe_values.quadrature_point(qp));
-          for( unsigned i=0; i<dofs_per_cell; i++ )
-          {
-            for( unsigned j=0; j<dofs_per_cell; j++ )
-            {
-               cell_matrix(i,j) += JxW*(fe_values[rt].value(i,qp)*fe_values[rt].value(j,qp) - dth*(fe_values[rt].gradient(i,qp)*fe_values[it].gradient(j,qp) + pot*fe_values[rt].value(i,qp)*fe_values[it].value(j,qp)) + 
-                                        fe_values[it].value(i,qp)*fe_values[it].value(j,qp) + dth*(fe_values[it].gradient(i,qp)*fe_values[rt].gradient(j,qp) + pot*fe_values[it].value(i,qp)*fe_values[rt].value(j,qp)) );
-            }
-            cell_rhs(i) += JxW*(Psi[qp][0]*fe_values[rt].value(i,qp) + dth*(Psi_grad[qp][1]*fe_values[rt].gradient(i,qp) + pot*Psi[qp][1]*fe_values[rt].value(i,qp)) + 
-                                Psi[qp][1]*fe_values[it].value(i,qp) - dth*(Psi_grad[qp][0]*fe_values[it].gradient(i,qp) + pot*Psi[qp][0]*fe_values[it].value(i,qp)));
-          }
-        }
-        cell->get_dof_indices (local_dof_indices);
-        constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, system_matrix, system_rhs);
-      }
-    }
-    system_matrix.compress(VectorOperation::add);
-    system_rhs.compress(VectorOperation::add);
-    m_computing_timer.exit_section();
-  }
-
-  template <int dim>
-  void MySolver<dim>::assemble_system_2 ( const double dt )
-  {
-    m_computing_timer.enter_section(__func__);
-
-    const QGauss<dim> quadrature_formula(fe.degree+1);
-    const FEValuesExtractors::Scalar rt (0);
-    const FEValuesExtractors::Scalar it (1);
-    
-    system_matrix=0;
-    system_rhs=0;
-
-    FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_gradients|update_quadrature_points|update_JxW_values);
-
-    const unsigned dofs_per_cell = fe.dofs_per_cell;
-    const unsigned n_q_points = quadrature_formula.size();
-
-    FullMatrix<double> cell_matrix (dofs_per_cell, dofs_per_cell);
-    Vector<double> cell_rhs (dofs_per_cell);
-
-    vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
-    vector<Vector<double>> Psi(n_q_points,Vector<double>(2));
- 
-    double JxW, a, b, c, d, n;
-
-    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for( ; cell!=endc; cell++ )
-    {
-      if( cell->is_locally_owned() )
-      {
-        cell_matrix=0;
-        cell_rhs=0;
-
-        fe_values.reinit (cell);
-        fe_values.get_function_values(m_Psi, Psi);
-
-        for( unsigned qp=0; qp<n_q_points; qp++ )
-        {
-          JxW = fe_values.JxW(qp);
-          a = Psi[qp][0];
-          b = Psi[qp][1];
-          n = m_gs * (a*a + b*b);
-          sincos( -dt*n, &d, &c );
-
-          for( unsigned i=0; i<dofs_per_cell; i++ )
-          {
-            for( unsigned j=0; j<dofs_per_cell; j++ )
-            {
-              cell_matrix(i,j) += JxW*(fe_values[rt].value(i,qp)*fe_values[rt].value(j,qp) + fe_values[it].value(i,qp)*fe_values[it].value(j,qp)); 
-            }
-            cell_rhs(i) += JxW* ((a*c-b*d)*fe_values[rt].value(i,qp) + (a*d+b*c)*Psi[qp][1]*fe_values[it].value(i,qp));
-          }
-        }
-        cell->get_dof_indices (local_dof_indices);
-        constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, system_matrix, system_rhs);
-      }
-    }
-    system_matrix.compress(VectorOperation::add);
-    system_rhs.compress(VectorOperation::add);
-    m_computing_timer.exit_section();    
+    m_t += dt;
+    m_computing_timer.exit_section();   
   }
   
+/* 
   template <int dim>
   void MySolver<dim>::solve ()
   {
@@ -591,22 +484,8 @@ namespace realtime_propagation
     m_Psi = sol;
     m_computing_timer.exit_section();
   }
-  
-  template <int dim>
-  void MySolver<dim>::solve_2 ()
-  {
-    m_computing_timer.enter_section(__func__);
-    SolverControl solver_control (sol.size(), 1e-15);
-    
-    PETScWrappers::SolverGMRES solver (solver_control, mpi_communicator);
-    PETScWrappers::PreconditionBoomerAMG preconditioner(system_matrix);
-    solver.solve (system_matrix, sol, system_rhs, preconditioner);
-    
-    constraints.distribute (sol);
-    m_Psi = sol;
-    m_computing_timer.exit_section();   
-  }
-  
+*/
+ 
   template <int dim>
   void MySolver<dim>::run()
   {
