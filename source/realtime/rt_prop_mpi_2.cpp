@@ -100,10 +100,6 @@ namespace realtime_propagation
     ~MySolver();
 
     void run ();
-    double Particle_Number( LA::MPI::Vector& );
-    void Expectation_value_momentum( LA::MPI::Vector&, double* );
-    void Expectation_value_position( LA::MPI::Vector&, double* );
-    void Expectation_value_variance( LA::MPI::Vector&, double*, double* );
 
   protected:
     void make_grid();
@@ -197,36 +193,6 @@ namespace realtime_propagation
   {
     dof_handler.clear ();
   }
-
-  template<int dim>
-  double MySolver<dim>::Particle_Number( LA::MPI::Vector& vec )
-  {
-    m_computing_timer.enter_section(__func__);
-    double tmp1=0.0;
-    
-    const QGauss<dim> quadrature_formula(fe.degree+1);
-    FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_JxW_values);
-
-    const unsigned n_q_points = quadrature_formula.size();
-    vector<Vector<double>> vec_vals(n_q_points,Vector<double>(2));
-
-    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for( ; cell!=endc; cell++ )
-    {
-      if( cell->is_locally_owned() )
-      {
-        fe_values.reinit (cell);
-        fe_values.get_function_values( vec, vec_vals );
-        for( unsigned qp=0; qp<n_q_points; qp++ )
-         tmp1 += fe_values.JxW(qp)*(vec_vals[qp][0]*vec_vals[qp][0]+vec_vals[qp][1]*vec_vals[qp][1]);
-      }
-    }
-
-    double retval;
-    MPI_Allreduce( &tmp1, &retval, 1, MPI_DOUBLE, MPI_SUM, mpi_communicator);
-    m_computing_timer.exit_section();
-  return retval;
-  }  
   
   template <int dim>
   void MySolver<dim>::make_grid ()
@@ -271,115 +237,6 @@ namespace realtime_propagation
     SparsityTools::distribute_sparsity_pattern (dsp, dof_handler.n_locally_owned_dofs_per_processor(), mpi_communicator, locally_relevant_dofs);
     system_matrix.reinit (locally_owned_dofs, locally_owned_dofs, dsp, mpi_communicator);
 
-    m_computing_timer.exit_section();
-  }  
-  
-  template<int dim>
-  void MySolver<dim>::Expectation_value_position( LA::MPI::Vector& vec, double* retval )
-  {
-    m_computing_timer.enter_section(__func__);
-    double tmp[] = {0,0,0}, JxWxn;
-    
-    const QGauss<dim>  quadrature_formula(fe.degree+1);
-    FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_quadrature_points|update_JxW_values);
-
-    const unsigned int n_q_points = quadrature_formula.size();
-    vector<Vector<double>> vec_vals(n_q_points,Vector<double>(2));
-    Point<dim> spacept;
-
-    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for( ; cell!=endc; cell++ )
-    {
-      if( cell->is_locally_owned() )
-      {
-        fe_values.reinit (cell);
-        fe_values.get_function_values( vec, vec_vals );
-        for( unsigned qp=0; qp<n_q_points; qp++ )
-        {
-          JxWxn = fe_values.JxW(qp)*(vec_vals[qp][0]*vec_vals[qp][0]+vec_vals[qp][1]*vec_vals[qp][1]);
-          spacept = fe_values.quadrature_point(qp);
-          tmp[0] += spacept[0]*JxWxn;
-          tmp[1] += spacept[1]*JxWxn;
-#if dim == 3
-          tmp[2] += spacept[2]*JxWxn;
-#endif
-        }
-      }
-    }
-    MPI_Allreduce( tmp, retval, 3, MPI_DOUBLE, MPI_SUM, mpi_communicator);
-    m_computing_timer.exit_section();
-  }  
-
-  template<int dim>
-  void MySolver<dim>::Expectation_value_variance( LA::MPI::Vector& vec, double* retval, double* x1 )
-  {
-    m_computing_timer.enter_section(__func__);
-    double tmp[] = {0,0,0}, JxWxn;
-    
-    const QGauss<dim>  quadrature_formula(fe.degree+1);
-    FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_quadrature_points|update_JxW_values);
-
-    const unsigned n_q_points = quadrature_formula.size();
-    vector<Vector<double>> vec_vals(n_q_points,Vector<double>(2));
-    Point<dim> spacept;
-
-    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for( ; cell!=endc; cell++ )
-    {
-      if( cell->is_locally_owned() )
-      {
-        fe_values.reinit (cell);
-        fe_values.get_function_values( vec, vec_vals );
-        for( unsigned qp=0; qp<n_q_points; qp++ )
-        {
-          JxWxn = fe_values.JxW(qp)*(vec_vals[qp][0]*vec_vals[qp][0]+vec_vals[qp][1]*vec_vals[qp][1]);
-          spacept = fe_values.quadrature_point(qp);
-          tmp[0] += (spacept[0]-x1[0])*(spacept[0]-x1[0])*JxWxn;
-          tmp[1] += (spacept[1]-x1[1])*(spacept[1]-x1[1])*JxWxn;
-#if dim == 3
-          tmp[2] += (spacept[2]-x1[2])*(spacept[2]-x1[2])*JxWxn;
-#endif
-        }
-      }
-    }
-    MPI_Allreduce( tmp, retval, 3, MPI_DOUBLE, MPI_SUM, mpi_communicator);
-    m_computing_timer.exit_section();
-  }  
-  
-  template<int dim>
-  void MySolver<dim>::Expectation_value_momentum( LA::MPI::Vector& vec, double* retval )
-  {
-    m_computing_timer.enter_section(__func__);
-    double tmp[] = {0,0,0}, JxW;
-    
-    const QGauss<dim>  quadrature_formula(fe.degree+1);
-    FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_gradients|update_JxW_values);
-
-    const unsigned int n_q_points = quadrature_formula.size();
-    vector<Vector<double>> vec_vals(n_q_points,Vector<double>(2));
-    vector<vector<Tensor<1,dim>>> vec_grads(n_q_points, vector<Tensor<1,dim>>(2));
-
-    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for( ; cell!=endc; cell++ )
-    {
-      if( cell->is_locally_owned() )
-      {
-        fe_values.reinit (cell);
-        fe_values.get_function_values( vec, vec_vals );
-        fe_values.get_function_gradients( vec, vec_grads );
-
-        for( unsigned qp=0; qp<n_q_points; qp++ )
-        {
-          JxW = fe_values.JxW(qp);
-          tmp[0] += JxW*(vec_vals[qp][0]*vec_grads[qp][1][0] - vec_vals[qp][1]*vec_grads[qp][0][0]);
-          tmp[1] += JxW*(vec_vals[qp][0]*vec_grads[qp][1][1] - vec_vals[qp][1]*vec_grads[qp][0][1]);
-#if dim == 3
-          tmp[2] += JxW*(vec_vals[qp][0]*vec_grads[qp][1][2] - vec_vals[qp][1]*vec_grads[qp][0][2]); 
-#endif
-        }
-      }
-    }
-    MPI_Allreduce( tmp, retval, 3, MPI_DOUBLE, MPI_SUM, mpi_communicator);
     m_computing_timer.exit_section();
   }  
 
@@ -493,20 +350,21 @@ namespace realtime_propagation
 
     load( "final.bin" );
 
-    double p[] = {0,0,0};
-    double pos[] = {0,0,0};
-    double var[] = {0,0,0};
+    std::vector<double> p(dim);
+    std::vector<double> pos(dim);
+    std::vector<double> var(dim);
 
     output_results("");
 
-    N = Particle_Number(m_Psi);
+    N = MPI::MyComplexTools::Particle_Number( mpi_communicator, dof_handler, fe, m_Psi );
     pcout << "N == " << N << endl;
     
-    Expectation_value_position( m_Psi, pos );
-    Expectation_value_momentum( m_Psi, p );
-    Expectation_value_variance( m_Psi, var, pos );
 
-    pcout << "N == " << Particle_Number(m_Psi) << endl;
+    MPI::MyComplexTools::Expectation_value_position( mpi_communicator, dof_handler, fe, m_Psi, pos );
+    MPI::MyComplexTools::Expectation_value_width( mpi_communicator, dof_handler, fe, m_Psi, pos, var );
+    MPI::MyComplexTools::Expectation_value_position( mpi_communicator, dof_handler, fe, m_Psi, p );
+
+    pcout << "N == " << MPI::MyComplexTools::Particle_Number( mpi_communicator, dof_handler, fe, m_Psi ) << endl;
     pcout << "p == " << p[0]/N << ", " << p[1]/N << ", " << p[2]/N << endl;
     pcout << "pos == " << pos[0]/N << ", " << pos[1]/N << ", " << pos[2]/N << endl;
     pcout << "var == " << var[0]/N << ", " << var[1]/N << ", " << var[2]/N << endl;
@@ -522,11 +380,11 @@ namespace realtime_propagation
       Do_NL_Step();
       Do_Lin_Step( m_dth );
 
-      Expectation_value_position( m_Psi, pos );
-      Expectation_value_momentum( m_Psi, p );
-      Expectation_value_variance( m_Psi, var, pos );
+      MPI::MyComplexTools::Expectation_value_position( mpi_communicator, dof_handler, fe, m_Psi, pos );
+      MPI::MyComplexTools::Expectation_value_width( mpi_communicator, dof_handler, fe, m_Psi, pos, var );
+      MPI::MyComplexTools::Expectation_value_position( mpi_communicator, dof_handler, fe, m_Psi, p );
 
-      pcout << "N == " << Particle_Number(m_Psi) << endl;
+      pcout << "N == " << MPI::MyComplexTools::Particle_Number( mpi_communicator, dof_handler, fe, m_Psi ) << endl;
       pcout << "p == " << p[0]/N << ", " << p[1]/N << ", " << p[2]/N << endl;
       pcout << "pos == " << pos[0]/N << ", " << pos[1]/N << ", " << pos[2]/N << endl;
       pcout << "var == " << var[0]/N << ", " << var[1]/N << ", " << var[2]/N << endl;

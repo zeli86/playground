@@ -83,6 +83,8 @@ namespace LA
 #include "my_table.h"
 #include "functions.h"
 #include "MyParameterHandler.cpp"
+#include "MyComplexTools.h"
+
 
 namespace realtime_propagation
 {
@@ -99,11 +101,6 @@ namespace realtime_propagation
     ~MySolver();
 
     void run ();
-    double Particle_Number( LA::MPI::Vector& );
-    void Expectation_value_momentum( LA::MPI::Vector&, double* );
-    void Expectation_value_position( LA::MPI::Vector&, double* );
-    void Expectation_value_variance( LA::MPI::Vector&, double*, double* );
-
     
   protected:
     void make_grid();
@@ -405,17 +402,18 @@ namespace realtime_propagation
 
     load( "Cfinal.bin" );
     
-    double p[] = {0,0,0};
-    double pos[] = {0,0,0};
-    double var[] = {0,0,0};
+    std::vector<double> p(dim);
+    std::vector<double> pos(dim);
+    std::vector<double> var(dim);
 
     output_results("");
 
-    N = Particle_Number(m_Psi);
+    N = MPI::MyComplexTools::Particle_Number( mpi_communicator, dof_handler, fe, m_Psi );
     pcout << "N == " << N << endl;
-    Expectation_value_position( m_Psi, pos );
-    Expectation_value_momentum( m_Psi, p );
-    Expectation_value_variance( m_Psi, var, pos );
+    
+    MPI::MyComplexTools::Expectation_value_position( mpi_communicator, dof_handler, fe, m_Psi, pos );
+    MPI::MyComplexTools::Expectation_value_width( mpi_communicator, dof_handler, fe, m_Psi, pos, var );
+    MPI::MyComplexTools::Expectation_value_position( mpi_communicator, dof_handler, fe, m_Psi, p );
 
     pcout << "t == " << m_t << endl;
     pcout << "N == " << N << endl;
@@ -431,10 +429,10 @@ namespace realtime_propagation
         DoIter();
       }
       
-      N = Particle_Number(m_Psi);
-      Expectation_value_position( m_Psi, pos );
-      Expectation_value_momentum( m_Psi, p );
-      Expectation_value_variance( m_Psi, var, pos );
+      N = MPI::MyComplexTools::Particle_Number( mpi_communicator, dof_handler, fe, m_Psi );
+      MPI::MyComplexTools::Expectation_value_position( mpi_communicator, dof_handler, fe, m_Psi, pos );
+      MPI::MyComplexTools::Expectation_value_width( mpi_communicator, dof_handler, fe, m_Psi, pos, var );
+      MPI::MyComplexTools::Expectation_value_position( mpi_communicator, dof_handler, fe, m_Psi, p );
 
       pcout << "N == " << N << endl;
       pcout << "p == " << p[0]/N << ", " << p[1]/N << ", " << p[2]/N << endl;
