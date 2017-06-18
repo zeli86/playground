@@ -214,6 +214,161 @@ namespace MPI { namespace MyComplexTools
         }
         rhs.compress(VectorOperation::add);   
         matrix.compress(VectorOperation::add);
-    }      
+    }    
+
+    template<int dim>
+    double Particle_Number( MPI_Comm mpi_communicator, 
+                            const DoFHandler<dim>& dof_handler,
+                            const FESystem<dim>& fe,
+                            const LA::MPI::Vector& vec )
+    {
+        assert( vec.has_ghost_elements() == true );
+       
+        double tmp = 0;
+        
+        const QGauss<dim>  quadrature_formula(fe.degree+1);
+        FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_JxW_values);
+
+        const unsigned n_q_points = quadrature_formula.size();
+        vector<Vector<double>> vec_vals(n_q_points,Vector<double>(2));
+
+        typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
+        for( ; cell!=endc; cell++ )
+        {
+           if( cell->is_locally_owned() )
+           {
+                fe_values.reinit (cell);
+                fe_values.get_function_values( vec, vec_vals );
+                for( unsigned qp=0; qp<n_q_points; qp++ )
+                {
+                    tmp += fe_values.JxW(qp)*(vec_vals[qp][0]*vec_vals[qp][0]+vec_vals[qp][1]*vec_vals[qp][1]);
+                }
+            }
+        }
+
+        double retval;
+        MPI_Allreduce( &tmp, &retval, 1, MPI_DOUBLE, MPI_SUM, mpi_communicator);
+    return retval;
+    }        
+
+    template<int dim>
+    void Expectation_value_position( MPI_Comm mpi_communicator, 
+                                     const DoFHandler<dim>& dof_handler,
+                                     const FESystem<dim>& fe,
+                                     const LA::MPI::Vector& vec,
+                                     vector<double>& retval )
+    {
+        assert( retval.size() == dim );
+        assert( vec.has_ghost_elements() == true );
+       
+        Point<dim> tmp;
+        
+        const QGauss<dim>  quadrature_formula(fe.degree+1);
+        FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_quadrature_points|update_JxW_values);
+
+        const unsigned n_q_points = quadrature_formula.size();
+        vector<Vector<double>> vec_vals(n_q_points,Vector<double>(2));
+
+        typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
+        for( ; cell!=endc; cell++ )
+        {
+           if( cell->is_locally_owned() )
+           {
+                fe_values.reinit (cell);
+                fe_values.get_function_values( vec, vec_vals );
+                for( unsigned qp=0; qp<n_q_points; qp++ )
+                {
+                    double JxWxn = fe_values.JxW(qp)*(vec_vals[qp][0]*vec_vals[qp][0]+vec_vals[qp][1]*vec_vals[qp][1]);
+                    Point<dim> spacept = fe_values.quadrature_point(qp);
+                    tmp += JxWxn*spacept;
+                }
+            }
+        }
+
+        vector<double> tmpv(dim,0);
+        for( unsigned i=0; i<dim; i++ ) tmpv[i] = tmp[i];
+        MPI_Allreduce( tmpv.data(), retval.data(), dim, MPI_DOUBLE, MPI_SUM, mpi_communicator);
+    }        
+
+    template<int dim>
+    void Expectation_value_width( MPI_Comm mpi_communicator, 
+                                  const DoFHandler<dim>& dof_handler,
+                                  const FESystem<dim>& fe,
+                                  const LA::MPI::Vector& vec,
+                                  const vector<double>& pos,
+                                  vector<double>& retval )
+    {
+        assert( pos.size() == dim );
+        assert( retval.size() == dim );
+        assert( vec.has_ghost_elements() == true );
+       
+        Point<dim> tmp;
+
+        const QGauss<dim>  quadrature_formula(fe.degree+1);
+        FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_quadrature_points|update_JxW_values);
+
+        const unsigned n_q_points = quadrature_formula.size();
+        vector<Vector<double>> vec_vals(n_q_points,Vector<double>(2));
+
+        typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
+        for( ; cell!=endc; cell++ )
+        {
+            if( cell->is_locally_owned() )
+            {
+                fe_values.reinit (cell);
+                fe_values.get_function_values( vec, vec_vals );
+                for( unsigned qp=0; qp<n_q_points; qp++ )
+                {
+                    double JxWxn = fe_values.JxW(qp)*(vec_vals[qp][0]*vec_vals[qp][0]+vec_vals[qp][1]*vec_vals[qp][1]);
+                    Point<dim> spacept = fe_values.quadrature_point(qp);
+                    for( unsigned i=0; i<dim; i++ ) 
+                        tmp[i] += JxWxn*(spacept[i]-pos[i])*(spacept[i]-pos[i]);
+                }
+            }
+        }
+        vector<double> tmpv(dim,0);
+        for( unsigned i=0; i<dim; i++ ) tmpv[i] = tmp[i];
+        MPI_Allreduce( tmpv.data(), retval.data(), dim, MPI_DOUBLE, MPI_SUM, mpi_communicator);
+    }  
+
+    template<int dim>
+    void Expectation_value_momentum( MPI_Comm mpi_communicator, 
+                                     const DoFHandler<dim>& dof_handler,
+                                     const FESystem<dim>& fe,
+                                     const LA::MPI::Vector& vec,
+                                     vector<double>& retval )
+    {
+        assert( retval.size() == dim );
+        assert( vec.has_ghost_elements() == true );
+       
+        Point<dim> tmp;
+        
+        const QGauss<dim>  quadrature_formula(fe.degree+1);
+        FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_gradients|update_JxW_values);
+
+        const unsigned n_q_points = quadrature_formula.size();
+        vector<Vector<double>> vec_vals(n_q_points,Vector<double>(2));
+        vector<vector<Tensor<1,dim>>> vec_grads(n_q_points, vector<Tensor<1,dim>>(2));
+    
+        typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
+        for( ; cell!=endc; cell++ )
+        {
+           if( cell->is_locally_owned() )
+           {
+                fe_values.reinit (cell);
+                fe_values.get_function_values( vec, vec_vals );
+                for( unsigned qp=0; qp<n_q_points; qp++ )
+                {
+                    double JxW = fe_values.JxW(qp);
+                    for( unsigned i=0; i<dim; i++ ) 
+                        tmp[i] += JxW*(vec_vals[qp][0]*vec_grads[qp][1][i] - vec_vals[qp][1]*vec_grads[qp][0][i]);
+                }
+            }
+        }
+
+        vector<double> tmpv(dim);
+        for( unsigned i=0; i<dim; i++ ) tmpv[i] = tmp[i];
+        MPI_Allreduce( tmpv.data(), retval.data(), dim, MPI_DOUBLE, MPI_SUM, mpi_communicator);
+    }
 
 }}
