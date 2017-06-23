@@ -77,6 +77,15 @@ set( PETSC_INC_DIR ${TMP}/include CACHE STRING INTERNAL )
 #get_filename_component( TMP ${TMP} PATH )
 #set( SLEPC_INC_DIR ${TMP}/include CACHE STRING INTERNAL )
 
+# muParser library
+find_library( MUPARSER_LIBRARY NAMES muparser  PATHS ENV LD_LIBRARY_PATH NO_DEFAULT_PATH )
+if( NOT MUPARSER_LIBRARY )
+  message( FATAL_ERROR "Could not find libmuparser." )
+endif()
+get_filename_component( TMP ${MUPARSER_LIBRARY} PATH )
+get_filename_component( TMP ${TMP} PATH )
+set( MUPARSER_INC_DIR ${TMP}/include CACHE STRING INTERNAL )
+
 ### deal.ii library paths
 find_library( DEAL_II_LIBRARY NAMES deal_II  PATHS ENV LD_LIBRARY_PATH NO_DEFAULT_PATH )
 if( NOT DEAL_II_LIBRARY )
@@ -96,7 +105,7 @@ SET( EXECUTABLE_OUTPUT_PATH  ${HOME}/bin )
 # Zuerst die Pfade angeben
 #=========================
 # ${DEAL_INC_DIR}/deal.II/bundled ${BOOST_INC_DIR}
-include_directories( ${MPI_CXX_INCLUDE_PATH} ${DIR_INC} ${DIR_INC_2} ${DEAL_INC_DIR} ${DEAL_INC_DIR}/deal.II/bundled ${GSL_INC_DIR} ${P4EST_INC_DIR} ${PETSC_INC_DIR} )
+include_directories( ${MPI_CXX_INCLUDE_PATH} ${DIR_INC} ${DIR_INC_2} ${DEAL_INC_DIR} ${DEAL_INC_DIR}/deal.II/bundled ${GSL_INC_DIR} ${P4EST_INC_DIR} ${PETSC_INC_DIR} ${MUPARSER_INC_DIR} )
 
 #LINK_DIRECTORIES( ${DEAL_LIB_DIR} ${GSL_LIB_DIR} ${P4EST_LIB_DIR} ${PETSC_LIB_DIR} ${BOOST_LIB_DIR} )
 

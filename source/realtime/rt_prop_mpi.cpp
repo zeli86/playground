@@ -229,8 +229,6 @@ namespace realtime_propagation
     vector<Vector<double>> Psi_t(n_q_points,Vector<double>(2));
     vector<vector<Tensor<1,dim>>> Psi_t_grad(n_q_points, vector<Tensor<1,dim>>(2));
  
-    double JxW, pot=0, tmp1a, tmp1b, tmp2, sum_re, sum_req, sum_im, sum_imq;
-
     const double fak2 = 0.5*m_dt;
     const double fak4 = 0.25*m_gs*m_dt;
     const double fak8 = 0.125*m_gs*m_dt;
@@ -248,22 +246,22 @@ namespace realtime_propagation
         fe_values.get_function_values(m_Psi_t, Psi_t);
         fe_values.get_function_gradients(m_Psi_t, Psi_t_grad);
 
-        for( unsigned int qp=0; qp<n_q_points; qp++ )
+        for( unsigned qp=0; qp<n_q_points; qp++ )
         {
-          JxW = fe_values.JxW(qp);
-          pot = Potential.value(fe_values.quadrature_point(qp)); 
+          double JxW = fe_values.JxW(qp);
+          double pot = Potential.value(fe_values.quadrature_point(qp)); 
   
-          sum_re = Psi[qp][0]+Psi_t[qp][0];
-          sum_im = Psi[qp][1]+Psi_t[qp][1];
-          sum_req = sum_re*sum_re;
-          sum_imq = sum_im*sum_im;
-          tmp1a = fak8*(sum_req + 3*sum_imq);
-          tmp1b = fak8*(sum_imq + 3*sum_req);
-          tmp2 = fak4*sum_re*sum_im;
+          double sum_re = Psi[qp][0]+Psi_t[qp][0];
+          double sum_im = Psi[qp][1]+Psi_t[qp][1];
+          double sum_req = sum_re*sum_re;
+          double sum_imq = sum_im*sum_im;
+          double tmp1a = fak8*(sum_req + 3*sum_imq);
+          double tmp1b = fak8*(sum_imq + 3*sum_req);
+          double tmp2 = fak4*sum_re*sum_im;
   
-          for (unsigned int i=0; i<dofs_per_cell; i++ )
+          for( unsigned i=0; i<dofs_per_cell; i++ )
           {
-            for (unsigned int j=0; j<dofs_per_cell; j++ )
+            for( unsigned j=0; j<dofs_per_cell; j++ )
             {
               cell_matrix(i,j) += JxW*(1.0-tmp2)*fe_values[rt].value(i,qp)*fe_values[rt].value(j,qp);
               cell_matrix(i,j) += JxW*(1.0+tmp2)*fe_values[it].value(i,qp)*fe_values[it].value(j,qp);

@@ -17,11 +17,21 @@
  * along with atus-pro testing.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-  template <int dim, int no_time_steps, int no_lam>
-  void MySolver<dim,no_time_steps,no_lam>::rt_propagtion_backward()
+  template <int dim, int no_time_steps>
+  void MySolver<dim,no_time_steps>::rt_propagtion_backward()
   {
     m_computing_timer.enter_section(__func__);
-    compute_initial_p();
+
+    m_workspace_ng = m_Psi_d;
+    m_workspace_ng -= m_Psi;
+    m_Psi = m_workspace_ng;
+
+    MPI::MyComplexTools::AssembleSystem_mulvz( dof_handler, fe, constraints, m_Psi, std::complex<double>(0,-1), system_matrix, system_rhs );
+    solve_eq2();
+    m_all_p[no_time_steps-1] = m_Psi;
+//     output_vec( "init_p.vtu", m_Psi );
+
+    solve_eq2();
     
     for( int i=no_time_steps-2; i>0; i-- )
     {
@@ -33,33 +43,20 @@
       solve();
       m_all_p[i] = m_Psi;
       
-      double N = Particle_Number(m_Psi);
+      double N = MPI::MyComplexTools::Particle_Number( mpi_communicator, dof_handler, fe, m_workspace );
       if(m_root)printf( "b: %g %g\n", double(i)*m_dt, N );
     }
     m_computing_timer.exit_section();
   }
 
-  template <int dim, int no_time_steps, int no_lam>
-  void MySolver<dim,no_time_steps,no_lam>::compute_initial_p()
-  {
-    m_computing_timer.enter_section(__func__);
-
-    assemble_system_4_initial_p();
-    solve_eq2();
-    m_all_p[no_time_steps-1] = m_Psi;
-//     output_vec( "init_p.vtu", m_Psi );
-    
-    m_computing_timer.exit_section();
-  }
-
-  template <int dim, int no_time_steps, int no_lam>
-  void MySolver<dim,no_time_steps,no_lam>::assemble_system_2 ()
+  template <int dim, int no_time_steps>
+  void MySolver<dim,no_time_steps>::assemble_system_2 ()
   {
     m_computing_timer.enter_section(__func__);
     const QGauss<dim> quadrature_formula(fe.degree+1);
 
-    CPotential<dim,no_time_steps,no_lam> Potential0 ( m_all_lambdas, m_omega, m_timeindex );
-    CPotential<dim,no_time_steps,no_lam> Potential1 ( m_all_lambdas, m_omega, m_timeindex+1 );
+    CPotential<dim,no_time_steps> potential2 = m_potential;
+    // TODO t setzen !!
     
     const FEValuesExtractors::Scalar rt (0);
     const FEValuesExtractors::Scalar it (1);
@@ -100,13 +97,13 @@
         fe_values.get_function_values(m_workspace, Psi1 );
         fe_values.get_function_values(m_workspace_2, Psi0 );
 
-        for( unsigned int qp=0; qp<n_q_points; qp++ )
+        for( unsigned qp=0; qp<n_q_points; qp++ )
         {
           double JxW = fe_values.JxW(qp);
           double alpha = 0.5 * m_gs * ((Psi0[qp][0]*Psi0[qp][0] - Psi0[qp][1]*Psi0[qp][1]) + (Psi1[qp][0]*Psi1[qp][0] - Psi1[qp][1]*Psi1[qp][1])); 
           double beta = gamdth * (Psi0[qp][0]*Psi0[qp][1] + Psi1[qp][0]*Psi1[qp][1]);
 
-          double pot = 0.5*(Potential0.value(fe_values.quadrature_point(qp)) + Potential1.value(fe_values.quadrature_point(qp))) 
+          double pot = 0.5*(potential2.value(fe_values.quadrature_point(qp)) + m_potential.value(fe_values.quadrature_point(qp))) 
                      + m_gs*(Psi0[qp][0]*Psi0[qp][0] + Psi0[qp][1]*Psi0[qp][1] + Psi1[qp][0]*Psi1[qp][0] + Psi1[qp][1]*Psi1[qp][1]) + alpha;
   
           for (unsigned i=0; i<dofs_per_cell; i++ )
@@ -129,67 +126,8 @@
     m_computing_timer.exit_section();
   }
 
-  template <int dim, int no_time_steps, int no_lam>
-  void MySolver<dim,no_time_steps,no_lam>::assemble_system_4_initial_p ()
-  {
-    m_computing_timer.enter_section(__func__);
-    const QGauss<dim> quadrature_formula(fe.degree+1);
-
-    const FEValuesExtractors::Scalar rt (0);
-    const FEValuesExtractors::Scalar it (1);
-
-    system_matrix = 0;
-    system_rhs = 0;
-
-    FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_quadrature_points|update_JxW_values);
-
-    const unsigned dofs_per_cell = fe.dofs_per_cell;
-    const unsigned n_q_points = quadrature_formula.size();
-
-    FullMatrix<double> cell_matrix (dofs_per_cell, dofs_per_cell);
-    Vector<double> cell_rhs (dofs_per_cell);
-
-    vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
-    vector<Vector<double>> Psi(n_q_points,Vector<double>(2));
- 
-    m_workspace_ng = m_Psi;
-    m_workspace_ng -= m_Psi_d;
-    m_Psi = m_workspace_ng;
-    
-    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for (; cell!=endc; ++cell)
-    {
-      if( cell->is_locally_owned() )
-      {
-        cell_matrix = 0;
-        cell_rhs = 0;
-
-        fe_values.reinit (cell);
-        fe_values.get_function_values(m_Psi, Psi);
-
-        for( unsigned qp=0; qp<n_q_points; qp++ )
-        {
-          double JxW = fe_values.JxW(qp);
-          for ( unsigned i=0; i<dofs_per_cell; i++ )
-          {
-            for ( unsigned j=0; j<dofs_per_cell; j++ )
-            {
-               cell_matrix(i,j) += JxW*( fe_values[rt].value(i,qp)*fe_values[rt].value(j,qp) + fe_values[it].value(i,qp)*fe_values[it].value(j,qp)); 
-            }
-            cell_rhs(i) += JxW*(Psi[qp][1]*fe_values[rt].value(i,qp) - Psi[qp][0]*fe_values[it].value(i,qp));
-          }
-        }        
-        cell->get_dof_indices (local_dof_indices);
-        constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, system_matrix, system_rhs);
-      }
-    }
-    system_matrix.compress(VectorOperation::add);
-    system_rhs.compress(VectorOperation::add);
-    m_computing_timer.exit_section();    
-  }
-
-  template <int dim, int no_time_steps, int no_lam>
-  void MySolver<dim,no_time_steps,no_lam>::solve_eq2 ()
+  template <int dim, int no_time_steps>
+  void MySolver<dim,no_time_steps>::solve_eq2 ()
   {
     m_computing_timer.enter_section(__func__);
 

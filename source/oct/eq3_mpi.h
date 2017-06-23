@@ -17,43 +17,21 @@
  * along with atus-pro testing.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-  template <int dim, int no_time_steps, int no_lam>
-  void MySolver<dim,no_time_steps,no_lam>::compute_all_lambdas_tt()
+  template <int dim, int no_time_steps>
+  void MySolver<dim,no_time_steps>::compute_correction()
   {
-    m_computing_timer.enter_section(__func__);
-
-    const double fak = 1/(m_dt*m_dt);
-    
-    for( int s=0; s<no_lam; s++ )
-      for( int i=1; i<no_time_steps-1; i++ )
-      	m_all_lambdas_grad[s][i] = (m_all_lambdas[s][i-1]+m_all_lambdas[s][i+1]-2*m_all_lambdas[s][i])*fak;
-      
-    for( int s=0; s<no_lam; s++ )
-    {
-      m_all_lambdas_grad[s][0] = (m_all_lambdas[s][0]-2*m_all_lambdas[s][1]+m_all_lambdas[s][2])*fak;
-      m_all_lambdas_grad[s][no_time_steps-1] = (m_all_lambdas[s][no_time_steps-1]-2*m_all_lambdas[s][no_time_steps-2]+m_all_lambdas[s][no_time_steps-3])*fak;
-    } 
-    m_computing_timer.exit_section();
-  }
-  
-  template <int dim, int no_time_steps, int no_lam>
-  void MySolver<dim,no_time_steps,no_lam>::compute_correction()
-  {
-    //compute_all_lambdas_tt();
-
     m_computing_timer.enter_section(__func__);
     
     const QGauss<dim>  quadrature_formula(fe.degree+1);
     FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_quadrature_points|update_JxW_values);
 
-    const unsigned int n_q_points = quadrature_formula.size();
+    const unsigned n_q_points = quadrature_formula.size();
     vector<Vector<double>> Psi(n_q_points,Vector<double>(2));
     vector<Vector<double>> p(n_q_points,Vector<double>(2));
     
     double retval, tmp1;
 
-   CPotential<dim,no_time_steps,no_lam> Potential ( m_all_lambdas, m_omega, 0 );
-    
+    /*
     // loop over all lambdas
     for( int s=0; s<no_lam; s++ )
     {
@@ -90,57 +68,21 @@
         printf( "%d %d %g\n", s, ti, retval );
       }
     }    
+    */
 
-    for( int s=0; s<no_lam; s++ )
-    {
-      m_all_lambdas_grad[s][0] = 0;
-      m_all_lambdas_grad[s][no_time_steps-1] = 0;
-    }
-    
+    /*
     LAPACKFullMatrix<double> lap(no_time_steps,no_time_steps);
     for( int i=0; i<no_time_steps; i++ ) lap(i,i) = 2;
     for( int i=1; i<no_time_steps-1; i++ ) lap(i,i+1) = -1; // rechte Nebendiagonale 
     for( int i=1; i<no_time_steps-1; i++ ) lap(i,i-1) = -1; // linke Nebendiagonale
+    */
     
 //     ofstream bla( "lap.txt" ); 
 //     lap.print_formatted( bla );
 
-    lap.compute_lu_factorization();
+//    lap.compute_lu_factorization();
     
-    Vector<double> tmp_vec(no_time_steps);
-    
-    for( int s=0; s<no_lam; s++ )
-    {
-      for( int ti=1; ti<no_time_steps-1; ti++ )
-      {
-	      tmp_vec[ti] = m_dt*m_dt*m_all_lambdas_grad[s][ti];
-      }
 
-      lap.apply_lu_factorization(tmp_vec,false);
-
-      for( int ti=0; ti<no_time_steps; ti++ )
-      {
-	      m_all_lambdas_grad[s][ti] = tmp_vec[ti];
-      }
-    }
-
-    for( int s=0; s<no_lam; s++ )
-    {
-      for( int ti=1; ti<no_time_steps-1; ti++ )
-      {
-	      m_all_lambdas[s][ti] -= 0.1*m_all_lambdas_grad[s][ti];
-      }
-    }
-    
-    for( int s=0; s<no_lam; s++ )
-    {
-      double tmp=0;
-      for( int ti=1; ti<no_time_steps-1; ti++ )
-      {
-        tmp += m_all_lambdas_grad[s][ti]*m_all_lambdas_grad[s][ti];
-      }
-      if(m_root) printf( "l2norm sob grad = %g\n", sqrt(m_dt*tmp));
-    }    
     m_computing_timer.exit_section();
   }
 
