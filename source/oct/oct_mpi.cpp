@@ -186,7 +186,7 @@ namespace realtime_propagation
       return m_pot[component]->Eval();
       }      
       
-      vector<Functions::CSpline<1>*> m_lambdas;
+      vector<dealii::Functions::CSpline<1>*> m_lambdas;
 
       protected:
         double m_dt;

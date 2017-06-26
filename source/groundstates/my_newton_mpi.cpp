@@ -84,6 +84,7 @@ namespace LA
 #include "my_table.h"
 #include "ref_pt_list.h"
 #include "MyParameterHandler.h"
+#include "MyRealTools.h"
 
 namespace BreedSolver
 {
@@ -127,15 +128,11 @@ namespace BreedSolver
     void make_grid();
     void make_grid_custom();
     void setup_system();
-    void assemble_system();
-    void assemble_rhs();
     void do_superposition();
     void estimate_error( double& );
     void Interpolate_R_to_C( string );
     void compute_tangent();
 
-    double Particle_Number( LA::MPI::Vector& );
-    
     void solve();
     void compute_contributions();
     void compute_E_lin( LA::MPI::Vector&, double&, double&, double& );
@@ -416,8 +413,10 @@ namespace BreedSolver
     m_t[0] = m_ti;
     m_t[1] = m_ti;
     
+    CPotential<dim> Potential( m_omega );
+
     do_superposition();
-    assemble_rhs();
+    MPI::MyRealTools::AssembleRHS_L2gradient<dim>( dof_handler, fe, constraints, m_Psi_ref, Potential, m_mu[0], m_gs[0], m_res[0], m_system_rhs );
     m_res_old[0] = m_res[0];
     m_counter=0;
     do
@@ -425,7 +424,7 @@ namespace BreedSolver
       pcout << "--------------------------------------------------------------------------------" << endl;
       pcout << "- " << path << " - " << m_counter << endl;
 
-      assemble_system();
+      MPI::MyRealTools::AssembleSystem_Jacobian<dim>( dof_handler, fe, constraints, m_Psi_ref, Potential, m_mu[0], m_gs[0], m_system_matrix);
       solve();
 
       m_Psi_2.add( -m_t[1]/fabs(m_t[1]), m_newton_update); 
@@ -439,7 +438,7 @@ namespace BreedSolver
 #endif
         
       do_superposition();
-      assemble_rhs();
+      MPI::MyRealTools::AssembleRHS_L2gradient<dim>( dof_handler, fe, constraints, m_Psi_ref, Potential, m_mu[0], m_gs[0], m_res[0], m_system_rhs );
       
       m_resp[0] = m_res_old[0]-m_res[0];
       m_res_old[0] = m_res[0];
@@ -471,13 +470,13 @@ namespace BreedSolver
       pcout << "--------------------------------------------------------------------------------" << endl;
       pcout << "-- " << path << " - " << m_counter << endl;
 
-      assemble_system();
+      MPI::MyRealTools::AssembleSystem_Jacobian<dim>( dof_handler, fe, constraints, m_Psi_ref, Potential, m_mu[0], m_gs[0], m_system_matrix);
       solve();
 
       m_Psi_ref.add( -0.1, m_newton_update); 
       constraints.distribute(m_Psi_ref);
 
-      assemble_rhs();
+      MPI::MyRealTools::AssembleRHS_L2gradient<dim>( dof_handler, fe, constraints, m_Psi_ref, Potential, m_mu[0], m_gs[0], m_res[0], m_system_rhs );
       
       m_resp[0] = m_res_old[0]-m_res[0];
       m_res_old[0] = m_res[0];
@@ -501,7 +500,7 @@ namespace BreedSolver
       m_counter++;
     }while( true );
     
-    m_N[0] = Particle_Number(m_Psi_ref);
+    m_N[0] = MPI::MyRealTools::Particle_Number( mpi_communicator, dof_handler, fe, m_Psi_ref );
     
     if( m_N[0] < 1e-5 ) retval = Status::ZERO_SOL;
     
@@ -526,7 +525,8 @@ namespace BreedSolver
     //CEigenfunctions<dim> Ef2( m_QN2, f );
 
     VectorTools::interpolate (dof_handler, Ef1, m_Psi_1 );
-    m_Psi_1 *= 1.0/sqrt(Particle_Number(m_Psi_1));
+    m_workspace_1 = m_Psi_1;
+    m_Psi_1 *= 1.0/sqrt(MPI::MyRealTools::Particle_Number( mpi_communicator, dof_handler, fe, m_workspace_1 ));
     //VectorTools::interpolate (dof_handler, Ef2, m_workspace );
     //m_workspace *= 1.0/sqrt(Particle_Number(m_workspace));
     //m_Psi_1 += m_workspace;
@@ -584,7 +584,8 @@ namespace BreedSolver
     guess_fct.initialize( FunctionParser<dim>::default_variable_names(), m_guess_str , constants );
 
     VectorTools::interpolate (dof_handler, guess_fct, m_Psi_1 );
-    m_Psi_1 *= 1.0/sqrt(Particle_Number(m_Psi_1));
+    m_workspace_1 = m_Psi_1;
+    m_Psi_1 *= 1.0/sqrt(MPI::MyRealTools::Particle_Number( mpi_communicator, dof_handler, fe, m_workspace_1 ));
     m_Psi_2 = 0;
     
     compute_E_lin( m_Psi_1, T, N, W );
@@ -630,7 +631,8 @@ namespace BreedSolver
     
     VectorTools::interpolate (dof_handler, Ef1, m_Psi_1 );
 
-    m_Psi_1 *= 1.0/sqrt(Particle_Number(m_Psi_1));
+    m_workspace_1 = m_Psi_1;
+    m_Psi_1 *= 1.0/sqrt(MPI::MyRealTools::Particle_Number( mpi_communicator, dof_handler, fe, m_workspace_1 ));
     m_Psi_2 = 0; 
 
     compute_E_lin( m_Psi_1, T, N, W );
@@ -711,7 +713,8 @@ namespace BreedSolver
     
     VectorTools::interpolate (dof_handler, Ef1, m_Psi_1 );
 
-    m_Psi_1 *= 1.0/sqrt(Particle_Number(m_Psi_1));
+    m_workspace_1 = m_Psi_1;
+    m_Psi_1 *= 1.0/sqrt(MPI::MyRealTools::Particle_Number( mpi_communicator, dof_handler, fe, m_workspace_1 ));
     m_Psi_2 = 0; 
 
     compute_E_lin( m_Psi_1, T, N, W );
@@ -869,58 +872,12 @@ namespace BreedSolver
   void MySolver<dim>::compute_tangent ()
   {
     m_computing_timer.enter_section(__func__);
-
-    CPotential<dim> Potential( m_omega );
-    const QGauss<dim> quadrature_formula(fe.degree+1);
     
     constraints.distribute(m_Psi_ref);
     m_workspace_1=m_Psi_ref;
     
-    m_system_matrix=0;
-    m_system_rhs=0;
-
-    FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_gradients|update_JxW_values|update_quadrature_points);
-
-    const unsigned dofs_per_cell = fe.dofs_per_cell;
-    const unsigned n_q_points = quadrature_formula.size();
-
-    Vector<double> cell_rhs (dofs_per_cell);
-    FullMatrix<double> cell_matrix (dofs_per_cell, dofs_per_cell);
-
-    vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
-    vector<Tensor<1, dim> > Psi_grad(n_q_points);
-    vector<double> Psi(n_q_points);
-
-    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for ( ; cell!=endc; ++cell )
-    {
-      if( cell->is_locally_owned() )
-      {
-        cell_rhs = 0;
-        cell_matrix = 0;
-
-        fe_values.reinit (cell);
-        fe_values.get_function_values(m_workspace_1, Psi);
-        fe_values.get_function_gradients(m_workspace_1, Psi_grad);
-
-        for ( unsigned qp=0; qp<n_q_points; qp++ )
-        {
-          double JxW = fe_values.JxW(qp);
-          double Q2 = Potential.value(fe_values.quadrature_point(qp)) - m_mu[0] + 3.0*m_gs[0]*Psi[qp]*Psi[qp];
-
-          for ( unsigned i=0; i<dofs_per_cell; ++i )
-          {
-            cell_rhs(i) += JxW*Psi[qp]*fe_values.shape_value(i,qp);
-            for ( unsigned j=0; j<dofs_per_cell; ++j )
-              cell_matrix(i,j) += JxW*(fe_values.shape_grad(i,qp)*fe_values.shape_grad(j,qp) + Q2*fe_values.shape_value(i,qp)*fe_values.shape_value(j,qp));
-          }
-        }
-        cell->get_dof_indices (local_dof_indices);
-        constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, m_system_matrix, m_system_rhs);
-      }
-    }
-    m_system_rhs.compress(VectorOperation::add);
-    m_system_matrix.compress(VectorOperation::add);
+    CPotential<dim> Potential( m_omega );
+    MPI::MyRealTools::AssembleSystem_tangent( dof_handler, fe, constraints, m_workspace_1, Potential, m_mu[0], m_gs[0], m_system_matrix, m_system_rhs );
 
     pcout << "Solving..." << endl;
     SolverControl solver_control;
@@ -929,11 +886,11 @@ namespace BreedSolver
     solver.solve(m_system_matrix, m_workspace_ng, m_system_rhs);
     constraints.distribute (m_workspace_ng);    
 
-    double N = Particle_Number(m_workspace_ng);
+    m_workspace_1 = m_workspace_ng;
+    double N = MPI::MyRealTools::Particle_Number( mpi_communicator, dof_handler, fe, m_workspace_1 );
     m_workspace_ng *= 1/sqrt(1+N); // +/- 1 / sqrt(1+N) 
 
     m_computing_timer.exit_section();
-
   }  
 
   template<int dim>
@@ -949,7 +906,7 @@ namespace BreedSolver
   template<int dim>
   void MySolver<dim>::save_one( string filename )
   {
-    double tmp = Particle_Number(m_Psi_ref);
+    double tmp = MPI::MyRealTools::Particle_Number( mpi_communicator, dof_handler, fe, m_Psi_ref );
     m_workspace_ng=m_Psi_ref;
     m_workspace_ng*=sqrt(1/tmp);
     m_workspace_1 = m_workspace_ng; 

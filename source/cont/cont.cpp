@@ -82,6 +82,7 @@ namespace LA
 #include "mpi.h"
 #include "functions.h"
 #include "MyParameterHandler.h"
+#include "MyRealTools.h"
 #include "my_table.h"
 
 #define STR1(x) #x
@@ -251,58 +252,11 @@ namespace BreedSolver
   {
     m_computing_timer.enter_section(__func__);
 
-    CPotential<dim> Potential( m_omega );
-    const QGauss<dim> quadrature_formula(fe.degree+1);
-    
     constraints.distribute(m_Psi);
     m_workspace_1=m_Psi;
     
-    m_system_matrix=0;
-    m_system_rhs=0;
-
-    FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_gradients|update_JxW_values|update_quadrature_points);
-
-    const unsigned dofs_per_cell = fe.dofs_per_cell;
-    const unsigned n_q_points = quadrature_formula.size();
-
-    Vector<double> cell_rhs (dofs_per_cell);
-    FullMatrix<double> cell_matrix (dofs_per_cell, dofs_per_cell);
-
-    vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
-    vector<Tensor<1, dim> > Psi_grad(n_q_points);
-    vector<double> Psi(n_q_points);
-
-    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for ( ; cell!=endc; ++cell )
-    {
-      if( cell->is_locally_owned() )
-      {
-        cell_rhs = 0;
-        cell_matrix = 0;
-
-        fe_values.reinit (cell);
-        fe_values.get_function_values(m_workspace_1, Psi);
-        fe_values.get_function_gradients(m_workspace_1, Psi_grad);
-
-        for ( unsigned qp=0; qp<n_q_points; qp++ )
-        {
-          double JxW = fe_values.JxW(qp);
-          double pq = m_gs*Psi[qp]*Psi[qp];
-          double Q2 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + 3.0*pq;
-
-          for ( unsigned i=0; i<dofs_per_cell; ++i )
-          {
-            cell_rhs(i) -= JxW*Psi[qp]*fe_values.shape_value(i,qp);
-            for ( unsigned j=0; j<dofs_per_cell; ++j )
-              cell_matrix(i,j) += JxW*(fe_values.shape_grad(i,qp)*fe_values.shape_grad(j,qp) + Q2*fe_values.shape_value(i,qp)*fe_values.shape_value(j,qp));
-          }
-        }
-        cell->get_dof_indices (local_dof_indices);
-        constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, m_system_matrix, m_system_rhs);
-      }
-    }
-    m_system_rhs.compress(VectorOperation::add);
-    m_system_matrix.compress(VectorOperation::add);
+    CPotential<dim> Potential( m_omega );
+    MPI::MyRealTools::AssembleSystem_tangent( dof_handler, fe, constraints, m_workspace_1, Potential, m_mu, m_gs, m_system_matrix, m_system_rhs );
 
     pcout << "Solving..." << endl;
     SolverControl solver_control;
