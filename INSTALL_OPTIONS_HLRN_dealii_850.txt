@@ -67,24 +67,13 @@ cmake                                            \
 
 export CRAYPE_LINK_TYPE=dynamic
 
-comment lines 26 to 33 in 
-dealii/cmake/configure/configure_1_mpi.cmake 
+comment out lines 26 to 33 in 
+dealii-8.5.0/cmake/configure/configure_1_mpi.cmake 
 
-cmake  \
--DCMAKE_SYSTEM_NAME=CrayLinuxEnvironment \
--DDEAL_II_WITH_UMFPACK=ON -DDEAL_II_WITH_LAPACK=ON \
--DMPI_CXX_LIBRARIES=/opt/cray/mpt/7.5.1/gni/mpich-gnu/5.1/lib/libmpichcxx.so \
--DMPI_INCLUDE_DIRS=/opt/cray/mpt/7.5.1/gni/mpich-gnu/5.1/include \
--DLAPACK_DIR=/home/h/hbpzeli4/opt/lapack-3.7.0 \
--DPETSC_ARCH=x86_64 \
--DPETSC_DIR=/home/h/hbpzeli4/opt/petsc-3.7.6 \
--DP4EST_DIR=/home/h/hbpzeli4/opt/p4est-1.1 \
--DGSL_DIR=/home/h/hbpzeli4/opt/gsl-2.3 \
--DTRILINOS_DIR=/home/h/hbpzeli4/opt/trilinos-12.10.1 \
--DDEAL_II_WITH_THREADS=OFF \
--DDEAL_II_WITH_MPI=ON \
--DDEAL_II_WITH_HDF5=OFF \
--DCMAKE_INSTALL_PREFIX=/home/h/hbpzeli4/opt/deal.II-8.5.0 ..
+comment out lines 383 to 394 in 
+dealii-8.5.0/cmake/checks/check_01_compiler_features.cmake
+
+export LIBRARY_PATH=$LIBRARY_PATH:/opt/cray/atp/2.0.5/libApp
 
 cmake  \
 -DCMAKE_SYSTEM_NAME=CrayLinuxEnvironment \
@@ -94,23 +83,6 @@ cmake  \
 -DPETSC_DIR=/home/h/hbpzeli4/opt/petsc-3.7.6 \
 -DP4EST_DIR=/home/h/hbpzeli4/opt/p4est-1.1 \
 -DGSL_DIR=/home/h/hbpzeli4/opt/gsl-2.3 \
--DDEAL_II_WITH_THREADS=OFF \
--DDEAL_II_WITH_MPI=ON \
--DDEAL_II_WITH_HDF5=OFF \
--DCMAKE_INSTALL_PREFIX=/home/h/hbpzeli4/opt/deal.II-8.5.0 ..
-
-
-/opt/cray/atp/2.0.5/libApp"
-
-
-cmake  \
--DDEAL_II_WITH_UMFPACK=ON -DDEAL_II_WITH_LAPACK=ON \
--DMPI_FOUND=TRUE \
--DLAPACK_DIR=/home/h/hbpzeli4/opt/lapack-3.7.0 \
--DPETSC_ARCH=x86_64 \
--DPETSC_DIR=/home/h/hbpzeli4/opt/petsc-3.7.6 \
--DP4EST_DIR=/home/h/hbpzeli4/opt/p4est-1.1 \
--DTRILINOS_DIR=/home/h/hbpzeli4/opt/trilinos-12.10.1 \
 -DDEAL_II_WITH_THREADS=OFF \
 -DDEAL_II_WITH_MPI=ON \
 -DDEAL_II_WITH_HDF5=OFF \
