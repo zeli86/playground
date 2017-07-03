@@ -391,6 +391,46 @@ namespace MPI { namespace MyComplexTools
     }        
 
     template<int dim>
+    std::complex<double> L2_dot_product( MPI_Comm mpi_communicator, 
+                                         const DoFHandler<dim>& dof_handler,
+                                         const FESystem<dim>& fe,
+                                         const LA::MPI::Vector& vec1,
+                                         const LA::MPI::Vector& vec2 )
+    {
+        assert( vec1.has_ghost_elements() == true );
+        assert( vec2.has_ghost_elements() == true );
+       
+        double tmp[] = {0,0};
+        double retval[] = {0,0};
+        
+        const QGauss<dim>  quadrature_formula(fe.degree+1);
+        FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_JxW_values);
+
+        const unsigned n_q_points = quadrature_formula.size();
+        vector<Vector<double>> vec_vals_1(n_q_points,Vector<double>(2));
+        vector<Vector<double>> vec_vals_2(n_q_points,Vector<double>(2));
+
+        typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
+        for( ; cell!=endc; cell++ )
+        {
+           if( cell->is_locally_owned() )
+           {
+                fe_values.reinit (cell);
+                fe_values.get_function_values( vec1, vec_vals_1 );
+                fe_values.get_function_values( vec2, vec_vals_2 );
+                for( unsigned qp=0; qp<n_q_points; qp++ )
+                {
+                    double JxW = fe_values.JxW(qp);
+                    tmp[0] += JxW*(vec_vals_1[qp][0]*vec_vals_2[qp][0]+vec_vals_1[qp][1]*vec_vals_2[qp][1]);
+                    tmp[1] += JxW*(vec_vals_1[qp][0]*vec_vals_2[qp][1]-vec_vals_1[qp][1]*vec_vals_2[qp][0]);
+                }
+            }
+        }
+        MPI_Allreduce( tmp, retval, 2, MPI_DOUBLE, MPI_SUM, mpi_communicator);
+    return std::complex<double>(retval[0],retval[1]);
+    }           
+
+    template<int dim>
     void Expectation_value_position( MPI_Comm mpi_communicator, 
                                      const DoFHandler<dim>& dof_handler,
                                      const FESystem<dim>& fe,

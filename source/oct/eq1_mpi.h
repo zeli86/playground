@@ -17,29 +17,42 @@
  * along with atus-pro testing.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-template <int dim, int no_time_steps>
+  template <int dim, int no_time_steps>
   void MySolver<dim,no_time_steps>::rt_propagtion_forward()
   {
     m_computing_timer.enter_section(__func__);
     
+    m_Psi = m_all_Psi[0];
     for( int i=1; i<no_time_steps; i++ )
     {
-      m_timeindex = i-1;
-
+      /*
       m_workspace = m_Psi;
       MPI::MyComplexTools::AssembleSystem_LIN_Step( dof_handler, fe, constraints, m_workspace, 0.5*m_dt, system_matrix, system_rhs );
       solve_eq1();
       m_workspace = m_sol;
+      m_potential.set_time( double(i)*m_dt );
       MPI::MyComplexTools::AssembleSystem_NL_Step( dof_handler, fe, constraints, m_workspace, m_potential, m_dt, m_gs,  system_matrix, system_rhs );
-      solve_eq1();
+      solve_cg();
       m_workspace = m_sol;
       MPI::MyComplexTools::AssembleSystem_LIN_Step( dof_handler, fe, constraints, m_workspace, 0.5*m_dt, system_matrix, system_rhs );
       solve_eq1();
       m_Psi = m_sol;
+      */
 
-      m_all_Psi[i] = m_Psi;
+      MPI::MyComplexTools::AssembleSystem_LIN_Step( dof_handler, fe, constraints, m_Psi, m_dt, system_matrix, system_rhs );
+      solve_eq1();
+      m_Psi = m_sol;
+      m_potential.set_time( double(i)*m_dt );
+      MPI::MyComplexTools::AssembleSystem_NL_Step( dof_handler, fe, constraints, m_Psi, m_potential, m_dt, m_gs,  system_matrix, system_rhs );
+      solve_cg();
+      m_Psi = m_sol;
 
-      if(m_root) printf( "f: %g \n", double(i)*m_dt );
+      //output_vec( "Psi_" + to_string(i) + ".vtu", m_sol );
+
+      m_all_Psi[i] = m_sol;
+
+      //double N = MPI::MyComplexTools::Particle_Number( mpi_communicator, dof_handler, fe, m_Psi );
+      if(m_root) printf( "f: %g\n", double(i)*m_dt );
     }
    
     m_computing_timer.exit_section();
@@ -57,6 +70,7 @@ template <int dim, int no_time_steps>
 
     SolverControl solver_control (dof_handler.n_dofs(), 1e-15);
     PETScWrappers::SolverGMRES solver(solver_control, mpi_communicator);
+    //PETScWrappers::SolverCG solver(solver_control, mpi_communicator);
     
     solver.solve(system_matrix, m_sol, system_rhs, preconditioner);
     constraints.distribute (m_sol);
@@ -70,3 +84,21 @@ template <int dim, int no_time_steps>
 */
     m_computing_timer.exit_section();
   }   
+
+  template <int dim, int no_time_steps>
+  void MySolver<dim,no_time_steps>::solve_cg ()
+  {
+    m_computing_timer.enter_section(__func__);
+
+    m_sol=0;
+    PETScWrappers::PreconditionSOR preconditioner;
+    preconditioner.initialize(system_matrix);
+
+    SolverControl solver_control (dof_handler.n_dofs(), 1e-15);
+    PETScWrappers::SolverCGS solver(solver_control, mpi_communicator);
+    
+    solver.solve(system_matrix, m_sol, system_rhs, preconditioner);
+    constraints.distribute (m_sol);
+
+    m_computing_timer.exit_section();
+  }     

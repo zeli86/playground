@@ -23,40 +23,47 @@
     m_computing_timer.enter_section(__func__);
 
     m_workspace_ng = m_Psi_d;
-    m_workspace_ng -= m_Psi;
+    m_workspace_ng -= m_all_Psi[no_time_steps-1];
+
+    constraints.distribute(m_workspace_ng);
     m_Psi = m_workspace_ng;
 
     MPI::MyComplexTools::AssembleSystem_mulvz( dof_handler, fe, constraints, m_Psi, std::complex<double>(0,-1), system_matrix, system_rhs );
     solve_eq2();
     m_all_p[no_time_steps-1] = m_Psi;
-//     output_vec( "init_p.vtu", m_Psi );
+    output_vec( "p_" + to_string(no_time_steps-1) + ".vtu", m_all_p[no_time_steps-1] );
 
-    solve_eq2();
-    
     for( int i=no_time_steps-2; i>0; i-- )
     {
-      m_timeindex = i;
-      m_workspace = m_all_Psi[i];
-      m_workspace_2 = m_all_Psi[i+1];
-
-      assemble_system_2();
+      assemble_system(i);
       solve();
-      m_all_p[i] = m_Psi;
+      m_all_p[i] = m_sol;
+
+      //output_vec( "p_" + to_string(i) + ".vtu", m_all_p[i] );
       
-      double N = MPI::MyComplexTools::Particle_Number( mpi_communicator, dof_handler, fe, m_workspace );
+      double N = MPI::MyComplexTools::Particle_Number( mpi_communicator, dof_handler, fe, m_Psi );
       if(m_root)printf( "b: %g %g\n", double(i)*m_dt, N );
     }
     m_computing_timer.exit_section();
   }
 
   template <int dim, int no_time_steps>
-  void MySolver<dim,no_time_steps>::assemble_system_2 ()
+  void MySolver<dim,no_time_steps>::assemble_system ( const int idx )
   {
     m_computing_timer.enter_section(__func__);
+
+    constraints.distribute(m_all_Psi[idx]);
+    constraints.distribute(m_all_Psi[idx+1]);
+    m_workspace = m_all_Psi[idx];
+    m_workspace_2 = m_all_Psi[idx+1];
+
     const QGauss<dim> quadrature_formula(fe.degree+1);
 
     CPotential<dim,no_time_steps> potential2 = m_potential;
-    // TODO t setzen !!
+    m_potential.set_time( double(idx)*m_dt );
+    potential2.set_time( double(idx+1)*m_dt );
+
+    //pcout << double(idx)*m_dt << "\t" <<  double(idx+1)*m_dt << endl;
     
     const FEValuesExtractors::Scalar rt (0);
     const FEValuesExtractors::Scalar it (1);
@@ -91,8 +98,8 @@
         cell_rhs = 0;
 
         fe_values.reinit (cell);
-        fe_values.get_function_values(m_workspace_2, p);
-        fe_values.get_function_gradients(m_workspace_2, p_grad);
+        fe_values.get_function_values(m_Psi, p);
+        fe_values.get_function_gradients(m_Psi, p_grad);
 
         fe_values.get_function_values(m_workspace, Psi1 );
         fe_values.get_function_values(m_workspace_2, Psi0 );
@@ -131,15 +138,17 @@
   {
     m_computing_timer.enter_section(__func__);
 
-    SolverControl solver_control (m_sol.size(), 1e-15);
     
     m_sol=0;
+
+    SolverControl solver_control (m_sol.size(), 1e-15);
     PETScWrappers::SolverGMRES solver (solver_control, mpi_communicator);
     PETScWrappers::PreconditionSOR preconditioner(system_matrix);
     solver.solve (system_matrix, m_sol, system_rhs, preconditioner);
     
     constraints.distribute (m_sol);
     m_Psi = m_sol;
+
 /*
     SolverControl solver_control;
     PETScWrappers::SparseDirectMUMPS solver(solver_control, mpi_communicator);
