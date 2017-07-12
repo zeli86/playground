@@ -84,8 +84,8 @@ namespace LA
 #include "mpi.h"
 #include "MyParameterHandler.h"
 #include "my_table.h"
-#include "muParser.h"
 #include "MyComplexTools.h"
+#include "muParser.h"
 
 
 namespace realtime_propagation
@@ -95,166 +95,8 @@ namespace realtime_propagation
   using namespace std;
   using namespace dealii;
   
-  template <int dim, int N>
-  class CPotential : public Function<dim> 
-  {
-    public:
-      // Constructor
-      CPotential () 
-        : 
-        Function<dim>(),
-        m_t(N),
-        m_pos_val(3)
-      { 
-      }
+  #include "potential.h"    
 
-      // Copy Constructor
-      CPotential ( const CPotential& rhs ) 
-        : 
-        Function<dim>(),
-        m_t(N),
-        m_pos_val(3)
-      { 
-        init( rhs.m_all_lambdas, rhs.m_all_potential, rhs.m_constants, rhs.m_T );
-      }
-      
-      // Destructor
-      virtual ~CPotential()
-      {
-        for( auto& i : m_lambdas )
-        {
-          delete i;
-        }
-        for( auto& i : m_pot )
-        {
-          delete i;
-        }
-      }
-
-      void init(  const vector<string>& all_lambdas, const vector<string>& all_potential, const map<string,double>& constants, const double T )
-      {
-        assert( all_lambdas.size() != 0 );
-        assert( all_potential.size() != 0 );
-        assert( all_potential.size() == all_lambdas.size()+1 );
-
-        m_all_lambdas = all_lambdas; 
-        m_all_potential = all_potential; 
-        m_constants = constants;
-
-        m_no_lam = all_lambdas.size();
-        m_dt = T/double(N-1);
-        m_T = T;
-
-        for( int i=0; i<N; i++ )
-        {
-          m_t[i] = double(i)*m_dt;
-        }
-
-        // Setup all initial lambda_i(t) with the guess from all_lambdas
-        vector<double> tmpvec(N);
-        for( auto str : all_lambdas )
-        {
-          FunctionParser<1> lam;
-          lam.initialize( "lam", str, constants );
-          
-          for( int i=0; i<N; i++ )
-          {
-            Point<1> t(double(i)*m_dt);
-            tmpvec[i] = lam.value(t);
-          }
-          m_lambdas.push_back( new Functions::CSpline<1>(m_t, tmpvec) );
-        }
-
-        m_lam_val.resize(all_lambdas.size());
-        // Setup the potential and all derivatives with respect to lambda_i(t)
-        for( auto str : all_potential )
-        {
-          m_pot.push_back( new mu::Parser() );
-          mu::Parser * p = m_pot.back();
-          
-          p->SetExpr(str);
-
-          p->DefineVar("x", &(m_pos_val.data()[0]));
-          p->DefineVar("y", &(m_pos_val.data()[1]));
-          p->DefineVar("z", &(m_pos_val.data()[2]));
-
-          for( int i=0; i<all_lambdas.size(); i++ )
-          {
-            string tmp = "lam_" + to_string(i);
-            p->DefineVar(tmp, &(m_lam_val.data()[i]));
-          }
-          for( auto i : constants )
-          {
-            p->DefineConst(i.first, i.second);
-          }
-        }
-      }
-
-      void reinit( const vector<vector<double>>& new_lambdas )
-      {
-        assert( m_no_lam == new_lambdas.size() );
-
-        for( auto& i : m_lambdas )
-        {
-          delete i;
-        }          
-
-        for( int i=0; i<m_no_lam; i++ )
-        {
-          m_lambdas[i] = new Functions::CSpline<1>(m_t, new_lambdas[i]);
-        }
-      }
-
-      virtual double value ( const Point<dim> &p, const unsigned component = 0) const 
-      {
-        Point<1> pt(this->get_time());
-        
-        for( int i=0; i<dim; i++ )
-        {
-          m_pos_val[i] = p[i]; // setting the spatial coordinate
-        }
-        int s=0;
-        for( auto i : m_lambdas )
-        {
-          assert( this->get_time() >= 0 && this->get_time() <= m_T );
-          m_lam_val[s] = i->value(pt);  // setting lam_i(t)
-          s++;
-        }        
-      return m_pot[component]->Eval();
-      }      
-
-      void output( const std::string& filename )
-      {
-        ofstream out( filename );
-
-        for( int i=0; i<N; i++ )
-        {
-          Point<1> pt(double(i)*m_dt);
-          out << pt[0] << "\t";
-          for( int j=0; j<m_no_lam; j++ )
-          {
-            out << m_lambdas[j]->value(pt) << ( j+1 == m_no_lam ? "\n" : "\t" );
-          }
-        }
-      }
-
-      double get_no_lambdas() { return m_no_lam; };
-
-      vector<dealii::Functions::CSpline<1>*> m_lambdas;
-    protected:
-      int m_no_lam;
-      double m_dt;
-      double m_T;
-      vector<mu::Parser*> m_pot; 
-      vector<double> m_t;
-      mutable vector<double> m_pos_val;
-      mutable vector<double> m_lam_val;
-      vector<string> m_all_lambdas; 
-      vector<string> m_all_potential; 
-      map<string,double> m_constants;
-  };
-    
-  /*************************************************************************************************/
   template <int dim, int no_time_steps>
   class MySolver
   {
@@ -267,19 +109,16 @@ namespace realtime_propagation
   protected:
     CPotential<dim,no_time_steps> m_potential;
 
-    void rt_propagtion_forward (); 
-    void rt_propagtion_backward (); 
-    void compute_correction (); 
+    void rt_propagtion_forward ( const int ); 
+    void rt_propagtion_backward ( const int ); 
+    void compute_correction ( const int ); 
     
     void make_grid();
     void setup_system();
     
-    void assemble_system( const int ); // required by rt_propagtion_backward
-    
     void solve();
     void solve_cg();
     void solve_eq1();
-    void solve_eq2();
     void output_results ( string );
     void output_vec ( string, LA::MPI::Vector& );
     void load( string );
@@ -299,11 +138,12 @@ namespace realtime_propagation
     LA::MPI::Vector m_sol;
     LA::MPI::Vector m_Psi; // Psi(t)
     LA::MPI::Vector m_Psi_d; // desired state
-    LA::MPI::Vector m_Psi_t; // Psi trial
     LA::MPI::Vector m_workspace;
     LA::MPI::Vector m_workspace_2;
     LA::MPI::Vector m_workspace_3;
     LA::MPI::Vector m_workspace_ng;
+    LA::MPI::Vector m_p_D;
+    LA::MPI::Vector m_p_L;
     Vector<double> m_error_per_cell;
     
     array<LA::MPI::Vector,no_time_steps> m_all_Psi;
@@ -328,8 +168,6 @@ namespace realtime_propagation
     double m_ymin, m_ymax;
     double m_zmin, m_zmax;
 
-    unsigned m_NA;
-    unsigned m_NK;
     int m_rank;
     
     MyTable m_table;    
@@ -358,9 +196,6 @@ namespace realtime_propagation
       m_ymax = m_ph.Get_Mesh("yrange",1);
       m_zmin = m_ph.Get_Mesh("zrange",0);
       m_zmax = m_ph.Get_Mesh("zrange",1);
-
-      m_NA = m_ph.Get_Algorithm("NA",0);
-      m_NK = m_ph.Get_Algorithm("NK",0);      
     }
     catch( const std::string info )
     {
@@ -389,16 +224,19 @@ namespace realtime_propagation
   void MySolver<dim,no_time_steps>::make_grid ()
   {
     m_computing_timer.enter_section(__func__);
-#if DIMENSION==2
-    Point<dim,double> pt1( m_xmin, m_ymin );
-    Point<dim,double> pt2( m_xmax, m_ymax );
-#endif
-#if DIMENSION==3
-    Point<dim,double> pt1( m_xmin, m_ymin, m_zmin );
-    Point<dim,double> pt2( m_xmax, m_ymax, m_zmax );
-#endif
+    Point<dim,double> pt1;
+    Point<dim,double> pt2;
+
+    double min[] = {m_xmin, m_ymin, m_zmin};
+    double max[] = {m_xmax, m_ymax, m_zmax};
+
+    for( int i=0; i<dim; i++ )
+    {
+      pt1(i) = min[i];
+      pt2(i) = max[i];
+    }
+
     GridGenerator::hyper_rectangle(triangulation, pt2, pt1);
-    //triangulation.refine_global(1);
     m_computing_timer.exit_section();
   }
   
@@ -420,13 +258,14 @@ namespace realtime_propagation
 
     m_sol.reinit(locally_owned_dofs, mpi_communicator); // no ghosts
     system_rhs.reinit(locally_owned_dofs, mpi_communicator); // no ghosts
+    m_p_D.reinit(locally_owned_dofs, mpi_communicator); // no ghosts
+    m_p_L.reinit(locally_owned_dofs, mpi_communicator); // no ghosts
     m_workspace.reinit (locally_owned_dofs, locally_relevant_dofs, mpi_communicator);
     m_workspace_2.reinit (locally_owned_dofs, locally_relevant_dofs, mpi_communicator);
     m_workspace_3.reinit (locally_owned_dofs, locally_relevant_dofs, mpi_communicator);
     m_workspace_ng.reinit (locally_owned_dofs, mpi_communicator);
     m_Psi.reinit (locally_owned_dofs, locally_relevant_dofs, mpi_communicator);
     m_Psi_d.reinit (locally_owned_dofs, locally_relevant_dofs, mpi_communicator);
-    m_Psi_t.reinit (locally_owned_dofs, locally_relevant_dofs, mpi_communicator);
     m_error_per_cell.reinit(triangulation.n_active_cells());
 
     cout << "(" << m_rank << ") locally_owned_dofs = " << system_rhs.local_size()  << endl;
@@ -541,8 +380,6 @@ namespace realtime_propagation
   template <int dim, int no_time_steps>
   void MySolver<dim,no_time_steps>::run ()
   {
-    //TODO: setup m_Psi(0) and m_Psi_d and lambdas
-
     map<string,double> con_map;
     con_map["omq_x"] = m_omega[0];
     con_map["omq_y"] = m_omega[1];
@@ -550,18 +387,25 @@ namespace realtime_propagation
 
     // V(x,y;lambda,..) 
     vector<string> pot_str;
-    pot_str.push_back("omq_x*x^2 + omq_y*y^2 + lam_0*sin(lam_1*x) + lam_2*sin(lam_3*y)" );
-    pot_str.push_back("sin(lam_1*x)" );
-    pot_str.push_back("lam_0*cos(lam_1*x)" );
-    pot_str.push_back("sin(lam_3*y)" );
-    pot_str.push_back("lam_2*cos(lam_3*y)" );
+//    pot_str.push_back("omq_x*x^2 + omq_y*y^2 + lam_0*sin(lam_1*x) + lam_2*sin(lam_3*y)" );
+//    pot_str.push_back("sin(lam_1*x)" );
+//    pot_str.push_back("lam_0*cos(lam_1*x)" );
+//    pot_str.push_back("sin(lam_3*y)" );
+//    pot_str.push_back("lam_2*cos(lam_3*y)" );
+
+    pot_str.push_back("(1+lam_0)*omq_x*x^2 + (1+lam_1)*y^2 + lam_2*x^3 + lam_3*y^3" );
+    pot_str.push_back("x^2" );
+    pot_str.push_back("y^2" );
+    pot_str.push_back("x^3" );
+    pot_str.push_back("y^3" );
 
     double domega = M_PI/m_T;
 
     // initial guess for lambda
     vector<string> lam_str;
     string str;
-    str = "sin(lam*" + to_string(domega) + ")";
+    //str = "sin(lam*" + to_string(domega) + ")";
+    str = "0";
     lam_str.push_back(str);
     lam_str.push_back(str);
     lam_str.push_back(str);
@@ -579,7 +423,7 @@ namespace realtime_propagation
     double var[] = {0,0,0};
 
     m_workspace = m_all_Psi[0];
-    m_N = MPI::MyComplexTools::Particle_Number( mpi_communicator, dof_handler, fe, m_workspace );
+    m_N = MyComplexTools::MPI::Particle_Number( mpi_communicator, dof_handler, fe, m_workspace );
     
     pcout << "N == " << m_N << endl;
     pcout << "dt == " << m_dt << endl;
@@ -589,20 +433,20 @@ namespace realtime_propagation
     //pcout << "p == " << p[0]/m_N << ", " << p[1]/m_N << ", " << p[2]/m_N << endl;
     //pcout << "pos == " << pos[0]/m_N << ", " << pos[1]/m_N << ", " << pos[2]/m_N << endl;
     
-    for( int i=1; i<=3; i++ )
+    for( int i=1; i<=200; i++ )
     {
       pcout << "Step 1" << endl;
-      rt_propagtion_forward();
-      m_N = MPI::MyComplexTools::Particle_Number( mpi_communicator, dof_handler, fe, m_workspace );      
+      rt_propagtion_forward(i);
+      m_N = MyComplexTools::MPI::Particle_Number( mpi_communicator, dof_handler, fe, m_workspace );      
       pcout << "N == " << m_N << endl;
 //      Expectation_value_momentum( m_Psi, p );
 //      Expectation_value_position( m_Psi, pos );
 //      pcout << "p == " << p[0]/m_N << ", " << p[1]/m_N << ", " << p[2]/m_N << endl;
 //      pcout << "pos == " << pos[0]/m_N << ", " << pos[1]/m_N << ", " << pos[2]/m_N << endl;      
       pcout << "Step 2" << endl;
-      rt_propagtion_backward();
+      rt_propagtion_backward(i);
       pcout << "Step 3" << endl;
-      compute_correction();
+      compute_correction(i);
       //double cost = compute_costfunction();
       //if(m_root) printf( "cost = %g\n", cost );
       if(m_root) m_potential.output( "lambda_" + to_string(i) + ".txt" );
@@ -619,7 +463,7 @@ int main ( int argc, char *argv[] )
 
   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv);
   {
-    realtime_propagation::MySolver<DIMENSION,201> solver("params_one.xml", 2);
+    realtime_propagation::MySolver<DIMENSION,101> solver("params_one.xml", 1);
     //realtime_propagation::MySolver<DIMENSION,6> solver("params_one.xml", 0.01);
     solver.run();
   }

@@ -18,7 +18,7 @@
  */
 
   template <int dim, int no_time_steps>
-  void MySolver<dim,no_time_steps>::compute_correction()
+  void MySolver<dim,no_time_steps>::compute_correction( const int ex )
   {
     m_computing_timer.enter_section(__func__);
     
@@ -91,12 +91,12 @@
     {
       // loop over all time steps
       double norm = grad(s,0)*grad(s,0);
-      if( m_root ) printf( "------------------------\n" );
-      if( m_root ) printf( "%d 0 %g\n", s, grad(0,s) );
+      //if( m_root ) printf( "------------------------\n" );
+      //if( m_root ) printf( "%d 0 %g\n", s, grad(0,s) );
       for( int ti=1; ti<no_time_steps; ti++ )
       {
-        if( m_root ) printf( "%d %d %g\n", s, ti, grad(ti,s) );
-        new_lambdas[s][ti] = m_potential.m_lambdas[s]->value( Point<1>(double(ti)*m_dt) ) + grad(ti,s);
+        //if( m_root ) printf( "%d %d %g\n", s, ti, grad(ti,s) );
+        new_lambdas[s][ti] = m_potential.m_lambdas[s]->value( Point<1>(double(ti)*m_dt) ) - grad(ti,s);
         norm += grad(ti,s)*grad(ti,s);
       }
 

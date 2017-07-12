@@ -22,19 +22,23 @@
   void MySolver<dim>::make_grid ()
   {
     m_computing_timer.enter_section(__func__);
-#if DIMENSION==2
-    Point<dim,double> pt1( m_xmin, m_ymin );
-    Point<dim,double> pt2( m_xmax, m_ymax );
-#endif
-#if DIMENSION==3
-    Point<dim,double> pt1( m_xmin, m_ymin, m_zmin );
-    Point<dim,double> pt2( m_xmax, m_ymax, m_zmax );
-#endif
+
+    Point<dim,double> pt1;
+    Point<dim,double> pt2;
+
+    double min[] = {m_xmin, m_ymin, m_zmin};
+    double max[] = {m_xmax, m_ymax, m_zmax};
+
+    for( int i=0; i<dim; i++ )
+    {
+      pt1(i) = min[i];
+      pt2(i) = max[i];
+    }
 
     GridGenerator::hyper_rectangle(triangulation, pt2, pt1);
     triangulation.refine_global(m_global_refinement);
 
-    unsigned int tmp1[2], tmp2[2];
+    unsigned tmp1[2], tmp2[2];
     tmp1[0] = triangulation.n_cells();
     tmp1[1] = triangulation.n_active_cells();
 
@@ -65,7 +69,7 @@
     GridGenerator::hyper_rectangle(triangulation, pt2, pt1);
     
 #if DIMENSION==2
-    triangulation.refine_global(5);    
+    triangulation.refine_global(4);    
     //triangulation.refine_global(6);    
     double isovalues[] = {32,30,28};
 #endif
@@ -74,11 +78,11 @@
     double isovalues[] = {16,15,14,13};
 #endif
     
-    for( unsigned int step=0; step<sizeof(isovalues)/sizeof(double); step++ )
+    for( unsigned step=0; step<sizeof(isovalues)/sizeof(double); step++ )
     {
       typename parallel::distributed::Triangulation<dim>::active_cell_iterator cell = triangulation.begin_active(), endc = triangulation.end();
       for( ; cell!=endc; ++cell )
-        for (unsigned int v=0; v < GeometryInfo<dim>::vertices_per_cell; ++v )
+        for (unsigned v=0; v < GeometryInfo<dim>::vertices_per_cell; ++v )
         {
           Point<dim> p = cell->vertex(v);
           if( Potential_fct.value(p)  < isovalues[step] )
@@ -90,7 +94,7 @@
       triangulation.execute_coarsening_and_refinement ();
     }
 
-    unsigned int tmp1[2], tmp2[2];
+    unsigned tmp1[2], tmp2[2];
     tmp1[0] = triangulation.n_cells();
     tmp1[1] = triangulation.n_active_cells();
 

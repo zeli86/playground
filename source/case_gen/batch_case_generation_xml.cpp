@@ -37,13 +37,13 @@ using namespace std;
 
 const long N1[] = {4,4,4};
 const long NA = 10000;
-const long Ndmu = 200;
+const long Ndmu = 50;
 const double dmu = .049;
 double omega[] = {0.5, 0.5, 0.5};
 
 int main( int argc, char *argv[] )
 {
-  //const char * HomePath = getenv ("HOME");
+  const string HomePath = getenv ("HOME");
 
   string tmpstr;
 
@@ -85,7 +85,7 @@ int main( int argc, char *argv[] )
       pugi::xml_node mesh_node = parameter_node.append_child("MESH");
       pugi::xml_node algorithm_node = parameter_node.append_child("ALGORITHM");      
 
-      // PARAMTER childs
+      // PARAMETER childs
       pugi::xml_node node = parameter_node.append_child("FILENAME");
       node.append_child(pugi::node_pcdata).set_value("final.bin");
 
@@ -108,6 +108,8 @@ int main( int argc, char *argv[] )
       node.append_child(pugi::node_pcdata).set_value("5,5");
 
       // MESH childs
+      node = mesh_node.append_child("DIM");
+      node.append_child(pugi::node_pcdata).set_value("2");
 #if POTENTIAL==1
       node = mesh_node.append_child("xrange");
       node.append_child(pugi::node_pcdata).set_value("-10,10");
@@ -130,7 +132,7 @@ int main( int argc, char *argv[] )
       node.append_child(pugi::node_pcdata).set_value("1");
 
       node = algorithm_node.append_child("NA");
-      node.append_child(pugi::node_pcdata).set_value("10");
+      node.append_child(pugi::node_pcdata).set_value("1000");
 
       node = algorithm_node.append_child("NK");
       node.append_child(pugi::node_pcdata).set_value("10");
@@ -173,6 +175,26 @@ int main( int argc, char *argv[] )
       //pbs_file << "mpirun --map-by core my_csolver_mpi\n";
       pbs_file.close();
 */
+
+      string jobname = "breed-" + to_string(i1) + "_" + to_string(j1);
+
+      string filename1 = jobname + "-job.sh";
+      ofstream slurm_file( filename1 );
+      slurm_file << "#!/bin/bash\n";
+      slurm_file << "#SBATCH -J " << jobname << "\n";
+      slurm_file << "#SBATCH -N 1 -n 8\n";
+      slurm_file << "#SBATCH --mail-user=zeli@zarm.uni-bremen.de\n";
+      slurm_file << "#SBATCH --mail-type=BEGIN --mail-type=END\n";
+      slurm_file << "#SBATCH -o matrixhell-%j.out\n";
+
+      slurm_file << "export MODULEPATH=$MODULEPATH:/home/zeli/local/modules/modulefiles\n";
+      slurm_file << "module load GCC/5.4.0\n";
+      slurm_file << "module load Cmake/3.7.0\n";
+      slurm_file << "module load muparser-2.2.5\n";
+      slurm_file << "module load atus-pro-git-meta\n";
+      slurm_file << "cd " << HomePath + "/" + base_folder + "/" + folder << "\n";
+      slurm_file << "mpirun -np 8 my_newton_mpi\n";
+      slurm_file.close();
     }
   }
 #endif

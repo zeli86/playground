@@ -7,7 +7,12 @@
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/lac/vector.h>
 
-namespace MPI { namespace MyRealTools
+namespace MyRealTools
+{
+    using namespace dealii;
+}
+
+namespace MyRealTools { namespace MPI
 {
     namespace LA
     {
@@ -185,14 +190,14 @@ namespace MPI { namespace MyRealTools
 
     template <int dim>
     void AssembleRHS_L2gradient( const DoFHandler<dim>& dof_handler,
-                                  const FE_Q<dim>& fe,
-                                  const ConstraintMatrix& constraints,
-                                  const LA::MPI::Vector& vec, 
-                                  const Function<dim>& Potential,
-                                  const double mu,
-                                  const double gs,
-                                  double& res,
-                                  LA::MPI::Vector& rhs )
+                                 const FE_Q<dim>& fe,
+                                 const ConstraintMatrix& constraints,
+                                 const LA::MPI::Vector& vec, 
+                                 const Function<dim>& Potential,
+                                 const double mu,
+                                 const double gs,
+                                 double& res,
+                                 LA::MPI::Vector& rhs )
     {
         assert( vec.has_ghost_elements() == true );
         assert( rhs.has_ghost_elements() == false );
@@ -298,6 +303,8 @@ namespace MPI { namespace MyRealTools
                 constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, matrix, rhs);
             }
         }
+        rhs.compress(VectorOperation::add);   
+        matrix.compress(VectorOperation::add);   
     }               
 
 }}
