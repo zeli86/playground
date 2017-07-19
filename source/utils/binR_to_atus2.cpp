@@ -288,17 +288,19 @@ namespace HelperPrograms
   template <int dim>
   void MySolver<dim>::make_grid ()
   {
-#if DIMENSION==2
-    Point<dim,double> pt1( m_xmin, m_ymin );
-    Point<dim,double> pt2( m_xmax, m_ymax );
-#endif
-#if DIMENSION==3
-    Point<dim,double> pt1( m_xmin, m_ymin, m_zmin );
-    Point<dim,double> pt2( m_xmax, m_ymax, m_zmax );
-#endif
+    Point<dim,double> pt1;
+    Point<dim,double> pt2;
+
+    double min[] = {m_xmin, m_ymin, m_zmin};
+    double max[] = {m_xmax, m_ymax, m_zmax};
+
+    for( int i=0; i<dim; i++ )
+    {
+      pt1(i) = min[i];
+      pt2(i) = max[i];
+    }
 
     GridGenerator::hyper_rectangle(triangulation, pt2, pt1);
-    triangulation.refine_global(1);
   }
   
   template <int dim>

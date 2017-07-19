@@ -97,6 +97,7 @@ namespace HelperPrograms
 
       void write_atus2( const std::string& filename, MPI_Comm& mpi_communicator, const std::vector<double>& data )
       {
+        cout << "HERE\n";
         const std::vector<DataOutBase::Patch<dim,dim>> &patches = this->get_patches();
         const DataOutBase::Patch<dim,dim> &patch0 = patches[0];
 
@@ -288,17 +289,19 @@ namespace HelperPrograms
   template <int dim>
   void MySolver<dim>::make_grid ()
   {
-#if DIMENSION==2
-    Point<dim,double> pt1( m_xmin, m_ymin );
-    Point<dim,double> pt2( m_xmax, m_ymax );
-#endif
-#if DIMENSION==3
-    Point<dim,double> pt1( m_xmin, m_ymin, m_zmin );
-    Point<dim,double> pt2( m_xmax, m_ymax, m_zmax );
-#endif
+    Point<dim,double> pt1;
+    Point<dim,double> pt2;
+
+    double min[] = {m_xmin, m_ymin, m_zmin};
+    double max[] = {m_xmax, m_ymax, m_zmax};
+
+    for( int i=0; i<dim; i++ )
+    {
+      pt1(i) = min[i];
+      pt2(i) = max[i];
+    }
 
     GridGenerator::hyper_rectangle(triangulation, pt2, pt1);
-    triangulation.refine_global(1);
   }
   
   template <int dim>
@@ -344,7 +347,7 @@ namespace HelperPrograms
   {
     make_grid();
     triangulation.load( filename.c_str() );
-    
+
     setup_system();
 
     LA::MPI::Vector tmp;
@@ -367,27 +370,25 @@ int main ( int argc, char *argv[] )
   AnyOption * opt = new AnyOption();
   int dim;
 
-  opt->noPOSIX(); 
+  //opt->noPOSIX(); 
   //opt->setVerbose();
   //opt->autoUsagePrint(true); 
 
   opt->addUsage( "" );
-  opt->addUsage( "Usage: binR_to_atus2 [options] filename" );
+  opt->addUsage( "Usage: binC_to_atus2 [options] filename" );
   opt->addUsage( "" );
-  opt->addUsage( " -h --help	Prints this help " );
-  opt->addUsage( " -dim val (2 or 3)" );
+  opt->addUsage( " --help -h   Prints this help " );
+  opt->addUsage( " --dim       2 or 3" );
   opt->addUsage( "" );
   opt->setFlag(  "help", 'h' );   
+  opt->setOption( "dim" );   
 
   opt->processCommandArgs( argc, argv );
 
   if( opt->getFlag( "help" ) || opt->getFlag( 'h' ) ) opt->printUsage();
 
-  if( opt->getValue("-dim") != NULL ) 
-  { 
-    dim = atof(opt->getValue("-dim"));  
-  };
-  
+  dim = atof(opt->getValue("dim"));  
+
   if( opt->getArgc() != 0 ) filename = opt->getArgv(0);
   else opt->printUsage();
   delete opt; 
