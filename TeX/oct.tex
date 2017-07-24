@@ -40,8 +40,8 @@ J_1 &= \frac{1}{2} \intT \left( 1 - \vert\skalarprodukt{\Psi_d}{\Psi}\vert^2 \ri
 J_2 &= \frac{1}{2} \intT \Vert\Psi_d-\Psi\Vert^2 \delta(t-T) + \frac{\alpha}{2} \intT \left( \partial_{\tau} \lambda(\tau) \right)^2 \\
 F &= \intT \iu \braket{p}{\partial_t\Psi} - \braket{p}{\Hlam\Psi} - \gamma \braket{p \Psi}{\Psi^2} \\
 F^* &= \intT -\iu \braket{\partial_t\Psi}{p} - \braket{\Hlam\Psi}{p} - \gamma \braket{\Psi^2}{p \Psi} \\
-F^{\dagger *} &= \iu \braket{p}{\Psi}\vert_{0}^{T} - \intT \iu \braket{\partial_t p}{\Psi} - \braket{\Hlam p}{\Psi} - \gamma \braket{\Psi p}{\Psi^2} \\
-F^{\dagger} &= -\iu \braket{\Psi}{p}\vert_{0}^{T} + \intT \iu \braket{\Psi}{\partial_t p} - \braket{\Psi}{\Hlam p} - \gamma \braket{\Psi^2}{\Psi p}
+F^{\dagger *} &= \iu \braket{p}{\Psi}\vert_{0}^{T} - \intT \iu \braket{\partial_t p}{\Psi} - \braket{\Hlam p}{\Psi} - \gamma \braket{p \Psi}{\Psi^2} \\
+F^{\dagger} &= -\iu \braket{\Psi}{p}\vert_{0}^{T} + \intT \iu \braket{\Psi}{\partial_t p} - \braket{\Psi}{\Hlam p} - \gamma \braket{\Psi^2}{p \Psi}
 \end{align}
 
 total functional
@@ -51,18 +51,22 @@ L_X := J_X + \Re{F}
 \end{equation}
 
 \begin{align}
-\fdv{L_X}{\Psi^*} h &\stackrel{!}{=} 0 \\
-\fdv{L_X}{p^*} h &\stackrel{!}{=} 0 \\
-\fdv{L_X}{\lambda} h &\stackrel{!}{=} 0 
+\fdv{L_X}{\Psi^*} h^* &\stackrel{!}{=} 0 \\
+\fdv{L_X}{p^*} h^* &\stackrel{!}{=} 0 \\
+\fdv{L_X}{\lambda} h^* &\stackrel{!}{=} 0 
 \end{align}
 
 \subsection{Eq. for $p$}
 
+\begin{equation}
+\fdv{\Re{F}}{p^*} = \frac{1}{2} \fdv{F}{\Psi^*} h^* + \frac{1}{2} \fdv{F^*}{\Psi^*} h^*
+\end{equation}
+
 \begin{align}
-\fdv{J_1}{\Psi^*} h &= -\intT \braket{\Psi_d}{\Psi}\braket{h}{\Psi_d} \delta(t-T) = -\braket{\Psi_d}{\Psi(T)}\braket{h}{\Psi_d} \\
-\fdv{J_2}{\Psi^*} h &= \intT \braket{h}{\Psi_d-\Psi} \delta(t-T) = \braket{h}{\Psi_d-\Psi(T)} \\
-\fdv{F}{\Psi^*} h &= -\intT \braket{p}{\gamma\Psi^2 h} \\
-\fdv{F^*}{\Psi^*} h^* &= \iu \braket{h}{p}\vert_{0}^{T} + \intT \iu \braket{h}{\partial_t p} - \braket{h}{\left( -\laplacian + V_{\lambda} + 2 \gamma \vert \Psi \vert^2 \right)p} + p(T) - p(0)
+\fdv{J_1}{\Psi^*} h^* &= -\intT \braket{\Psi_d}{\Psi}\braket{h}{\Psi_d} \delta(t-T) = -\braket{\Psi_d}{\Psi(T)}\braket{h}{\Psi_d} \\
+\fdv{J_2}{\Psi^*} h^* &= \intT \braket{h}{\Psi_d-\Psi} \delta(t-T) = \braket{h}{\Psi_d-\Psi(T)} \\
+\fdv{F^{\dagger*}}{\Psi^*} h^* &= -\intT\gamma \braket{p h}{\Psi^2} \\
+\fdv{F^{\dagger}}{\Psi^*} h^* &= -\iu \braket{h}{p}\vert_{0}^{T} + \intT \braket{h}{\iu \partial_t p} - \braket{h}{\Hlam p} - 2 \gamma \braket{\Psi}{ p \Psi}
 \end{align}
 
 therefore
@@ -86,12 +90,12 @@ or
 \subsection{Eq. for $\Psi$}
 
 \begin{equation}
-\fdv{\Re{F}}{p^*} = \frac{1}{2} \fdv{F}{p^*} + \frac{1}{2} \fdv{F^*}{p^*}
+\fdv{\Re{F}}{p^*} = \frac{1}{2} \fdv{F}{p^*} h^* + \frac{1}{2} \fdv{F^*}{p^*} h^*
 \end{equation}
 
 \begin{align}
-\fdv{J_X}{p^*} h &= 0 \\
-\fdv{F}{p^*} h &= \intT \iu \braket{h}{\partial_t\Psi} - \braket{h}{\left( -\laplacian + V_{\lambda} + \gamma \vert \Psi \vert^2 \right)\Psi} \\
+\fdv{J_X}{p^*} h^* &= 0 \\
+\fdv{F}{p^*} h^* &= \intT \iu \braket{h}{\partial_t\Psi} - \braket{h}{\left( -\laplacian + V_{\lambda} + \gamma \vert \Psi \vert^2 \right)\Psi} \\
 \fdv{F^*}{p^*} h^* &= 0
 \end{align}
 
@@ -110,8 +114,7 @@ therefore
 &= \alpha \intT \partial_t \lambda \partial_t h \\ 
 &= -\alpha \intT (\partial_t^2 \lambda ) h\\
 \fdv{J_2}{\lambda} h &= \fdv{J_1}{\lambda} h\\
-\fdv{F}{\lambda} h &= -\intT \braket{p}{\partial_{\lambda} V_{\lambda} \Psi h}  \\
-\fdv{F^*}{\lambda} h^* &= -\intT \braket{\partial_{\lambda} V_{\lambda} \Psi h}{p}
+\fdv{F^*}{\lambda} h^* &= -\intT \Re{\braket{\partial_{\lambda} V_{\lambda} \Psi h}{p}}
 \end{align}
 
 therefore 
@@ -121,66 +124,6 @@ therefore
 \end{equation}
 
 
-\section{Diskretisierung}
 
-\begin{equation}
-\partial_t p = -\iu L p -\iu z p^*
-\end{equation}
-
-\begin{align}
-\frac{p_L^n-p^{n-1}}{\Delta t} &= -\iu L \left( \frac{p_L^n+p^{n-1}}{2} \right) \\
-\frac{p_D^n-p^{n-1}}{\Delta t} &= -\iu z \left( \frac{p_D^{n*}+p^{(n-1)*}}{2} \right)
-\end{align}
-
-\begin{equation}
-\Leftrightarrow
-\end{equation}
-
-\begin{equation}
-\begin{pmatrix}
-1 & -\frac{\Delta t}{2} L \\
-\frac{\Delta t}{2} L & 1
-\end{pmatrix}
-\begin{pmatrix}
-\An \\
-\Bn 
-\end{pmatrix}
-=
-\begin{pmatrix}
-1 & \frac{\Delta t}{2} L \\
--\frac{\Delta t}{2} L & 1
-\end{pmatrix}
-\begin{pmatrix}
-\Aa \\
-\Ba 
-\end{pmatrix}
-\end{equation}
-
-\begin{equation}
-\begin{pmatrix}
-1-\frac{\Delta t}{2} d & \frac{\Delta t}{2} c \\
-\frac{\Delta t}{2} c & 1 + \frac{\Delta t}{2} d 
-\end{pmatrix}
-\begin{pmatrix}
-\An \\
-\Bn 
-\end{pmatrix}
-=
-\begin{pmatrix}
-1+\frac{\Delta t}{2} d & -\frac{\Delta t}{2} c \\
--\frac{\Delta t}{2} c & 1-\frac{\Delta t}{2} d
-\end{pmatrix}
-\begin{pmatrix}
-\Aa \\
-\Ba 
-\end{pmatrix}
-\end{equation}
-
-combine the solutions
-
-\begin{align}
-&\frac{p^n-p^{n-1}}{\Delta t} = \frac{p_L^n-p^{n-1}}{\Delta t} + \frac{p_D^n-p^{n-1}}{\Delta t} \\
-\Rightarrow& p^n = p_L^n + p_D^n - p^{n-1}
-\end{align}
 
 \end{document}
