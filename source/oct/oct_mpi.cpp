@@ -115,6 +115,8 @@ namespace realtime_propagation
     
     void make_grid();
     void setup_system();
+
+    void assemble_system( const int );
     
     void solve();
     void solve_cg();
@@ -323,8 +325,8 @@ namespace realtime_propagation
     
     DataOut<dim> data_out;
     data_out.attach_dof_handler (dof_handler);
-    solution_names.push_back ("Re_vec");
-    solution_names.push_back ("Im_vec");    
+    solution_names.push_back ("Re");
+    solution_names.push_back ("Im");    
     data_out.add_data_vector (m_workspace_3, solution_names);
     data_out.build_patches ();
     data_out.write_vtu_in_parallel ( filename.c_str(), mpi_communicator );
@@ -381,36 +383,45 @@ namespace realtime_propagation
   void MySolver<dim,no_time_steps>::run ()
   {
     map<string,double> con_map;
-    con_map["omq_x"] = m_omega[0];
-    con_map["omq_y"] = m_omega[1];
-    con_map["omq_z"] = m_omega[2];
+    con_map["omq_x"] = m_omega[0]*m_omega[0];
+    con_map["omq_y"] = m_omega[1]*m_omega[1];
+    con_map["omq_z"] = m_omega[2]*m_omega[2];
 
     // V(x,y;lambda,..) 
     vector<string> pot_str;
-//    pot_str.push_back("omq_x*x^2 + omq_y*y^2 + lam_0*sin(lam_1*x) + lam_2*sin(lam_3*y)" );
-//    pot_str.push_back("sin(lam_1*x)" );
-//    pot_str.push_back("lam_0*cos(lam_1*x)" );
-//    pot_str.push_back("sin(lam_3*y)" );
-//    pot_str.push_back("lam_2*cos(lam_3*y)" );
+    pot_str.push_back("(1+lam_0)*omq_x*x^2+omq_y*y^2");
+    pot_str.push_back("omq_x*x^2" );
 
-    pot_str.push_back("(1+lam_0)*omq_x*x^2 + (1+lam_1)*y^2 + lam_2*x^3 + lam_3*y^3" );
-    pot_str.push_back("x^2" );
-    pot_str.push_back("y^2" );
-    pot_str.push_back("x^3" );
-    pot_str.push_back("y^3" );
-
+/*
+    pot_str.push_back("(1+lam_0)*omq_x*x^2 + (1+lam_1)*omq_y*y^2 + lam_2*x^4 + lam_3*y^4 + lam_4*x^2*y^2" );
+    pot_str.push_back("omq_x*x^2" );
+    pot_str.push_back("omq_y*y^2" );
+    pot_str.push_back("x^4" );
+    pot_str.push_back("y^4" );
+    pot_str.push_back("x^2*y^2" );
+*/
     double domega = M_PI/m_T;
+
+    pcout << "domega = " << domega << endl;
 
     // initial guess for lambda
     vector<string> lam_str;
     string str;
-    //str = "sin(lam*" + to_string(domega) + ")";
-    str = "0";
-    lam_str.push_back(str);
-    lam_str.push_back(str);
-    lam_str.push_back(str);
-    lam_str.push_back(str);
+    str = "2.01*sin(" + to_string(domega) + "*t)";
+    lam_str.push_back(str); // lam_0(t)
 
+/*
+    str = "0";
+    lam_str.push_back(str); // lam_0
+    str = "sin(t*" + to_string(2*domega) + ")";
+    lam_str.push_back(str); // lam_1
+    str = "0";
+    lam_str.push_back(str); // lam_2
+    str = "sin(t*" + to_string(2*domega) + ")";
+    lam_str.push_back(str); // lam_3
+    str = "0";
+    lam_str.push_back(str); // lam_4
+*/
     m_potential.init( lam_str, pot_str, con_map, m_T );
     m_potential.output( "lambda_guess.txt" );
 
@@ -433,7 +444,7 @@ namespace realtime_propagation
     //pcout << "p == " << p[0]/m_N << ", " << p[1]/m_N << ", " << p[2]/m_N << endl;
     //pcout << "pos == " << pos[0]/m_N << ", " << pos[1]/m_N << ", " << pos[2]/m_N << endl;
     
-    for( int i=1; i<=200; i++ )
+    for( int i=1; i<5; i++ )
     {
       pcout << "Step 1" << endl;
       rt_propagtion_forward(i);

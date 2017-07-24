@@ -62,11 +62,12 @@
             
             for ( unsigned qp=0; qp<n_q_points; qp++ )
             {
-              tmp1 += fe_values.JxW(qp) * m_potential.value(fe_values.quadrature_point(qp), s+1) * (Psi[qp][0]*p[qp][0]+Psi[qp][1]*p[qp][1]);
+              tmp1 -= fe_values.JxW(qp) * m_potential.value(fe_values.quadrature_point(qp), s+1) * (Psi[qp][0]*p[qp][0]+Psi[qp][1]*p[qp][1]);
             }
           }
         }
         //printf( "(%d) %d %d %g\n",m_rank,  s, ti, tmp1 );
+        //tmp1 -= m_potential.laplacian(s);
         MPI_Allreduce( &tmp1, &retval, 1, MPI_DOUBLE, MPI_SUM, mpi_communicator);
         grad(ti,s) = retval;
 //        if( m_root ) printf( "%d %d %g %g\n", s, ti, grad(ti,s), retval );
@@ -74,13 +75,11 @@
     }
 
     grad *= (m_dt*m_dt);
-//    ofstream bla( "grad.txt" ); 
-//    grad.print_formatted( bla );        
     
     LAPACKFullMatrix<double> lap(no_time_steps,no_time_steps);
-    for( int i=0; i<no_time_steps; i++ ) lap(i,i) = 2;
-    for( int i=1; i<no_time_steps-1; i++ ) lap(i,i+1) = -1; // rechte Nebendiagonale 
-    for( int i=1; i<no_time_steps-1; i++ ) lap(i,i-1) = -1; // linke Nebendiagonale
+    for( int i=0; i<no_time_steps; i++ ) lap(i,i) = -2;
+    for( int i=1; i<no_time_steps-1; i++ ) lap(i,i+1) = 1; // rechte Nebendiagonale 
+    for( int i=1; i<no_time_steps-1; i++ ) lap(i,i-1) = 1; // linke Nebendiagonale
     
     lap.compute_lu_factorization();
     lap.apply_lu_factorization(grad,false);
@@ -96,7 +95,7 @@
       for( int ti=1; ti<no_time_steps; ti++ )
       {
         //if( m_root ) printf( "%d %d %g\n", s, ti, grad(ti,s) );
-        new_lambdas[s][ti] = m_potential.m_lambdas[s]->value( Point<1>(double(ti)*m_dt) ) - grad(ti,s);
+        new_lambdas[s][ti] = m_potential.m_lambdas[s]->value( Point<1>(double(ti)*m_dt) ) + 0.5*grad(ti,s);
         norm += grad(ti,s)*grad(ti,s);
       }
 

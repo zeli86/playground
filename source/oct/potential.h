@@ -52,6 +52,7 @@ using namespace std;
         m_no_lam = all_lambdas.size();
         m_dt = T/double(N-1);
         m_T = T;
+        m_fak = 1/(m_dt*m_dt);
 
         for( int i=0; i<N; i++ )
         {
@@ -65,7 +66,7 @@ using namespace std;
           for( auto str : all_lambdas )
           {
             FunctionParser<1> lam;
-            lam.initialize( "lam", str, constants );
+            lam.initialize( "t", str, constants );
             
             for( int i=0; i<N; i++ )
             {
@@ -146,7 +147,18 @@ using namespace std;
           std::cout << e.GetMsg() << std::endl;
         }        
       return retval;
-      }      
+      }    
+
+      double laplacian( const unsigned	component = 0 ) 
+      {
+        double f0, fp, fm;
+
+        f0 = m_lambdas[component]->value(Point<1>(this->get_time()));
+        fp = m_lambdas[component]->value(Point<1>(this->get_time()+m_dt));
+        fm = m_lambdas[component]->value(Point<1>(this->get_time()-m_dt));
+
+        return m_fak*(fp+fm-2*f0); 
+      }
 
       void output( const std::string& filename )
       {
@@ -170,6 +182,7 @@ using namespace std;
       int m_no_lam;
       double m_dt;
       double m_T;
+      double m_fak;
       vector<mu::Parser*> m_pot; 
       vector<double> m_t;
       mutable vector<double> m_pos_val;
