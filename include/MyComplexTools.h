@@ -318,7 +318,7 @@ namespace MyComplexTools { namespace MPI
         const FEValuesExtractors::Scalar rt (0);
         const FEValuesExtractors::Scalar it (1);
         
-        FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_quadrature_points|update_JxW_values);
+        FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_JxW_values);
 
         const unsigned dofs_per_cell = fe.dofs_per_cell;
         const unsigned n_q_points = quadrature_formula.size();
