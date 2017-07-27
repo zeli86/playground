@@ -6,6 +6,7 @@
 #include <deal.II/fe/fe_values.h>
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/lac/vector.h>
+#include <deal.II/lac/dynamic_sparsity_pattern.h>
 
 namespace MyComplexTools 
 {
@@ -833,4 +834,93 @@ namespace MyComplexTools { namespace MPI
         MPI_Allreduce( tmpv.data(), retval.data(), dim, MPI_DOUBLE, MPI_SUM, mpi_communicator);
     }
 
+  template<int dim>
+  void Interpolate_R_to_C( MPI_Comm mpi_communicator, 
+                           const DoFHandler<dim>& dof_handler,
+                           const FE_Q<dim>& fe,
+                           const LA::MPI::Vector& vec,
+                           const DoFHandler<dim>& dof_handler_2,
+                           const FESystem<dim>& fe_2,
+                           const ConstraintMatrix& constraints,                                          
+                           LA::MPI::Vector& ret )
+  {
+    assert( vec.has_ghost_elements() == true );
+    assert( ret.has_ghost_elements() == true );
+
+    const QGauss<dim> quadrature_formula(fe.degree+1);
+    const FEValuesExtractors::Scalar rt (0);
+    const FEValuesExtractors::Scalar it (1);
+    
+    IndexSet locally_owned_dofs, locally_relevant_dofs;
+
+    locally_owned_dofs = dof_handler_2.locally_owned_dofs ();
+    DoFTools::extract_locally_relevant_dofs (dof_handler_2, locally_relevant_dofs);
+
+    LA::MPI::Vector rhs(locally_owned_dofs, mpi_communicator);
+    LA::MPI::Vector sol(locally_owned_dofs, mpi_communicator);
+
+    DynamicSparsityPattern dsp (locally_relevant_dofs);
+    DoFTools::make_sparsity_pattern (dof_handler_2, dsp, constraints, false);
+    SparsityTools::distribute_sparsity_pattern (dsp, dof_handler_2.n_locally_owned_dofs_per_processor(), mpi_communicator, locally_relevant_dofs);
+    LA::MPI::SparseMatrix matrix;
+    matrix.reinit (locally_owned_dofs, locally_owned_dofs, dsp, mpi_communicator);    
+
+    rhs=0;
+    sol=0;
+    matrix=0;
+
+    FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_JxW_values);
+    FEValues<dim> fe_values_2 (fe_2, quadrature_formula, update_values|update_JxW_values);
+
+    const unsigned dofs_per_cell = fe_2.dofs_per_cell;
+    const unsigned n_q_points = quadrature_formula.size();
+
+    vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
+    
+    vector<double> vals(n_q_points);
+    Vector<double> cell_rhs (dofs_per_cell);
+    FullMatrix<double> cell_matrix (dofs_per_cell, dofs_per_cell);
+    
+    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
+    typename DoFHandler<dim>::active_cell_iterator cell_2 = dof_handler_2.begin_active();
+    for ( ; cell!=endc; cell++, cell_2++ )
+    {
+      if( cell->is_locally_owned() )
+      {
+        cell_rhs=0;
+        cell_matrix=0;
+
+        fe_values.reinit (cell);
+        fe_values_2.reinit (cell_2);
+        fe_values.get_function_values(vec, vals);
+
+        for ( unsigned qp=0; qp<n_q_points; qp++ )
+        {
+          double JxW = fe_values_2.JxW(qp);
+          double tmp1 = vals[qp]; 
+          
+          for ( unsigned i=0; i<dofs_per_cell; i++ )
+          {
+            cell_rhs(i) += JxW*tmp1*fe_values_2[rt].value(i,qp);
+            for( unsigned j=0; j<dofs_per_cell; j++ )
+            {
+              cell_matrix(i,j) += JxW*(fe_values_2[rt].value(i,qp)*fe_values_2[rt].value(j,qp)+fe_values_2[it].value(i,qp)*fe_values_2[it].value(j,qp));
+            }
+          }
+        }
+        cell_2->get_dof_indices (local_dof_indices);
+        constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, matrix, rhs );
+      }
+    }
+    rhs.compress(VectorOperation::add);
+    matrix.compress(VectorOperation::add);
+    
+    SolverControl solver_control;
+    PETScWrappers::SparseDirectMUMPS solver(solver_control, mpi_communicator);
+    solver.set_symmetric_mode(false);
+    solver.solve(matrix, sol, rhs);
+    constraints.distribute (sol);
+    ret=sol;
+  }  
+  
 }}
