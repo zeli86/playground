@@ -142,7 +142,6 @@ namespace BreedSolver
     void save( string );
     void load( const std::string& );
     void dump_info_xml( const string );
-    void Interpolate_R_to_C();
     void compute_tangent();
     void compute_newton_direction_natural();
     void compute_newton_direction_arclength();
@@ -172,10 +171,9 @@ namespace BreedSolver
     ConstraintMatrix constraints;
     ConstraintMatrix constraints_2;
 
-    LA::MPI::SparseMatrix m_system_matrix, m_system_matrix_2, m_system_matrix_C;
-    LA::MPI::Vector m_system_rhs, m_system_rhs_2, m_system_rhs_C;
+    LA::MPI::SparseMatrix m_system_matrix, m_system_matrix_2;
+    LA::MPI::Vector m_system_rhs, m_system_rhs_2;
     LA::MPI::Vector m_Psi;
-    LA::MPI::Vector m_Psi_C;
     LA::MPI::Vector m_Psi_C_ghosted;
     LA::MPI::Vector m_workspace_1;
     LA::MPI::Vector m_workspace_ng;
@@ -867,20 +865,13 @@ namespace BreedSolver
     locally_owned_dofs_2 = dof_handler_2.locally_owned_dofs ();
     DoFTools::extract_locally_relevant_dofs (dof_handler_2, locally_relevant_dofs_2);
 
-    m_Psi_C.reinit (locally_owned_dofs_2, mpi_communicator);
     m_Psi_C_ghosted.reinit (locally_owned_dofs_2, locally_relevant_dofs_2, mpi_communicator);
-    m_system_rhs_C.reinit(locally_owned_dofs_2, mpi_communicator);
 
     constraints_2.clear ();
     constraints_2.reinit (locally_relevant_dofs_2);
     DoFTools::make_hanging_node_constraints (dof_handler_2, constraints_2);
     VectorTools::interpolate_boundary_values (dof_handler_2, 0, ZeroFunction<dim>(2), constraints_2, ComponentMask(mask));
     constraints_2.close ();
-
-    DynamicSparsityPattern dsp_2 (locally_relevant_dofs_2);
-    DoFTools::make_sparsity_pattern (dof_handler_2, dsp_2, constraints_2, false);
-    SparsityTools::distribute_sparsity_pattern (dsp_2, dof_handler_2.n_locally_owned_dofs_per_processor(), mpi_communicator, locally_relevant_dofs_2);
-    m_system_matrix_C.reinit (locally_owned_dofs_2, locally_owned_dofs_2, dsp_2, mpi_communicator);    
 
     m_computing_timer.exit_section();
   }
@@ -962,92 +953,7 @@ namespace BreedSolver
     load( filename );
    
   }
-  
-  template<int dim>
-  void MySolver<dim>::Interpolate_R_to_C()
-  {
-    m_computing_timer.enter_section(__func__);
-
-    const QGauss<dim> quadrature_formula(fe.degree+1);
-    const FEValuesExtractors::Scalar rt (0);
-    const FEValuesExtractors::Scalar it (1);
-
-    constraints.distribute(m_Psi);
-    m_workspace_1=m_Psi;
     
-    m_system_rhs_C=0;
-    m_system_matrix_C=0;
-
-    FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_JxW_values);
-    FEValues<dim> fe_values_2 (fe_2, quadrature_formula, update_values|update_JxW_values);
-
-    const unsigned dofs_per_cell = fe_2.dofs_per_cell;
-    const unsigned n_q_points = quadrature_formula.size();
-
-    vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
-    
-    vector<double> vals(n_q_points);
-    Vector<double> cell_rhs (dofs_per_cell);
-    FullMatrix<double> cell_matrix (dofs_per_cell, dofs_per_cell);
-    
-    double JxW, Q1, tmp1;
-    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    typename DoFHandler<dim>::active_cell_iterator cell_2 = dof_handler_2.begin_active();
-    for ( ; cell!=endc; ++cell, ++cell_2 )
-    {
-      if( cell->is_locally_owned() )
-      {
-        cell_rhs=0;
-        cell_matrix=0;
-
-        fe_values.reinit (cell);
-        fe_values_2.reinit (cell_2);
-        fe_values.get_function_values(m_workspace_1, vals);
-
-        for ( unsigned qp=0; qp<n_q_points; qp++ )
-        {
-          JxW = fe_values_2.JxW(qp);
-          tmp1 = vals[qp]; 
-          
-          for ( unsigned i=0; i<dofs_per_cell; i++ )
-          {
-            cell_rhs(i) += JxW*tmp1*fe_values_2[rt].value(i,qp);
-            for( unsigned j=0; j<dofs_per_cell; j++ )
-            {
-              cell_matrix(i,j)+=JxW*(fe_values_2[rt].value(i,qp)*fe_values_2[rt].value(j,qp)+fe_values_2[it].value(i,qp)*fe_values_2[it].value(j,qp));
-            }
-          }
-        }
-        cell_2->get_dof_indices (local_dof_indices);
-        constraints_2.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, m_system_matrix_C, m_system_rhs_C);
-      }
-    }
-    m_system_rhs_C.compress(VectorOperation::add);
-    m_system_matrix_C.compress(VectorOperation::add);
-    
-    pcout << "Solving..." << endl;
-    SolverControl solver_control;
-    PETScWrappers::SparseDirectMUMPS solver(solver_control, mpi_communicator);
-    solver.set_symmetric_mode(false);
-    solver.solve(m_system_matrix_C, m_Psi_C, m_system_rhs_C);
-    constraints_2.distribute (m_Psi_C);
-    
-    m_Psi_C_ghosted=m_Psi_C;
-    parallel::distributed::SolutionTransfer<dim,LA::MPI::Vector> solution_transfer(dof_handler_2);
-    solution_transfer.prepare_serialization(m_Psi_C_ghosted);
-    triangulation.save( "Cfinal.bin" );
-
-/*    
-    DataOut<dim> data_out;
-    data_out.attach_dof_handler (dof_handler_2);
-    data_out.add_data_vector (m_Psi_C_ghosted, "Psi");
-    data_out.build_patches ();
-    string filename = "C_final.vtu";
-    data_out.write_vtu_in_parallel (filename.c_str(), mpi_communicator);    
-*/   
-    m_computing_timer.exit_section();    
-  }
-  
   template<int dim>
   void MySolver<dim>::save( string filename )
   {
