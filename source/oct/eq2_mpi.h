@@ -33,9 +33,11 @@
     m_sol=0;
     solve_eq1();
     m_all_p[no_time_steps-1] = m_sol;
-    double N = MyComplexTools::MPI::Particle_Number( mpi_communicator, dof_handler, fe, m_Psi );
+    m_N_pT = MyComplexTools::MPI::Particle_Number( mpi_communicator, dof_handler, fe, m_Psi );
 
-    if(m_root) printf( "particle number p(T) %g\n", N );
+    output_vec( "p_" + to_string(ex) + ".vtu", m_all_p[no_time_steps-1] );
+
+    if(m_root) printf( "particle number p(T) %g\n", m_N_pT );
     for( int i=no_time_steps-2; i>0; i-- )
     {
       MyComplexTools::MPI::AssembleSystem_LIN_Step( dof_handler, fe, constraints, m_Psi, -m_dt, system_matrix, system_rhs );
@@ -46,8 +48,8 @@
       m_all_p[i] = m_sol;      
 
       //output_vec( "p_" + to_string(i) + ".vtu", m_all_p[i] );
-      double N = MyComplexTools::MPI::Particle_Number( mpi_communicator, dof_handler, fe, m_Psi );
-      if(m_root) printf( "b: %g %g\n", double(i)*m_dt, N );
+      //double N = MyComplexTools::MPI::Particle_Number( mpi_communicator, dof_handler, fe, m_Psi );
+      //if(m_root) printf( "b: %g %g\n", double(i)*m_dt, N );
     }
     m_computing_timer.exit_section();
   }

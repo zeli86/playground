@@ -163,6 +163,7 @@ namespace realtime_propagation
     double m_dth; // 0.5*m_dt
     double m_res;
     double m_N;
+    double m_N_pT;
     vector<double> m_norm_grad;
     vector<double> m_omega;
 
@@ -389,17 +390,14 @@ namespace realtime_propagation
 
     // V(x,y;lambda,..) 
     vector<string> pot_str;
-    pot_str.push_back("(1+lam_0)*omq_x*x^2+omq_y*y^2");
-    pot_str.push_back("omq_x*x^2" );
+//    pot_str.push_back("(1+lam_0)*omq_x*x^2+omq_y*y^2"); // test case
+//    pot_str.push_back("omq_x*x^2" ); // test case
 
-/*
-    pot_str.push_back("(1+lam_0)*omq_x*x^2 + (1+lam_1)*omq_y*y^2 + lam_2*x^4 + lam_3*y^4 + lam_4*x^2*y^2" );
-    pot_str.push_back("omq_x*x^2" );
-    pot_str.push_back("omq_y*y^2" );
-    pot_str.push_back("x^4" );
-    pot_str.push_back("y^4" );
-    pot_str.push_back("x^2*y^2" );
-*/
+    pot_str.push_back("omq_x*x^2 + omq_y*y^2 + lam_0*sin(lam_1+lam_2*(x+y))" );
+    pot_str.push_back("sin(lam_1+lam_2*(x+y))");
+    pot_str.push_back("lam_0*cos(lam_1+lam_2*(x+y))");
+    pot_str.push_back("lam_0*cos(lam_1+lam_2*(x+y))*(x+y)");
+
     double domega = M_PI/m_T;
 
     pcout << "domega = " << domega << endl;
@@ -407,21 +405,11 @@ namespace realtime_propagation
     // initial guess for lambda
     vector<string> lam_str;
     string str;
-    str = "2.01*sin(" + to_string(domega) + "*t)";
-    lam_str.push_back(str); // lam_0(t)
-
-/*
-    str = "0";
+    str = "sin(" + to_string(domega) + "*t)"; // test case
     lam_str.push_back(str); // lam_0
-    str = "sin(t*" + to_string(2*domega) + ")";
     lam_str.push_back(str); // lam_1
-    str = "0";
     lam_str.push_back(str); // lam_2
-    str = "sin(t*" + to_string(2*domega) + ")";
-    lam_str.push_back(str); // lam_3
-    str = "0";
-    lam_str.push_back(str); // lam_4
-*/
+
     m_potential.init( lam_str, pot_str, con_map, m_T );
     m_potential.output( "lambda_guess.txt" );
 
@@ -436,7 +424,8 @@ namespace realtime_propagation
     m_workspace = m_all_Psi[0];
     m_N = MyComplexTools::MPI::Particle_Number( mpi_communicator, dof_handler, fe, m_workspace );
     
-    pcout << "N == " << m_N << endl;
+    pcout << "N(Psi_0) == " << m_N << endl;
+    pcout << "N(Psi_d) == " << MyComplexTools::MPI::Particle_Number( mpi_communicator, dof_handler, fe, m_Psi_d ) << endl;
     pcout << "dt == " << m_dt << endl;
 //    Expectation_value_position( m_Psi, pos );
 //    Expectation_value_momentum( m_Psi, p );
@@ -444,19 +433,20 @@ namespace realtime_propagation
     //pcout << "p == " << p[0]/m_N << ", " << p[1]/m_N << ", " << p[2]/m_N << endl;
     //pcout << "pos == " << pos[0]/m_N << ", " << pos[1]/m_N << ", " << pos[2]/m_N << endl;
     
-    for( int i=1; i<5; i++ )
+    for( int i=1; i<=400; i++ )
     {
-      pcout << "Step 1" << endl;
+//      pcout << "Step 1" << endl;
       rt_propagtion_forward(i);
-      m_N = MyComplexTools::MPI::Particle_Number( mpi_communicator, dof_handler, fe, m_workspace );      
-      pcout << "N == " << m_N << endl;
+//      m_N = MyComplexTools::MPI::Particle_Number( mpi_communicator, dof_handler, fe, m_workspace );      
+//      pcout << "N == " << m_N << endl;
 //      Expectation_value_momentum( m_Psi, p );
 //      Expectation_value_position( m_Psi, pos );
 //      pcout << "p == " << p[0]/m_N << ", " << p[1]/m_N << ", " << p[2]/m_N << endl;
 //      pcout << "pos == " << pos[0]/m_N << ", " << pos[1]/m_N << ", " << pos[2]/m_N << endl;      
-      pcout << "Step 2" << endl;
+//      pcout << "Step 2" << endl;
       rt_propagtion_backward(i);
-      pcout << "Step 3" << endl;
+      if( m_N_pT < 1e-4 ) break;
+//      pcout << "Step 3" << endl;
       compute_correction(i);
       //double cost = compute_costfunction();
       //if(m_root) printf( "cost = %g\n", cost );

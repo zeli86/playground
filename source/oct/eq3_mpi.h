@@ -88,20 +88,33 @@
 
     for( int s=0; s<nolam; s++ )
     {
-      // loop over all time steps
       double norm = grad(s,0)*grad(s,0);
-      //if( m_root ) printf( "------------------------\n" );
-      //if( m_root ) printf( "%d 0 %g\n", s, grad(0,s) );
       for( int ti=1; ti<no_time_steps; ti++ )
       {
-        //if( m_root ) printf( "%d %d %g\n", s, ti, grad(ti,s) );
-        new_lambdas[s][ti] = m_potential.m_lambdas[s]->value( Point<1>(double(ti)*m_dt) ) + 0.5*grad(ti,s);
         norm += grad(ti,s)*grad(ti,s);
       }
-
       norm *= m_dt;
       MPI_Allreduce( &norm, &(m_norm_grad.data()[s]), 1, MPI_DOUBLE, MPI_SUM, mpi_communicator);
       m_norm_grad[s] = sqrt(m_norm_grad[s]);   
+    }    
+
+    auto biggest = std::max_element(std::begin(m_norm_grad), std::end(m_norm_grad));
+    double fak = 1.0/sqrt(*biggest);
+
+    for( int s=0; s<nolam; s++ )
+    {
+      for( int ti=1; ti<no_time_steps; ti++ )
+      {
+        grad(ti,s) = fak*grad(ti,s);
+      }
+    }    
+
+    for( int s=0; s<nolam; s++ )
+    {
+      for( int ti=1; ti<no_time_steps; ti++ )
+      {
+        new_lambdas[s][ti] = m_potential.m_lambdas[s]->value( Point<1>(double(ti)*m_dt) ) + 0.2*grad(ti,s);
+      }
     }    
 
     for( int s=0; s<nolam; s++ )
