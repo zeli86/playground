@@ -81,10 +81,12 @@ namespace LA
 
 #include "mpi.h"
 #include "functions.h"
-#include "SinCos.h"
+//#include "SinCos.h"
 #include "ParameterReader.h"
 #include "my_table.h"
 #include "ref_pt_list.h"
+#include "MyRealTools.h"
+#include "MyComplexTools.h"
 
 namespace BreedSolver
 {
@@ -124,13 +126,9 @@ namespace BreedSolver
     void save( string );
     void make_grid_custom();
     void setup_system( const bool );
-    void assemble_rhs();
-    void assemble_system();
     void do_superposition();
     void Expectation_value_position( LA::MPI::Vector&, double* );
 
-    double Particle_Number( LA::MPI::Vector& );
-    
     void solve();
     void compute_contributions();
     void compute_E_lin( LA::MPI::Vector&, double&, double&, double& );
@@ -290,202 +288,6 @@ namespace BreedSolver
     m_computing_timer.exit_section();
   }
 
-  template<int dim>
-  double MySolver<dim>::Particle_Number( LA::MPI::Vector& vec )
-  {
-    m_computing_timer.enter_section(__func__);
-    double tmp1=0, retval=0;
-    
-    constraints.distribute(vec);
-    m_workspace_1=vec;
-
-    const QGauss<dim>  quadrature_formula(fe.degree+1);
-    FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_JxW_values);
-
-    const unsigned int n_q_points = quadrature_formula.size();
-    vector<double> vec_vals(n_q_points);
-
-    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for (; cell!=endc; ++cell)
-    {
-      if( cell->is_locally_owned() )
-      {
-        fe_values.reinit (cell);
-        fe_values.get_function_values( m_workspace_1, vec_vals );      
-
-        for (unsigned int q_point = 0; q_point < n_q_points; ++q_point)
-          tmp1 += fe_values.JxW(q_point)*vec_vals[q_point]*vec_vals[q_point];
-      }
-    }
-    MPI_Allreduce( &tmp1, &retval, 1, MPI_DOUBLE, MPI_SUM, mpi_communicator);
-    m_computing_timer.exit_section();
-  return retval;
-  }
-  
-  template <int dim>
-  void MySolver<dim>::assemble_system ()
-  {
-    m_computing_timer.enter_section(__func__);
-
-    map<string,double> constants;
-    constants["pi"] = numbers::PI;
-    FunctionParser<dim> Potential;
-    Potential.initialize( FunctionParser<dim>::default_variable_names(), m_Potential_str, constants );
-
-    const QGauss<dim> quadrature_formula(fe.degree+1);
-    
-    system_matrix = 0;
-
-    FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_gradients|update_JxW_values|update_quadrature_points);
-
-    const unsigned int dofs_per_cell = fe.dofs_per_cell;
-    const unsigned int n_q_points    = quadrature_formula.size();
-
-    FullMatrix<double> cell_matrix (dofs_per_cell, dofs_per_cell);
-
-    vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
-    vector<Tensor<1, dim> > Psi_ref_grad(n_q_points);
-    vector<double> Psi_ref(n_q_points);
-
-    double JxW, Q2, pq;
-    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for ( ; cell!=endc; ++cell )
-    {
-      if( cell->is_locally_owned() )
-      {
-        cell_matrix = 0;
-
-        fe_values.reinit (cell);
-        fe_values.get_function_values(m_Psi_ref, Psi_ref);
-        fe_values.get_function_gradients(m_Psi_ref, Psi_ref_grad);
-
-        for (unsigned int q_point = 0; q_point < n_q_points; ++q_point)
-        {
-          JxW = fe_values.JxW(q_point);
-          pq = m_gs[0]*Psi_ref[q_point]*Psi_ref[q_point];
-          Q2 = Potential.value(fe_values.quadrature_point(q_point)) - m_mu[0] + 3.0*pq;
-
-          for (unsigned int i=0; i<dofs_per_cell; ++i)
-          {
-            for (unsigned int j=0; j<dofs_per_cell; ++j)
-            {
-              cell_matrix(i,j) += (fe_values.shape_grad(i,q_point)*fe_values.shape_grad(j,q_point) + Q2*fe_values.shape_value(i,q_point)*fe_values.shape_value(j,q_point))*JxW;
-            }
-          }
-        }
-        cell->get_dof_indices (local_dof_indices);
-        constraints.distribute_local_to_global(cell_matrix, local_dof_indices, system_matrix);
-      }
-    }
-    system_matrix.compress(VectorOperation::add);
-    m_computing_timer.exit_section();
-  }
-  
-  template <int dim>
-  void MySolver<dim>::assemble_rhs ()
-  {
-    m_computing_timer.enter_section(__func__);
-
-    map<string,double> constants;
-    constants["pi"] = numbers::PI;
-    FunctionParser<dim> Potential;
-    Potential.initialize( FunctionParser<dim>::default_variable_names(), m_Potential_str, constants );
-
-    const QGauss<dim> quadrature_formula(fe.degree+1);
-    
-    system_rhs = 0;
-
-    FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_gradients|update_JxW_values|update_quadrature_points);
-
-    const unsigned int dofs_per_cell = fe.dofs_per_cell;
-    const unsigned int n_q_points    = quadrature_formula.size();
-
-    Vector<double> cell_rhs (dofs_per_cell);
-
-    vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
-    vector<Tensor<1, dim> > Psi_ref_grad(n_q_points);
-    vector<double> Psi_ref(n_q_points);
-
-    double JxW, Q1, pq, tmp;
-    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for ( ; cell!=endc; ++cell )
-    {
-      if( cell->is_locally_owned() )
-      {
-        cell_rhs = 0;
-
-        fe_values.reinit (cell);
-        fe_values.get_function_values(m_Psi_ref, Psi_ref);
-        fe_values.get_function_gradients(m_Psi_ref, Psi_ref_grad);
-
-        for (unsigned int q_point = 0; q_point < n_q_points; ++q_point)
-        {
-          JxW = fe_values.JxW(q_point);
-          pq = m_gs[0]*Psi_ref[q_point]*Psi_ref[q_point];
-          Q1 = Potential.value(fe_values.quadrature_point(q_point)) - m_mu[0] + pq;
-
-          for (unsigned int i=0; i<dofs_per_cell; ++i)
-          {
-            tmp = Psi_ref_grad[q_point]*fe_values.shape_grad(i,q_point) + Q1*Psi_ref[q_point]*fe_values.shape_value(i,q_point);
-            cell_rhs(i) += tmp*JxW;
-          }
-        }
-        cell->get_dof_indices (local_dof_indices);
-        constraints.distribute_local_to_global(cell_rhs, local_dof_indices, system_rhs);
-      }
-    }
-    system_rhs.compress(VectorOperation::add);   
-    constraints.distribute(system_rhs);
-    m_workspace_1 = system_rhs;
-    
-    VectorTools::integrate_difference ( dof_handler,  m_workspace_1, ZeroFunction<dim>(), m_error_per_cell,  QGauss<dim>(fe.degree+2), VectorTools::L2_norm);
-    tmp = m_error_per_cell.l2_norm();
-    tmp = tmp*tmp;
-    MPI_Allreduce( &tmp, &m_res[0], 1, MPI_DOUBLE, MPI_SUM, mpi_communicator);
-    m_res[0] = sqrt(m_res[0]);
-    
-    m_computing_timer.exit_section();
-  }
- 
-  template<int dim>
-  void MySolver<dim>::Expectation_value_position( LA::MPI::Vector& vec, double* retval )
-  {
-    m_computing_timer.enter_section(__func__);
-    double tmp[] = {0,0,0}, JxWxn;
-
-    constraints.distribute(vec);
-    m_workspace_1=vec;
-    
-    const QGauss<dim>  quadrature_formula(fe.degree+1);
-    FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_quadrature_points|update_JxW_values);
-
-    const unsigned int n_q_points = quadrature_formula.size();
-    vector<double> vec_vals(n_q_points);
-    Point<dim> spacept;
-
-    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for (; cell!=endc; ++cell)
-    {
-      if( cell->is_locally_owned() )
-      {
-        fe_values.reinit (cell);
-        fe_values.get_function_values( m_workspace_1, vec_vals );
-        for (unsigned int q_point = 0; q_point < n_q_points; ++q_point)
-	{
-	 JxWxn = fe_values.JxW(q_point)*vec_vals[q_point]*vec_vals[q_point];
-	 spacept = fe_values.quadrature_point(q_point);
-         tmp[0] += spacept[0]*JxWxn;
-         tmp[1] += spacept[1]*JxWxn;
-#if dim == 3
-         tmp[2] += spacept[2]*JxWxn;
-#endif
-	}
-      }
-    }
-    MPI_Allreduce( tmp, retval, 3, MPI_DOUBLE, MPI_SUM, mpi_communicator);
-    m_computing_timer.exit_section();
-  }  
-
   template <int dim>
   void MySolver<dim>::solve ()
   {
@@ -563,7 +365,7 @@ namespace BreedSolver
           p12 = Psi_1[qpt]*Psi_2[qpt];
           p1q = Psi_1[qpt]*Psi_1[qpt];
           p2q = Psi_2[qpt]*Psi_2[qpt];
-	  Q = Potential.value(fe_values.quadrature_point(qpt)) - m_mu[0];
+	        Q = Potential.value(fe_values.quadrature_point(qpt)) - m_mu[0]; 
 
           T[0] += JxW*(Psi_1_grad[qpt]*Psi_1_grad[qpt] + Q*p1q);
           T[1] += JxW*(Psi_2_grad[qpt]*Psi_2_grad[qpt] + Q*p2q);
@@ -885,8 +687,7 @@ namespace BreedSolver
     std::vector<const LA::MPI::Vector*> x_system (4);
     x_system[0] = &m_Psi_i;
     x_system[1] = &m_Psi_i;
-    x_system[2] = &m_Psi_f;
-    x_system[3] = &m_Psi_f;
+
     
     parallel::distributed::SolutionTransfer<dim,LA::MPI::Vector> solution_transfer(dof_handler);
     solution_transfer.prepare_serialization(x_system);
@@ -897,26 +698,9 @@ namespace BreedSolver
 
 int main ( int argc, char *argv[] )
 {
-  int myrank;
-
   using namespace dealii;
   using namespace BreedSolver;
   deallog.depth_console (0);
 
-  ParameterHandler  prm;
-  ParameterReader   param(prm);
-
-  Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv );
-  {
-    MPI_Comm_rank( MPI_COMM_WORLD, &myrank );
-    if( !param.read_parameters() )
-    {
-      if( myrank == 0 )
-	param.print_parameters();
-    }
-
-    MySolver<DIMENSION> solver(prm);
-    solver.run ();
-  }
 return EXIT_SUCCESS;
 }
