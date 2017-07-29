@@ -175,6 +175,49 @@ using namespace std;
         }
       }
 
+      bool save( const string& filename )
+      {
+        std::ofstream out( filename, std::ifstream::binary );
+
+        if( !out.is_open() ) return false;
+
+        out.write(reinterpret_cast<char*>(&m_no_lam), sizeof(int));
+
+        std::vector<double> tmp(N);
+
+        for( int j=0; j<m_no_lam; j++ )
+        {
+          for( int i=0; i<N; i++ )
+          {
+            tmp[i]< m_lambdas[j]->value(Point<1>(double(i)*m_dt));
+          }
+          out.write(reinterpret_cast<char*>(tmp.data()),sizeof(double)*N);
+        }
+        return true;
+      }
+
+      bool load( const string& filename )
+      {
+        std::ifstream in(filename);
+
+        if( !in.is_open() ) return false;
+
+        int no_lam;
+        vector<vector<double>> tmp( m_no_lam, Vector<double>(N) );
+        in.read( reinterpret_cast<char*>(&no_lam), sizeof(int));
+
+        assert( no_lam == m_no_lam);
+
+        for( int j=0; j<m_no_lam; j++ )
+        {
+          in.read( reinterpret_cast<char*>(tmp[j].data()), sizeof(double)*N);
+        }
+
+        reinit( tmp );
+
+        return true;
+      }
+
       double get_no_lambdas() { return m_no_lam; };
 
       vector<dealii::Functions::CSpline<1>*> m_lambdas;
