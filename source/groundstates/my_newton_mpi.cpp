@@ -53,7 +53,6 @@ namespace LA
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/error_estimator.h>
 #include <deal.II/numerics/derivative_approximation.h>
-#include <deal.II/numerics/fe_field_function.h>
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/function.h>
 #include <deal.II/base/timer.h>
