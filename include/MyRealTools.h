@@ -305,6 +305,53 @@ namespace MyRealTools { namespace MPI
         }
         rhs.compress(VectorOperation::add);   
         matrix.compress(VectorOperation::add);   
-    }               
+    }   
+
+    template<int dim>
+    void Compute_mu( MPI_Comm mpi_communicator, 
+                     const DoFHandler<dim>& dof_handler,
+                     const FE_Q<dim>& fe,
+                     const Function<dim>& Potential, 
+                     const LA::MPI::Vector& vec,
+                     double& retval )
+    {
+        assert( vec.has_ghost_elements() == true );
+       
+        retval = 0;
+
+        double tmp[] = {0,0};
+        
+        const QGauss<dim>  quadrature_formula(fe.degree+1);
+        FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_gradients|update_JxW_values|update_quadrature_points);
+
+        const unsigned n_q_points = quadrature_formula.size();
+        vector<double> vec_vals(n_q_points);
+        vector<Tensor<1,dim>> vec_grads(n_q_points);
+    
+        typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
+        for( ; cell!=endc; cell++ )
+        {
+           if( cell->is_locally_owned() )
+           {
+                fe_values.reinit (cell);
+                fe_values.get_function_values( vec, vec_vals );
+                fe_values.get_function_gradients( vec, vec_grads );                
+                for( unsigned qp=0; qp<n_q_points; qp++ )
+                {
+                    double JxW = fe_values.JxW(qp);
+                    double valq = vec_vals[qp]*vec_vals[qp];
+                    tmp[0] += JxW*(vec_grads[qp]*vec_grads[qp] + Potential.value(fe_values.quadrature_point(qp))*valq);
+                    tmp[1] += JxW*valq;
+                }
+            }
+        }
+
+        double fak=0;
+        MPI_Allreduce( &(tmp[1]), &fak, 1, MPI_DOUBLE, MPI_SUM, mpi_communicator);
+
+        tmp[1] = tmp[1] / fak;
+
+        MPI_Allreduce(  &(tmp[0]), &retval, 1, MPI_DOUBLE, MPI_SUM, mpi_communicator);
+    }
 
 }}
