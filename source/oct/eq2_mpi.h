@@ -22,14 +22,19 @@
   {
     m_computing_timer.enter_section(__func__);
 
-//    std::complex<double> z = MyComplexTools::MPI::L2_dot_product(mpi_communicator, dof_handler, fe, m_Psi_d, m_Psi );
-//    z *= std::complex<double>(0,1);
+    std::complex<double> z = MyComplexTools::MPI::L2_dot_product(mpi_communicator, dof_handler, fe, m_Psi_d, m_Psi );
+    if(m_root) printf( "overlap %g\n", norm(z) );
+
+    z *= std::complex<double>(0,1);
+
+/*
     m_workspace_ng = m_Psi_d;
     m_workspace_ng -= m_all_Psi[no_time_steps-1];
     constraints.distribute(m_workspace_ng);
     m_Psi = m_workspace_ng;
+*/
 
-    MyComplexTools::MPI::AssembleSystem_mulvz( dof_handler, fe, constraints, m_Psi, std::complex<double>(0,1), system_matrix, system_rhs );
+    MyComplexTools::MPI::AssembleSystem_mulvz( dof_handler, fe, constraints, m_Psi_d, z, system_matrix, system_rhs );
     m_sol=0;
     solve_eq1();
     m_all_p[no_time_steps-1] = m_sol;

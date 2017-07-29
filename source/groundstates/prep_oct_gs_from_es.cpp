@@ -711,8 +711,17 @@ namespace BreedSolver
   void MySolver<dim>::make_grid ()
   {
     m_computing_timer.enter_section(__func__);
-    Point<dim,double> pt1(m_xmin,m_ymin); 
-    Point<dim,double> pt2(m_xmax,m_ymax);
+    Point<dim,double> pt1;
+    Point<dim,double> pt2;
+
+    double min[] = {m_xmin, m_ymin, m_zmin};
+    double max[] = {m_xmax, m_ymax, m_zmax};
+
+    for( int i=0; i<dim; i++ )
+    {
+      pt1(i) = min[i];
+      pt2(i) = max[i];
+    }
     
     GridGenerator::hyper_rectangle(triangulation, pt2, pt1);
     triangulation.refine_global(1);

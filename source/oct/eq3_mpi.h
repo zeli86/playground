@@ -113,7 +113,7 @@
     {
       for( int ti=1; ti<no_time_steps; ti++ )
       {
-        new_lambdas[s][ti] = m_potential.m_lambdas[s]->value( Point<1>(double(ti)*m_dt) ) + 0.2*grad(ti,s);
+        new_lambdas[s][ti] = m_potential.m_lambdas[s]->value( Point<1>(double(ti)*m_dt) ) + 0.1*grad(ti,s);
       }
     }    
 

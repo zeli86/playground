@@ -435,7 +435,7 @@ namespace realtime_propagation
     
     for( int i=1; i<=400; i++ )
     {
-//      pcout << "Step 1" << endl;
+      pcout << "i == " << i << endl;
       rt_propagtion_forward(i);
 //      m_N = MyComplexTools::MPI::Particle_Number( mpi_communicator, dof_handler, fe, m_workspace );      
 //      pcout << "N == " << m_N << endl;
@@ -451,6 +451,7 @@ namespace realtime_propagation
       //double cost = compute_costfunction();
       //if(m_root) printf( "cost = %g\n", cost );
       if(m_root) m_potential.output( "lambda_" + to_string(i) + ".txt" );
+      if(m_root) m_potential.save( "lambda_" + to_string(i) + ".bin" );
     }
 
     output_results( "oct_final.vtu");
