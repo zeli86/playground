@@ -85,8 +85,6 @@ namespace LA
 #include "MyParameterHandler.h"
 #include "my_table.h"
 #include "MyComplexTools.h"
-#include "muParser.h"
-
 
 namespace realtime_propagation
 {
@@ -412,6 +410,7 @@ namespace realtime_propagation
 
     m_potential.init( lam_str, pot_str, con_map, m_T );
     m_potential.output( "lambda_guess.txt" );
+    m_potential.load("lambda_974.bin");
 
     m_norm_grad.resize(m_potential.get_no_lambdas());
 
