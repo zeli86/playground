@@ -61,8 +61,8 @@ using namespace std;
           m_t[i] = double(i)*m_dt;
         }
 
-        try
-        {
+        //try
+        //{
           // Setup all initial lambda_i(t) with the guess from all_lambdas
           vector<double> tmpvec(N);
           for( auto str : all_lambdas )
@@ -77,35 +77,34 @@ using namespace std;
             }
             m_lambdas.push_back( new Functions::CSpline<1>(m_t, tmpvec) );
           }
-
           m_lam_val.resize(all_lambdas.size());
+
+          m_symbol_table.add_variable( "x", m_pos_val[0] );
+          m_symbol_table.add_variable( "y", m_pos_val[1] );
+          m_symbol_table.add_variable( "z", m_pos_val[2] );
+          for( int i=0; i<all_lambdas.size(); i++ )
+          {
+            string tmp = "lam_" + to_string(i);
+            m_symbol_table.add_variable(tmp, m_lam_val[i]);
+          }          
+
+          m_symbol_table.add_constants();
+          for( auto i : constants )
+          {
+            m_symbol_table.add_constant(i.first, i.second);
+          }
+
           // Setup the potential and all derivatives with respect to lambda_i(t)
           for( auto str : all_potential )
           {
-            m_pot.push_back( new mu::Parser() );
-            mu::Parser * p = m_pot.back();
+            m_pot.push_back( new exprtk::expression<double>() );
+                        
+            exprtk::expression<double> * p = m_pot.back();
+            p->register_symbol_table(m_symbol_table);
             
-            p->SetExpr(str);
-
-            p->DefineVar("x", &(m_pos_val.data()[0]));
-            p->DefineVar("y", &(m_pos_val.data()[1]));
-            p->DefineVar("z", &(m_pos_val.data()[2]));
-
-            for( int i=0; i<all_lambdas.size(); i++ )
-            {
-              string tmp = "lam_" + to_string(i);
-              p->DefineVar(tmp, &(m_lam_val.data()[i]));
-            }
-            for( auto i : constants )
-            {
-              p->DefineConst(i.first, i.second);
-            }
+            m_parser.compile(str,*p);
           }
-        }
-        catch (mu::Parser::exception_type &e)
-        {
-          std::cout << e.GetMsg() << std::endl;
-        }
+        //}
       }
 
       void reinit( const vector<vector<double>>& new_lambdas )
@@ -140,14 +139,7 @@ using namespace std;
           s++;
         }        
 
-        try
-        {
-          retval = m_pot[component]->Eval();
-        }
-        catch (mu::Parser::exception_type &e)
-        {
-          std::cout << e.GetMsg() << std::endl;
-        }        
+        retval = m_pot[component]->value();
       return retval;
       }    
 
@@ -213,12 +205,14 @@ using namespace std;
 
       vector<dealii::Functions::CSpline<1>*> m_lambdas;
     protected:
+      exprtk::symbol_table<double> m_symbol_table;
+      exprtk::parser<double> m_parser;
       int m_no_lam;
       double m_dt;
       double m_T;
       double m_fak;
-      vector<mu::Parser*> m_pot;
-      vector<mu::Parser*> m_pot;
+      //vector<mu::Parser*> m_pot;
+      vector<exprtk::expression<double>*> m_pot;
       vector<double> m_t;
       mutable vector<double> m_pos_val;
       mutable vector<double> m_lam_val;
