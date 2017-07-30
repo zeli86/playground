@@ -1,6 +1,8 @@
   
 #pragma once
 
+#include "exprtk.hpp"
+
 using namespace std;
 
   template <int dim, int N>
@@ -149,17 +151,6 @@ using namespace std;
       return retval;
       }    
 
-      double laplacian( const unsigned	component = 0 ) 
-      {
-        double f0, fp, fm;
-
-        f0 = m_lambdas[component]->value(Point<1>(this->get_time()));
-        fp = m_lambdas[component]->value(Point<1>(this->get_time()+m_dt));
-        fm = m_lambdas[component]->value(Point<1>(this->get_time()-m_dt));
-
-        return m_fak*(fp+fm-2*f0); 
-      }
-
       void output( const std::string& filename )
       {
         ofstream out( filename );
@@ -189,7 +180,7 @@ using namespace std;
         {
           for( int i=0; i<N; i++ )
           {
-            tmp[i]< m_lambdas[j]->value(Point<1>(double(i)*m_dt));
+            tmp[i] = m_lambdas[j]->value(Point<1>(double(i)*m_dt));
           }
           out.write(reinterpret_cast<char*>(tmp.data()),sizeof(double)*N);
         }
@@ -203,10 +194,10 @@ using namespace std;
         if( !in.is_open() ) return false;
 
         int no_lam;
-        vector<vector<double>> tmp( m_no_lam, Vector<double>(N) );
+        vector<vector<double>> tmp( m_no_lam, vector<double>(N) );
         in.read( reinterpret_cast<char*>(&no_lam), sizeof(int));
 
-        assert( no_lam == m_no_lam);
+        assert( no_lam == m_no_lam );
 
         for( int j=0; j<m_no_lam; j++ )
         {
@@ -226,7 +217,8 @@ using namespace std;
       double m_dt;
       double m_T;
       double m_fak;
-      vector<mu::Parser*> m_pot; 
+      vector<mu::Parser*> m_pot;
+      vector<mu::Parser*> m_pot;
       vector<double> m_t;
       mutable vector<double> m_pos_val;
       mutable vector<double> m_lam_val;
