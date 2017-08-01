@@ -85,6 +85,8 @@ namespace LA
 #include "MyParameterHandler.h"
 #include "my_table.h"
 #include "MyComplexTools.h"
+#include "muParser.h"
+
 
 namespace realtime_propagation
 {
@@ -162,6 +164,7 @@ namespace realtime_propagation
     double m_res;
     double m_N;
     double m_N_pT;
+    double m_cost;
     vector<double> m_norm_grad;
     vector<double> m_omega;
 
@@ -410,7 +413,6 @@ namespace realtime_propagation
 
     m_potential.init( lam_str, pot_str, con_map, m_T );
     m_potential.output( "lambda_guess.txt" );
-    m_potential.load("lambda_974.bin");
 
     m_norm_grad.resize(m_potential.get_no_lambdas());
 
@@ -432,9 +434,9 @@ namespace realtime_propagation
     //pcout << "p == " << p[0]/m_N << ", " << p[1]/m_N << ", " << p[2]/m_N << endl;
     //pcout << "pos == " << pos[0]/m_N << ", " << pos[1]/m_N << ", " << pos[2]/m_N << endl;
     
-    for( int i=1; i<=400; i++ )
+    for( int i=1; i<=900; i++ )
     {
-      pcout << "i == " << i << endl;
+//      pcout << "Step 1" << endl;
       rt_propagtion_forward(i);
 //      m_N = MyComplexTools::MPI::Particle_Number( mpi_communicator, dof_handler, fe, m_workspace );      
 //      pcout << "N == " << m_N << endl;
@@ -450,7 +452,6 @@ namespace realtime_propagation
       //double cost = compute_costfunction();
       //if(m_root) printf( "cost = %g\n", cost );
       if(m_root) m_potential.output( "lambda_" + to_string(i) + ".txt" );
-      if(m_root) m_potential.save( "lambda_" + to_string(i) + ".bin" );
     }
 
     output_results( "oct_final.vtu");
@@ -465,7 +466,6 @@ int main ( int argc, char *argv[] )
   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv);
   {
     realtime_propagation::MySolver<DIMENSION,101> solver("params_one.xml", 1);
-    //realtime_propagation::MySolver<DIMENSION,6> solver("params_one.xml", 0.01);
     solver.run();
   }
 return EXIT_SUCCESS;
