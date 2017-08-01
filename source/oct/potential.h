@@ -1,8 +1,6 @@
   
 #pragma once
 
-#include "exprtk.hpp"
-
 using namespace std;
 
   template <int dim, int N>
@@ -35,10 +33,6 @@ using namespace std;
         {
           delete i;
         }
-        for( auto& i : m_pot )
-        {
-          delete i;
-        }
       }
 
       void init(  const vector<string>& all_lambdas, const vector<string>& all_potential, const map<string,double>& constants, const double T )
@@ -61,8 +55,8 @@ using namespace std;
           m_t[i] = double(i)*m_dt;
         }
 
-        //try
-        //{
+        try
+        {
           // Setup all initial lambda_i(t) with the guess from all_lambdas
           vector<double> tmpvec(N);
           for( auto str : all_lambdas )
@@ -77,34 +71,35 @@ using namespace std;
             }
             m_lambdas.push_back( new Functions::CSpline<1>(m_t, tmpvec) );
           }
+
           m_lam_val.resize(all_lambdas.size());
-
-          m_symbol_table.add_variable( "x", m_pos_val[0] );
-          m_symbol_table.add_variable( "y", m_pos_val[1] );
-          m_symbol_table.add_variable( "z", m_pos_val[2] );
-          for( int i=0; i<all_lambdas.size(); i++ )
-          {
-            string tmp = "lam_" + to_string(i);
-            m_symbol_table.add_variable(tmp, m_lam_val[i]);
-          }          
-
-          m_symbol_table.add_constants();
-          for( auto i : constants )
-          {
-            m_symbol_table.add_constant(i.first, i.second);
-          }
-
           // Setup the potential and all derivatives with respect to lambda_i(t)
           for( auto str : all_potential )
           {
-            m_pot.push_back( new exprtk::expression<double>() );
-                        
-            exprtk::expression<double> * p = m_pot.back();
-            p->register_symbol_table(m_symbol_table);
+            mu::Parser newp;  
             
-            m_parser.compile(str,*p);
+            newp.SetExpr(str);
+
+            newp.DefineVar("x", &(m_pos_val.data()[0]));
+            newp.DefineVar("y", &(m_pos_val.data()[1]));
+            newp.DefineVar("z", &(m_pos_val.data()[2]));
+
+            for( int i=0; i<all_lambdas.size(); i++ )
+            {
+              string tmp = "lam_" + to_string(i);
+              newp.DefineVar(tmp, &(m_lam_val.data()[i]));
+            }
+            for( auto i : constants )
+            {
+              newp.DefineConst(i.first, i.second);
+            }
+            m_pot.push_back(newp);
           }
-        //}
+        }
+        catch (mu::Parser::exception_type &e)
+        {
+          std::cout << e.GetMsg() << std::endl;
+        }
       }
 
       void reinit( const vector<vector<double>>& new_lambdas )
@@ -139,23 +134,15 @@ using namespace std;
           s++;
         }        
 
-        retval = m_pot[component]->value();
-      return retval;
-      }    
-
-      void output( const std::string& filename )
-      {
-        ofstream out( filename );
-
-        for( int i=0; i<N; i++ )
+        try
         {
-          Point<1> pt(double(i)*m_dt);
-          out << pt[0] << "\t";
-          for( int j=0; j<m_no_lam; j++ )
-          {
-            out << m_lambdas[j]->value(pt) << ( j+1 == m_no_lam ? "\n" : "\t" );
-          }
+          retval = m_pot[component].Eval();
         }
+        catch (mu::Parser::exception_type &e)
+        {
+          std::cout << e.GetMsg() << std::endl;
+        }        
+      return retval;
       }
 
       bool save( const string& filename )
@@ -199,20 +186,32 @@ using namespace std;
         reinit( tmp );
 
         return true;
+      }          
+
+      void output( const std::string& filename )
+      {
+        ofstream out( filename );
+
+        for( int i=0; i<N; i++ )
+        {
+          Point<1> pt(double(i)*m_dt);
+          out << pt[0] << "\t";
+          for( int j=0; j<m_no_lam; j++ )
+          {
+            out << m_lambdas[j]->value(pt) << ( j+1 == m_no_lam ? "\n" : "\t" );
+          }
+        }
       }
 
       double get_no_lambdas() { return m_no_lam; };
 
       vector<dealii::Functions::CSpline<1>*> m_lambdas;
     protected:
-      exprtk::symbol_table<double> m_symbol_table;
-      exprtk::parser<double> m_parser;
       int m_no_lam;
       double m_dt;
       double m_T;
       double m_fak;
-      //vector<mu::Parser*> m_pot;
-      vector<exprtk::expression<double>*> m_pot;
+      vector<mu::Parser> m_pot; 
       vector<double> m_t;
       mutable vector<double> m_pos_val;
       mutable vector<double> m_lam_val;
