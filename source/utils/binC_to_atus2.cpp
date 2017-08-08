@@ -97,7 +97,6 @@ namespace HelperPrograms
 
       void write_atus2( const std::string& filename, MPI_Comm& mpi_communicator, const std::vector<double>& data )
       {
-        cout << "HERE\n";
         const std::vector<DataOutBase::Patch<dim,dim>> &patches = this->get_patches();
         const DataOutBase::Patch<dim,dim> &patch0 = patches[0];
 
@@ -151,9 +150,9 @@ namespace HelperPrograms
 
         std::vector<int> coord_idx(3);
         std::vector<int> idx_shifts(3);
-        idx_shifts[0] = ( header.xMin < 0 ) ? N/2 : 0;
-        idx_shifts[1] = ( header.yMin < 0 ) ? N/2 : 0;
-        idx_shifts[2] = ( header.zMin < 0 ) ? N/2 : 0; 
+        idx_shifts[0] = int(-( header.xMin / header.dx ));
+        idx_shifts[1] = int(-( header.yMin / header.dy ));
+        idx_shifts[2] = int(-( header.zMin / header.dz ));
         
         std::vector<double> deltas(3);
         deltas[0] = header.dx;
@@ -387,9 +386,17 @@ int main ( int argc, char *argv[] )
 
   if( opt->getFlag( "help" ) || opt->getFlag( 'h' ) ) opt->printUsage();
 
+  if( opt->getValue("dim") == nullptr ) 
+  {
+    opt->printUsage();
+    delete opt;     
+    return EXIT_FAILURE;
+  }
+
   dim = atof(opt->getValue("dim"));  
 
-  if( opt->getArgc() != 0 ) filename = opt->getArgv(0);
+  if( opt->getArgc() > 0 ) 
+    filename = opt->getArgv(0);
   else opt->printUsage();
   delete opt; 
 
@@ -397,13 +404,11 @@ int main ( int argc, char *argv[] )
   {
     if( dim == 2 )
     {
-      std::string filename = argv[1];
       HelperPrograms::MySolver<2> solver("params.xml");
       solver.run(filename);
     }
     if( dim == 3 )
     {
-      std::string filename = argv[1];
       HelperPrograms::MySolver<3> solver("params.xml");
       solver.run(filename);
     }

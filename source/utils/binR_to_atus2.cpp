@@ -385,6 +385,13 @@ int main ( int argc, char *argv[] )
 
   if( opt->getFlag( "help" ) || opt->getFlag( 'h' ) ) opt->printUsage();
 
+  if( opt->getValue("dim") == nullptr ) 
+  {
+    opt->printUsage();
+    delete opt;     
+    return EXIT_FAILURE;
+  }
+
   dim = atoi(opt->getValue("dim"));
   
   if( !(dim == 2 || dim == 3) ) 
