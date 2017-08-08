@@ -25,8 +25,7 @@
     std::complex<double> z = MyComplexTools::MPI::L2_dot_product(mpi_communicator, dof_handler, fe, m_Psi_d, m_Psi );
     if(m_root) printf( "overlap %g\n", norm(z) );
 
-    z *= std::complex<double>(0,-1);
-
+    z *= std::complex<double>(0,1);
     m_cost = 0.5*(1-norm(z));
 
 /*
@@ -42,7 +41,7 @@
     m_all_p[no_time_steps-1] = m_sol;
     m_N_pT = MyComplexTools::MPI::Particle_Number( mpi_communicator, dof_handler, fe, m_Psi );
 
-    output_vec( "p_" + to_string(ex) + ".vtu", m_all_p[no_time_steps-1] );
+    //output_vec( "p_" + to_string(ex) + ".vtu", m_all_p[no_time_steps-1] );
 
     if(m_root) printf( "cost %g\n", m_cost );
     for( int i=no_time_steps-2; i>0; i-- )

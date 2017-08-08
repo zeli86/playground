@@ -112,6 +112,7 @@ namespace realtime_propagation
     void rt_propagtion_forward ( const int ); 
     void rt_propagtion_backward ( const int ); 
     void compute_correction ( const int ); 
+    double compute_dot_product( const LAPACKFullMatrix<double>&, const LAPACKFullMatrix<double>& );
     
     void make_grid();
     void setup_system();
@@ -125,6 +126,8 @@ namespace realtime_propagation
     void output_vec ( string, LA::MPI::Vector& );
     void load( string );
     void save( string );    
+
+    void compute_beta();
 
     MyParameterHandler m_ph;
     MPI_Comm mpi_communicator;
@@ -165,8 +168,17 @@ namespace realtime_propagation
     double m_N;
     double m_N_pT;
     double m_cost;
+    double m_old_cost;
+    double m_s;
+    double m_c1;
+    double m_c2;
     vector<double> m_norm_grad;
     vector<double> m_omega;
+    vector<double> m_beta;
+    LAPACKFullMatrix<double> m_grad;
+    LAPACKFullMatrix<double> m_old_grad;
+    LAPACKFullMatrix<double> m_direction;
+    LAPACKFullMatrix<double> m_old_direction;
 
     double m_xmin, m_xmax;
     double m_ymin, m_ymax;
@@ -187,7 +199,10 @@ namespace realtime_propagation
     dof_handler (triangulation),
     pcout (cout, (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)),
     m_computing_timer_log("benchmark.txt"),
-    m_computing_timer(mpi_communicator, m_computing_timer_log, TimerOutput::summary, TimerOutput:: cpu_and_wall_times )
+    m_computing_timer(mpi_communicator, m_computing_timer_log, TimerOutput::summary, TimerOutput:: cpu_and_wall_times ),
+    m_s(0.1),
+    m_c1(1e-4),
+    m_c2(1) 
   {
     try
     {
@@ -394,10 +409,10 @@ namespace realtime_propagation
 //    pot_str.push_back("(1+lam_0)*omq_x*x^2+omq_y*y^2"); // test case
 //    pot_str.push_back("omq_x*x^2" ); // test case
 
-    pot_str.push_back("omq_x*x^2 + omq_y*y^2 + lam_0*sin(lam_1+lam_2*(x+y))" );
-    pot_str.push_back("sin(lam_1+lam_2*(x+y))");
-    pot_str.push_back("lam_0*cos(lam_1+lam_2*(x+y))");
-    pot_str.push_back("lam_0*cos(lam_1+lam_2*(x+y))*(x+y)");
+    pot_str.push_back("omq_x*x^2 + omq_y*y^2 + lam_0*sin(lam_1+lam_2*y)" );
+    pot_str.push_back("sin(lam_1+lam_2*y)");
+    pot_str.push_back("lam_0*cos(lam_1+lam_2*y)");
+    pot_str.push_back("lam_0*cos(lam_1+lam_2*y)*y");
 
     double domega = M_PI/m_T;
 
@@ -415,6 +430,11 @@ namespace realtime_propagation
     m_potential.output( "lambda_guess.txt" );
 
     m_norm_grad.resize(m_potential.get_no_lambdas());
+    m_grad.reinit(no_time_steps,m_potential.get_no_lambdas());
+    m_old_grad.reinit(no_time_steps,m_potential.get_no_lambdas());
+    m_direction.reinit(no_time_steps,m_potential.get_no_lambdas());
+    m_old_direction.reinit(no_time_steps,m_potential.get_no_lambdas());
+    m_beta.resize(no_time_steps,0);
 
     load( "oct_0.bin" );
 
@@ -428,30 +448,21 @@ namespace realtime_propagation
     pcout << "N(Psi_0) == " << m_N << endl;
     pcout << "N(Psi_d) == " << MyComplexTools::MPI::Particle_Number( mpi_communicator, dof_handler, fe, m_Psi_d ) << endl;
     pcout << "dt == " << m_dt << endl;
-//    Expectation_value_position( m_Psi, pos );
-//    Expectation_value_momentum( m_Psi, p );
-
-    //pcout << "p == " << p[0]/m_N << ", " << p[1]/m_N << ", " << p[2]/m_N << endl;
-    //pcout << "pos == " << pos[0]/m_N << ", " << pos[1]/m_N << ", " << pos[2]/m_N << endl;
     
     for( int i=1; i<=900; i++ )
     {
-//      pcout << "Step 1" << endl;
+      pcout << "----- " << i << endl;
       rt_propagtion_forward(i);
 //      m_N = MyComplexTools::MPI::Particle_Number( mpi_communicator, dof_handler, fe, m_workspace );      
 //      pcout << "N == " << m_N << endl;
-//      Expectation_value_momentum( m_Psi, p );
-//      Expectation_value_position( m_Psi, pos );
-//      pcout << "p == " << p[0]/m_N << ", " << p[1]/m_N << ", " << p[2]/m_N << endl;
-//      pcout << "pos == " << pos[0]/m_N << ", " << pos[1]/m_N << ", " << pos[2]/m_N << endl;      
-//      pcout << "Step 2" << endl;
       rt_propagtion_backward(i);
       if( m_N_pT < 1e-4 ) break;
-//      pcout << "Step 3" << endl;
       compute_correction(i);
-      //double cost = compute_costfunction();
-      //if(m_root) printf( "cost = %g\n", cost );
-      if(m_root) m_potential.output( "lambda_" + to_string(i) + ".txt" );
+      if(m_root) 
+      {
+        m_potential.save( "lambda_" + to_string(i) + ".bin" );
+        m_potential.output( "lambda_" + to_string(i) + ".txt" );
+      }
     }
 
     output_results( "oct_final.vtu");

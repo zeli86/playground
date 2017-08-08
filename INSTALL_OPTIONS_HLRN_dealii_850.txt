@@ -82,6 +82,7 @@ cmake  \
 -DLAPACK_DIR=/home/h/hbpzeli4/opt/lapack-3.7.0 \
 -DPETSC_DIR=/home/h/hbpzeli4/opt/petsc-3.7.6 \
 -DP4EST_DIR=/home/h/hbpzeli4/opt/p4est-1.1 \
+-DMUPARSER_DIR=/home/h/hbpzeli4/opt/muparser-2.2.5 \
 -DGSL_DIR=/home/h/hbpzeli4/opt/gsl-2.3 \
 -DDEAL_II_WITH_THREADS=OFF \
 -DDEAL_II_WITH_MPI=ON \

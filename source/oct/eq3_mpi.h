@@ -18,6 +18,35 @@
  */
 
   template <int dim, int no_time_steps>
+  void MySolver<dim,no_time_steps>::compute_beta()
+  {
+    for( int s=0; s<m_potential.get_no_lambdas(); s++ )
+    {
+      m_beta[s] = 0;
+      for( int ti=1; ti<no_time_steps-1; ti++ )
+      {
+        //m_beta[s] += m_grad(ti,s)*m_grad(ti,s)/(m_old_direction(ti,s)*(m_grad(ti,s)-m_old_grad(ti,s)));
+        m_beta[s] += m_grad(ti,s)*m_grad(ti,s)/(m_old_grad(ti,s)*m_old_grad(ti,s));
+        //if( m_root ) printf( "%d\t%d\t%g\t%g\t%g\n", s, ti, m_grad(ti,s), m_old_direction(ti,s), m_old_grad(ti,s) );
+      }      
+    }    
+  }
+
+  template <int dim, int no_time_steps>
+  double MySolver<dim,no_time_steps>::compute_dot_product( const LAPACKFullMatrix<double>& mat1, const LAPACKFullMatrix<double>& mat2 )
+  {
+    double retval=0;
+    for( int s=0; s<m_potential.get_no_lambdas(); s++ )
+    {
+      for( int ti=1; ti<no_time_steps-1; ti++ )
+      {
+        retval += mat1(ti,s)*mat2(ti,s);
+      }
+    }
+    return retval*m_dt;
+  }
+
+  template <int dim, int no_time_steps>
   void MySolver<dim,no_time_steps>::compute_correction( const int ex )
   {
     m_computing_timer.enter_section(__func__);
@@ -33,13 +62,11 @@
     vector<Vector<double>> Psi(n_q_points,Vector<double>(2));
     vector<Vector<double>> p(n_q_points,Vector<double>(2));
 
-    LAPACKFullMatrix<double> grad(no_time_steps,nolam);
-
     // loop over all lambdas
     for( int s=0; s<nolam; s++ )
     {
-      grad(0,s) = 0;
-      grad(no_time_steps-1,s) = 0;
+      m_grad(0,s) = 0;
+      m_grad(no_time_steps-1,s) = 0;
       // loop over all time steps
       for( int ti=1; ti<no_time_steps-1; ti++ )
       {
@@ -69,12 +96,11 @@
         //printf( "(%d) %d %d %g\n",m_rank,  s, ti, tmp1 );
         //tmp1 -= m_potential.laplacian(s);
         MPI_Allreduce( &tmp1, &retval, 1, MPI_DOUBLE, MPI_SUM, mpi_communicator);
-        grad(ti,s) = retval;
+        m_grad(ti,s) = retval;
 //        if( m_root ) printf( "%d %d %g %g\n", s, ti, grad(ti,s), retval );
       }
     }
-
-    grad *= (m_dt*m_dt);
+    m_grad *= (m_dt*m_dt);
     
     LAPACKFullMatrix<double> lap(no_time_steps,no_time_steps);
     for( int i=0; i<no_time_steps; i++ ) lap(i,i) = -2;
@@ -82,38 +108,45 @@
     for( int i=1; i<no_time_steps-1; i++ ) lap(i,i-1) = 1; // linke Nebendiagonale
     
     lap.compute_lu_factorization();
-    lap.apply_lu_factorization(grad,false);
+    lap.apply_lu_factorization(m_grad,false);
 
     vector<vector<double>> new_lambdas(nolam,vector<double>(no_time_steps));
 
     for( int s=0; s<nolam; s++ )
     {
-      double norm = grad(s,0)*grad(s,0);
+      m_norm_grad[s] = 0;
       for( int ti=1; ti<no_time_steps; ti++ )
       {
-        norm += grad(ti,s)*grad(ti,s);
+        m_norm_grad[s] += m_grad(ti,s)*m_grad(ti,s);
       }
-      norm *= m_dt;
-      MPI_Allreduce( &norm, &(m_norm_grad.data()[s]), 1, MPI_DOUBLE, MPI_SUM, mpi_communicator);
-      m_norm_grad[s] = sqrt(m_norm_grad[s]);   
+      m_norm_grad[s] = sqrt(m_norm_grad[s]*m_dt);   
     }    
 
-    auto biggest = std::max_element(std::begin(m_norm_grad), std::end(m_norm_grad));
-    double fak = 1.0/sqrt(*biggest);
+/*
+    if( ex == 1 )
+    {
+      m_direction = m_grad;
+    }
+    else
+    {
+      compute_beta();
+      for( int s=0; s<m_potential.get_no_lambdas(); s++ )
+      {
+        for( int ti=1; ti<no_time_steps-1; ti++ )
+        {
+          m_direction(ti,s) = m_grad(ti,s) - m_beta[s]*m_old_direction(ti,s);
+        }
+      }
+    }
+*/
+
+    m_direction = m_grad;
 
     for( int s=0; s<nolam; s++ )
     {
       for( int ti=1; ti<no_time_steps; ti++ )
       {
-        grad(ti,s) = fak*grad(ti,s);
-      }
-    }    
-
-    for( int s=0; s<nolam; s++ )
-    {
-      for( int ti=1; ti<no_time_steps; ti++ )
-      {
-        new_lambdas[s][ti] = m_potential.m_lambdas[s]->value( Point<1>(double(ti)*m_dt) ) + 0.1*grad(ti,s);
+        new_lambdas[s][ti] = m_potential.m_lambdas[s]->value( Point<1>(double(ti)*m_dt) ) + m_s*m_direction(ti,s);
       }
     }    
 
@@ -127,6 +160,62 @@
       pcout << i << endl;
     }
 
+    double tmp1 = compute_dot_product( m_old_grad, m_old_direction);
+    double tmp2 = compute_dot_product( m_grad, m_old_direction);
+
+    if( ex > 1 )
+    {
+      bool b1 = (m_cost <= m_old_cost + m_c1*m_s*tmp1);
+      bool b2 = (tmp2 > m_c2*tmp1);
+      //printf( "m_cost = %g, m_old_cost = %g, tmp1 = %g, tmp2 = %g\n", m_cost, m_old_cost, tmp1, tmp2);
+      if( !b1 ) printf( "b1 false\n" );
+      if( !b2 ) printf( "b2 false\n" );
+    }
+
+    m_old_direction = m_direction;
+    m_old_grad = m_grad;
+    m_old_cost = m_cost;
+/*
+    ofstream out( "direction_" + to_string(ex) + ".txt" );
+    for( int ti=1; ti<no_time_steps; ti++ )
+    {
+      out << double(ti)*m_dt << "\t";
+      for( int s=0; s<nolam; s++ )
+      {
+         out << m_direction(ti,s) << ( s+1 == nolam ? "\n" : "\t" );
+      }
+    }
+
+    ofstream out2( "old_direction_" + to_string(ex) + ".txt" );
+    for( int ti=1; ti<no_time_steps; ti++ )
+    {
+      out2 << double(ti)*m_dt << "\t";
+      for( int s=0; s<nolam; s++ )
+      {
+         out2 << m_old_direction(ti,s) << ( s+1 == nolam ? "\n" : "\t" );
+      }
+    }
+
+    ofstream out3( "grad_" + to_string(ex) + ".txt" );
+    for( int ti=1; ti<no_time_steps; ti++ )
+    {
+      out3 << double(ti)*m_dt << "\t";
+      for( int s=0; s<nolam; s++ )
+      {
+         out3 << m_grad(ti,s) << ( s+1 == nolam ? "\n" : "\t" );
+      }
+    }    
+
+    ofstream out4( "oldgrad_" + to_string(ex) + ".txt" );
+    for( int ti=1; ti<no_time_steps; ti++ )
+    {
+      out4 << double(ti)*m_dt << "\t";
+      for( int s=0; s<nolam; s++ )
+      {
+         out4 << m_old_grad(ti,s) << ( s+1 == nolam ? "\n" : "\t" );
+      }
+    }    
+*/
     m_computing_timer.exit_section();
   }
 
