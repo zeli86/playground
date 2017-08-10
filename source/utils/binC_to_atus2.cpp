@@ -18,9 +18,6 @@
 // along with atus-pro testing.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-/** Želimir Marojević
- */
-
 #include <deal.II/lac/generic_linear_algebra.h>
 
 namespace LA
@@ -214,14 +211,14 @@ namespace HelperPrograms
       }       
   };
 
-  template <int dim>
+  template <int dim, int comp>
   class MySolver
   {
   public:
     MySolver( const std::string& );
     ~MySolver();
 
-    void run ( string );
+    void run ( string, const int=0 );
 
   protected:
     void make_grid();
@@ -253,17 +250,19 @@ namespace HelperPrograms
     vector<double> m_omega;
     
     int m_rank;
+    int m_sel; // the selected wave function
   };
 
-  template <int dim>
-  MySolver<dim>::MySolver ( const std::string& xmlfilename ) 
+  template <int dim, int comp>
+  MySolver<dim,comp>::MySolver ( const std::string& xmlfilename ) 
     : 
     m_ph(xmlfilename),
     mpi_communicator (MPI_COMM_WORLD),
     triangulation (mpi_communicator, typename Triangulation<dim>::MeshSmoothing(Triangulation<dim>::smoothing_on_refinement|Triangulation<dim>::smoothing_on_coarsening)),
     fe (FE_Q<dim>(gl_degree_fe), 2),
     dof_handler (triangulation),
-    pcout (cout, (Utilities::MPI::this_mpi_process(mpi_communicator) == 0))
+    pcout (cout, (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)),
+    m_sel(0)
   {
     m_omega = m_ph.Get_Physics("omega");
     m_gs = m_ph.Get_Physics("gs_1",0);
@@ -279,14 +278,14 @@ namespace HelperPrograms
     MPI_Comm_rank(mpi_communicator, &m_rank);
   }
 
-  template <int dim>
-  MySolver<dim>::~MySolver ()
+  template <int dim, int comp>
+  MySolver<dim,comp>::~MySolver ()
   {
     dof_handler.clear ();
   }
 
-  template <int dim>
-  void MySolver<dim>::make_grid ()
+  template <int dim, int comp>
+  void MySolver<dim,comp>::make_grid ()
   {
     Point<dim,double> pt1;
     Point<dim,double> pt2;
@@ -303,8 +302,8 @@ namespace HelperPrograms
     GridGenerator::hyper_rectangle(triangulation, pt2, pt1);
   }
   
-  template <int dim>
-  void MySolver<dim>::setup_system()
+  template <int dim, int comp>
+  void MySolver<dim,comp>::setup_system()
   {
     dof_handler.distribute_dofs (fe);
 
@@ -319,12 +318,15 @@ namespace HelperPrograms
     constraints.close ();
   }
 
-  template <int dim>
-  void MySolver<dim>::run( string filename )
+  template <int dim, int comp>
+  void MySolver<dim,comp>::run( string filename, const int wf )
   {
+    assert( wf > 0 && wf <= comp );
+
+    m_sel = wf-1;
     load(filename);
 
-    std::string new_filename = "atus2_" + filename ;
+    std::string new_filename = "atus2_" + to_string(wf) + "_" + filename ;
 
     std::vector<double> add_data(6);
     add_data[0] = m_xmin;
@@ -341,21 +343,36 @@ namespace HelperPrograms
     data_out.write_atus2 ( new_filename, mpi_communicator, add_data );
   }
 
-  template<int dim>
-  void MySolver<dim>::load( string filename )
+  template<int dim, int comp>
+  void MySolver<dim,comp>::load( string filename )
   {
     make_grid();
     triangulation.load( filename.c_str() );
 
     setup_system();
 
-    LA::MPI::Vector tmp;
-    tmp.reinit (locally_owned_dofs, mpi_communicator);
+    vector<LA::MPI::Vector*> all_vec;
+
+    for( int i=0; i<comp; i++ )
+    {
+      all_vec.push_back(new LA::MPI::Vector());
+    }
+
+    for( auto& i : all_vec )
+    {
+      i->reinit (locally_owned_dofs, mpi_communicator);
+    }
 
     parallel::distributed::SolutionTransfer<dim,LA::MPI::Vector> solution_transfer(dof_handler);
-    solution_transfer.deserialize(tmp);   
-    constraints.distribute(tmp);
-    m_Psi=tmp;
+    solution_transfer.deserialize(all_vec);
+
+    constraints.distribute(*all_vec[m_sel]);
+    m_Psi=*all_vec[m_sel];
+
+    for( auto& i : all_vec )
+    {
+      delete i;
+    }
   }
 } // end of namespace 
 
@@ -367,7 +384,7 @@ int main ( int argc, char *argv[] )
   std::string filename;
 
   AnyOption * opt = new AnyOption();
-  int dim;
+  int dim=2, wf=0, nowf=1;
 
   //opt->noPOSIX(); 
   //opt->setVerbose();
@@ -376,11 +393,15 @@ int main ( int argc, char *argv[] )
   opt->addUsage( "" );
   opt->addUsage( "Usage: binC_to_atus2 [options] filename" );
   opt->addUsage( "" );
-  opt->addUsage( " --help -h   Prints this help " );
-  opt->addUsage( " --dim       2 or 3" );
+  opt->addUsage( " --help -h  Prints this help " );
+  opt->addUsage( " --dim      2 or 3" );
+  opt->addUsage( " --nowf     1,2,..." );
+  opt->addUsage( " --wf       1,2,..." );
   opt->addUsage( "" );
   opt->setFlag(  "help", 'h' );   
   opt->setOption( "dim" );   
+  opt->setOption( "wf" );   
+  opt->setOption( "nowf" );   
 
   opt->processCommandArgs( argc, argv );
 
@@ -393,6 +414,12 @@ int main ( int argc, char *argv[] )
     return EXIT_FAILURE;
   }
 
+  if( opt->getValue("wf") != nullptr && opt->getValue("nowf") != nullptr ) 
+  {
+    wf = atof(opt->getValue("wf"));
+    nowf = atof(opt->getValue("nowf"));
+  }
+
   dim = atof(opt->getValue("dim"));  
 
   if( opt->getArgc() > 0 ) 
@@ -402,15 +429,25 @@ int main ( int argc, char *argv[] )
 
   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv );
   {
-    if( dim == 2 )
+    if( dim == 2 && nowf == 1 )
     {
-      HelperPrograms::MySolver<2> solver("params.xml");
+      HelperPrograms::MySolver<2,1> solver("params.xml");
       solver.run(filename);
     }
-    if( dim == 3 )
+    if( dim == 3 && nowf == 1 )
     {
-      HelperPrograms::MySolver<3> solver("params.xml");
+      HelperPrograms::MySolver<3,1> solver("params.xml");
       solver.run(filename);
+    }
+    if( dim == 2 && nowf == 2 )
+    {
+      HelperPrograms::MySolver<2,2> solver("params.xml");
+      solver.run(filename,wf);
+    }
+    if( dim == 3 && nowf == 2 )
+    {
+      HelperPrograms::MySolver<3,2> solver("params.xml");
+      solver.run(filename,wf);
     }
   }  
 return EXIT_SUCCESS;
