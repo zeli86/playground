@@ -14,7 +14,7 @@ option( BUILD_VARIANT2 "Variant 2" ON )
 option( BUILD_NEHARI "Disables the initial point in function space being set to the Nehari value" ON )
 
 set(CMAKE_CXX_FLAGS_RELEASE "-std=gnu++11 -march=native -O3 -fopenmp -mieee-fp -funroll-loops -ftree-vectorize -w -s")
-set(CMAKE_CXX_FLAGS_DEBUG "-std=gnu++11 -g -march=native -fopenmp -mieee-fp ")
+set(CMAKE_CXX_FLAGS_DEBUG "-std=gnu++11 -g -march=native -fopenmp -mieee-fp -fsanitize=address")
 
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options are: Debug Release." FORCE)
@@ -78,13 +78,13 @@ set( PETSC_INC_DIR ${TMP}/include CACHE STRING INTERNAL )
 #set( SLEPC_INC_DIR ${TMP}/include CACHE STRING INTERNAL )
 
 # muParser library
-#find_library( MUPARSER_LIBRARY NAMES muparser  PATHS ENV LD_LIBRARY_PATH NO_DEFAULT_PATH )
-#if( NOT MUPARSER_LIBRARY )
-#  message( FATAL_ERROR "Could not find libmuparser." )
-#endif()
-#get_filename_component( TMP ${MUPARSER_LIBRARY} PATH )
-#get_filename_component( TMP ${TMP} PATH )
-#set( MUPARSER_INC_DIR ${TMP}/include CACHE STRING INTERNAL )
+find_library( MUPARSER_LIBRARY NAMES muparser  PATHS ENV LD_LIBRARY_PATH NO_DEFAULT_PATH )
+if( NOT MUPARSER_LIBRARY )
+  message( FATAL_ERROR "Could not find libmuparser." )
+endif()
+get_filename_component( TMP ${MUPARSER_LIBRARY} PATH )
+get_filename_component( TMP ${TMP} PATH )
+set( MUPARSER_INC_DIR ${TMP}/include CACHE STRING INTERNAL )
 
 ### deal.ii library paths
 find_library( DEAL_II_LIBRARY NAMES deal_II  PATHS ENV LD_LIBRARY_PATH NO_DEFAULT_PATH )
