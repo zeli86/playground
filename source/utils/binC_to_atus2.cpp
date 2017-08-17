@@ -218,7 +218,7 @@ namespace HelperPrograms
     MySolver( const std::string& );
     ~MySolver();
 
-    void run ( string, const int=0 );
+    void run ( string, const int=1 );
 
   protected:
     void make_grid();
