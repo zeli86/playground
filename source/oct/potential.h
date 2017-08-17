@@ -11,7 +11,6 @@ using namespace std;
       CPotential () 
         : 
         Function<dim>(),
-        m_t(N),
         m_pos_val(3)
       { 
       }
@@ -20,19 +19,15 @@ using namespace std;
       CPotential ( const CPotential& rhs ) 
         : 
         Function<dim>(),
-        m_t(N),
         m_pos_val(3)
       { 
         init( rhs.m_all_lambdas, rhs.m_all_potential, rhs.m_constants, rhs.m_T );
       }
       
-      // Destructor
-      virtual ~CPotential()
+      CPotential& operator=( const CPotential& rhs )
       {
-        for( auto& i : m_lambdas )
-        {
-          delete i;
-        }
+        m_lambdas = rhs.m_lambdas;
+        return *this;
       }
 
       void init(  const vector<string>& all_lambdas, const vector<string>& all_potential, const map<string,double>& constants, const double T )
@@ -50,26 +45,20 @@ using namespace std;
         m_T = T;
         m_fak = 1/(m_dt*m_dt);
 
-        for( int i=0; i<N; i++ )
-        {
-          m_t[i] = double(i)*m_dt;
-        }
+        m_lambdas.reinit(N,m_no_lam);
 
         try
         {
           // Setup all initial lambda_i(t) with the guess from all_lambdas
-          vector<double> tmpvec(N);
-          for( auto str : all_lambdas )
+          for( int s=0; s<m_no_lam; s++ )
           {
             FunctionParser<1> lam;
-            lam.initialize( "t", str, constants );
+            lam.initialize( "t", m_all_lambdas[s], constants );
             
             for( int i=0; i<N; i++ )
             {
-              Point<1> t(double(i)*m_dt);
-              tmpvec[i] = lam.value(t);
+              m_lambdas(i,s) = lam.value(Point<1>(double(i)*m_dt));
             }
-            m_lambdas.push_back( new Functions::CSpline<1>(m_t, tmpvec) );
           }
 
           m_lam_val.resize(all_lambdas.size());
@@ -102,36 +91,18 @@ using namespace std;
         }
       }
 
-      void reinit( const vector<vector<double>>& new_lambdas )
-      {
-        assert( m_no_lam == new_lambdas.size() );
-
-        for( auto& i : m_lambdas )
-        {
-          delete i;
-        }          
-
-        for( int i=0; i<m_no_lam; i++ )
-        {
-          m_lambdas[i] = new Functions::CSpline<1>(m_t, new_lambdas[i]);
-        }
-      }
-
       virtual double value ( const Point<dim> &p, const unsigned component = 0) const 
       {
-        Point<1> pt(this->get_time());
         double retval=0;
+        int ti = this->get_time() / m_dt;
 
         for( int i=0; i<dim; i++ )
         {
           m_pos_val[i] = p[i]; // setting the spatial coordinate
         }
-        int s=0;
-        for( auto i : m_lambdas )
+        for( int s ; s<m_no_lam; s++ )
         {
-          assert( this->get_time() >= 0 && this->get_time() <= m_T );
-          m_lam_val[s] = i->value(pt);  // setting lam_i(t)
-          s++;
+          m_lam_val[s] = m_lambdas(ti,s);  // setting lam_i(t)
         }        
 
         try
@@ -153,16 +124,16 @@ using namespace std;
 
         out.write(reinterpret_cast<char*>(&m_no_lam), sizeof(int));
 
-        std::vector<double> tmp(N);
+        std::vector<double> tmp(N*m_no_lam);
 
-        for( int j=0; j<m_no_lam; j++ )
+        for( int s=0; s<m_no_lam; s++ )
         {
           for( int i=0; i<N; i++ )
           {
-            tmp[i] = m_lambdas[j]->value(Point<1>(double(i)*m_dt));
+            tmp[i+N*s] = m_lambdas(i,s);
           }
-          out.write(reinterpret_cast<char*>(tmp.data()),sizeof(double)*N);
         }
+        out.write(reinterpret_cast<char*>(tmp.data()),sizeof(double)*N*m_no_lam);
         return true;
       }
 
@@ -173,18 +144,20 @@ using namespace std;
         if( !in.is_open() ) return false;
 
         int no_lam;
-        vector<vector<double>> tmp( m_no_lam, vector<double>(N) );
         in.read( reinterpret_cast<char*>(&no_lam), sizeof(int));
-
+   
         assert( no_lam == m_no_lam );
+        
+        std::vector<double> tmp(N*m_no_lam);
+       
+        in.read( reinterpret_cast<char*>(tmp.data()), sizeof(double)*m_no_lam*N);
 
-        for( int j=0; j<m_no_lam; j++ )
+        for( int i=0; i<N*m_no_lam; i++ )
         {
-          in.read( reinterpret_cast<char*>(tmp[j].data()), sizeof(double)*N);
+          int s = i / N;
+          int ti = i - s*N;
+          m_lambdas(ti,s) = tmp[i];
         }
-
-        reinit( tmp );
-
         return true;
       }          
 
@@ -198,24 +171,34 @@ using namespace std;
           out << pt[0] << "\t";
           for( int j=0; j<m_no_lam; j++ )
           {
-            out << m_lambdas[j]->value(pt) << ( j+1 == m_no_lam ? "\n" : "\t" );
+            out << m_lambdas(i,j) << ( j+1 == m_no_lam ? "\n" : "\t" );
           }
         }
       }
 
+      void add( const double tau, const LAPACKFullMatrix<double>& direction )
+      {
+        vector<vector<double>> new_lambdas(m_no_lam,vector<double>(N,1));
+
+        for( int s=0; s<m_no_lam; s++ )
+          for( int ti=0; ti<N; ti++ )
+          {
+            m_lambdas(ti,s) += tau*direction(ti,s);
+          }
+      }
+
       double get_no_lambdas() { return m_no_lam; };
 
-      vector<dealii::Functions::CSpline<1>*> m_lambdas;
     protected:
       int m_no_lam;
       double m_dt;
       double m_T;
       double m_fak;
       vector<mu::Parser> m_pot; 
-      vector<double> m_t;
       mutable vector<double> m_pos_val;
       mutable vector<double> m_lam_val;
       vector<string> m_all_lambdas; 
       vector<string> m_all_potential; 
       map<string,double> m_constants;
-  };
+      LAPACKFullMatrix<double> m_lambdas;
+    };
