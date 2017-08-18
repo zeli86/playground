@@ -22,12 +22,16 @@
   {
     m_computing_timer.enter_section(__func__);
 
-    std::complex<double> z = MyComplexTools::MPI::L2_dot_product(mpi_communicator, dof_handler, fe, m_Psi_d, m_Psi );
-    if(m_root) printf( "overlap %g\n", norm(z) );
+    m_workspace_ng = m_Psi_d;
+    m_workspace_ng -= m_all_Psi[no_time_steps-1];
+    constraints.distribute(m_workspace_ng);
+    m_Psi = m_workspace_ng;
 
-    z *= std::complex<double>(0,1);
-    m_cost = 0.5*(1-norm(z));
-
+//    std::complex<double> z = MyComplexTools::MPI::L2_dot_product(mpi_communicator, dof_handler, fe, m_Psi_d, m_Psi );
+//    z *= std::complex<double>(0,1);
+//    if(m_root) printf( "z == %g + i %g \n", real(z), imag(z) );
+//    save( "Psi_T.bin" );
+    
 /*
     m_workspace_ng = m_Psi_d;
     m_workspace_ng -= m_all_Psi[no_time_steps-1];
@@ -35,15 +39,14 @@
     m_Psi = m_workspace_ng;
 */
 
-    MyComplexTools::MPI::AssembleSystem_mulvz( dof_handler, fe, constraints, m_Psi_d, z, system_matrix, system_rhs );
+    MyComplexTools::MPI::AssembleSystem_mulvz( dof_handler, fe, constraints, m_Psi, std::complex<double>(0,1), system_matrix, system_rhs );
     m_sol=0;
     solve_eq1();
     m_all_p[no_time_steps-1] = m_sol;
     m_N_pT = MyComplexTools::MPI::Particle_Number( mpi_communicator, dof_handler, fe, m_Psi );
+    if(m_root) printf( "m_N_pT == %g\n", m_N_pT );
 
-    //output_vec( "p_" + to_string(ex) + ".vtu", m_all_p[no_time_steps-1] );
-
-    if(m_root) printf( "cost %g\n", m_cost );
+    output_vec( "p_" + to_string(ex) + ".vtu", m_all_p[no_time_steps-1] );
     for( int i=no_time_steps-2; i>0; i-- )
     {
       MyComplexTools::MPI::AssembleSystem_LIN_Step( dof_handler, fe, constraints, m_Psi, -m_dt, system_matrix, system_rhs );

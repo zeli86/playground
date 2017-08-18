@@ -112,7 +112,9 @@ namespace realtime_propagation
     void rt_propagtion_forward ( const int ); 
     void rt_propagtion_backward ( const int ); 
     void compute_correction ( const int ); 
+    void compute_cost( double& );
     double compute_dot_product( const LAPACKFullMatrix<double>&, const LAPACKFullMatrix<double>& );
+    void armijo();
     
     void make_grid();
     void setup_system();
@@ -123,6 +125,7 @@ namespace realtime_propagation
     void solve_cg();
     void solve_eq1();
     void output_results ( string );
+    void output ( string, const LAPACKFullMatrix<double>& );
     void output_vec ( string, LA::MPI::Vector& );
     void load( string );
     void save( string );    
@@ -171,7 +174,6 @@ namespace realtime_propagation
     double m_old_cost;
     double m_s;
     double m_c1;
-    double m_c2;
     vector<double> m_norm_grad;
     vector<double> m_omega;
     vector<double> m_beta;
@@ -200,9 +202,8 @@ namespace realtime_propagation
     pcout (cout, (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)),
     m_computing_timer_log("benchmark.txt"),
     m_computing_timer(mpi_communicator, m_computing_timer_log, TimerOutput::summary, TimerOutput:: cpu_and_wall_times ),
-    m_s(0.1),
-    m_c1(1e-4),
-    m_c2(1) 
+    m_s(-0.1),
+    m_c1(1e-3)
   {
     try
     {
@@ -416,8 +417,6 @@ namespace realtime_propagation
 
     double domega = M_PI/m_T;
 
-    pcout << "domega = " << domega << endl;
-
     // initial guess for lambda
     vector<string> lam_str;
     string str;
@@ -448,24 +447,107 @@ namespace realtime_propagation
     pcout << "N(Psi_0) == " << m_N << endl;
     pcout << "N(Psi_d) == " << MyComplexTools::MPI::Particle_Number( mpi_communicator, dof_handler, fe, m_Psi_d ) << endl;
     pcout << "dt == " << m_dt << endl;
+
+    rt_propagtion_forward(0);
+    compute_cost(m_old_cost);
+    rt_propagtion_backward(0);
+    compute_correction(0);
     
-    for( int i=1; i<=900; i++ )
+    ofstream outf("first_corr.txt");
+    for( int i=0; i<no_time_steps; i++ )
     {
-      pcout << "----- " << i << endl;
-      rt_propagtion_forward(i);
-//      m_N = MyComplexTools::MPI::Particle_Number( mpi_communicator, dof_handler, fe, m_workspace );      
-//      pcout << "N == " << m_N << endl;
-      rt_propagtion_backward(i);
-      if( m_N_pT < 1e-4 ) break;
-      compute_correction(i);
-      if(m_root) 
+      Point<1> pt(double(i)*m_dt);
+      outf << pt[0] << "\t";
+      for( int j=0; j<m_potential.get_no_lambdas(); j++ )
       {
-        m_potential.save( "lambda_" + to_string(i) + ".bin" );
-        m_potential.output( "lambda_" + to_string(i) + ".txt" );
+        outf << m_grad(i,j) << ( j+1 == m_potential.get_no_lambdas() ? "\n" : "\t" );
       }
     }
+    
+    m_direction = m_grad;
 
+    int counter=1;
+    double norm=sqrt(compute_dot_product( m_direction, m_direction ));
+
+    if(m_root) printf( "(0) %g, %g\n", m_old_cost, norm );
+    do
+    {
+      //armijo();
+      m_potential.add(-0.1, m_direction);
+      rt_propagtion_forward(counter);
+      rt_propagtion_backward(counter);
+      compute_correction(counter);
+
+      m_direction = m_grad;
+
+      norm=sqrt(compute_dot_product( m_direction, m_direction ));
+        
+      if(m_root) 
+      {
+        m_potential.save( "lambda_" + to_string(counter) + ".bin" );
+        m_potential.output( "lambda_" + to_string(counter) + ".txt" );
+      }
+
+      if(m_root) printf( "(%d) %g, %g\n", counter, m_cost, norm );
+      counter++;
+      m_old_cost = m_cost;
+    }while( norm > 1e-4 );   
+//      m_N = MyComplexTools::MPI::Particle_Number( mpi_communicator, dof_handler, fe, m_workspace );      
+//      pcout << "N == " << m_N << endl;
     output_results( "oct_final.vtu");
+  }
+
+  template <int dim, int no_time_steps>
+  void MySolver<dim,no_time_steps>::compute_cost ( double& retval )
+  {
+    //std::complex<double> z = MyComplexTools::MPI::L2_dot_product(mpi_communicator, dof_handler, fe, m_Psi_d, m_Psi );
+    //retval = 0.5*(1-norm(z));
+    m_workspace_ng = m_Psi_d;
+    m_workspace_ng -= m_all_Psi[no_time_steps-1];
+    constraints.distribute(m_workspace_ng);
+    m_workspace = m_workspace_ng;
+
+    retval = MyComplexTools::MPI::Particle_Number( mpi_communicator, dof_handler, fe, m_workspace );
+  }  
+  
+  template <int dim, int no_time_steps>
+  void MySolver<dim,no_time_steps>::armijo ()
+  {
+    CPotential<dim,no_time_steps> m_potential_backup = m_potential;
+
+    double tau = 1;
+    double gsd = compute_dot_product( m_grad, m_direction );
+
+    if(m_root) printf( "gsd = %g\n", gsd );
+
+    m_potential.add(tau,m_direction);
+    rt_propagtion_forward(0);
+    compute_cost(m_cost);
+
+    while( m_old_cost - m_cost < m_c1*tau*gsd )
+    {
+      if(m_root) printf( "%g %g\n",  m_old_cost - m_cost, m_c1*tau*gsd );
+      tau = 0.5*tau;
+      m_potential = m_potential_backup;
+      m_potential.add(tau,m_direction);
+      rt_propagtion_forward(0);
+      compute_cost(m_cost);
+    }
+/*
+    if( tau == 1 )
+    {
+      m_potential = m_potential_backup;
+      m_potential.add(-2*tau,m_direction);
+      rt_propagtion_forward(0);
+      while( m_old_cost - m_cost < m_c1*tau*gsd )
+      {
+        tau *= 2;
+        m_potential = m_potential_backup;
+        m_potential.add(-2*tau,m_direction);        
+        rt_propagtion_forward(0);
+      }      
+    }
+*/
   }
 } // end of namespace 
 

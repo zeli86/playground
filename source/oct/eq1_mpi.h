@@ -47,8 +47,8 @@
 
       m_all_Psi[i] = m_sol;
 
-      //double N = MPI::MyComplexTools::Particle_Number( mpi_communicator, dof_handler, fe, m_Psi );
-      //if(m_root) printf( "f: %g\n", double(i)*m_dt );
+      //double N = MyComplexTools::MPI::Particle_Number( mpi_communicator, dof_handler, fe, m_Psi );
+      //if(m_root) printf( "f: %g %g\n", double(i)*m_dt, N );
     }
 
     output_vec( "Psi_f_" + to_string(ex) + ".vtu", m_sol );

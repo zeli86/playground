@@ -97,20 +97,21 @@
         //tmp1 -= m_potential.laplacian(s);
         MPI_Allreduce( &tmp1, &retval, 1, MPI_DOUBLE, MPI_SUM, mpi_communicator);
         m_grad(ti,s) = retval;
-//        if( m_root ) printf( "%d %d %g %g\n", s, ti, grad(ti,s), retval );
+        //if( m_root ) printf( "%d %d %g\n", s, ti, m_grad(ti,s) );
       }
     }
     m_grad *= (m_dt*m_dt);
     
+    // minus Laplace
     LAPACKFullMatrix<double> lap(no_time_steps,no_time_steps);
-    for( int i=0; i<no_time_steps; i++ ) lap(i,i) = -2;
-    for( int i=1; i<no_time_steps-1; i++ ) lap(i,i+1) = 1; // rechte Nebendiagonale 
-    for( int i=1; i<no_time_steps-1; i++ ) lap(i,i-1) = 1; // linke Nebendiagonale
+    for( int i=0; i<no_time_steps; i++ ) lap(i,i) = 2;
+    for( int i=1; i<no_time_steps-1; i++ ) lap(i,i+1) = -1; // rechte Nebendiagonale 
+    for( int i=1; i<no_time_steps-1; i++ ) lap(i,i-1) = -1; // linke Nebendiagonale
     
     lap.compute_lu_factorization();
     lap.apply_lu_factorization(m_grad,false);
 
-    vector<vector<double>> new_lambdas(nolam,vector<double>(no_time_steps));
+    //vector<vector<double>> new_lambdas(nolam,vector<double>(no_time_steps));
 
     for( int s=0; s<nolam; s++ )
     {
@@ -122,60 +123,7 @@
       m_norm_grad[s] = sqrt(m_norm_grad[s]*m_dt);   
     }    
 
-/*
-    if( ex == 1 )
-    {
-      m_direction = m_grad;
-    }
-    else
-    {
-      compute_beta();
-      for( int s=0; s<m_potential.get_no_lambdas(); s++ )
-      {
-        for( int ti=1; ti<no_time_steps-1; ti++ )
-        {
-          m_direction(ti,s) = m_grad(ti,s) - m_beta[s]*m_old_direction(ti,s);
-        }
-      }
-    }
-*/
-
-    m_direction = m_grad;
-
-    for( int s=0; s<nolam; s++ )
-    {
-      for( int ti=1; ti<no_time_steps; ti++ )
-      {
-        new_lambdas[s][ti] = m_potential.m_lambdas[s]->value( Point<1>(double(ti)*m_dt) ) + m_s*m_direction(ti,s);
-      }
-    }    
-
-    for( int s=0; s<nolam; s++ )
-    {
-      m_potential.reinit(new_lambdas);
-    }
-
-    for( auto i : m_norm_grad )
-    {
-      pcout << i << endl;
-    }
-
-    double tmp1 = compute_dot_product( m_old_grad, m_old_direction);
-    double tmp2 = compute_dot_product( m_grad, m_old_direction);
-
-    if( ex > 1 )
-    {
-      bool b1 = (m_cost <= m_old_cost + m_c1*m_s*tmp1);
-      bool b2 = (tmp2 > m_c2*tmp1);
-      //printf( "m_cost = %g, m_old_cost = %g, tmp1 = %g, tmp2 = %g\n", m_cost, m_old_cost, tmp1, tmp2);
-      if( !b1 ) printf( "b1 false\n" );
-      if( !b2 ) printf( "b2 false\n" );
-    }
-
-    m_old_direction = m_direction;
-    m_old_grad = m_grad;
-    m_old_cost = m_cost;
-/*
+    /*
     ofstream out( "direction_" + to_string(ex) + ".txt" );
     for( int ti=1; ti<no_time_steps; ti++ )
     {
@@ -195,7 +143,7 @@
          out2 << m_old_direction(ti,s) << ( s+1 == nolam ? "\n" : "\t" );
       }
     }
-
+*/
     ofstream out3( "grad_" + to_string(ex) + ".txt" );
     for( int ti=1; ti<no_time_steps; ti++ )
     {
@@ -205,7 +153,7 @@
          out3 << m_grad(ti,s) << ( s+1 == nolam ? "\n" : "\t" );
       }
     }    
-
+/*
     ofstream out4( "oldgrad_" + to_string(ex) + ".txt" );
     for( int ti=1; ti<no_time_steps; ti++ )
     {
