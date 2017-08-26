@@ -76,6 +76,7 @@ namespace LA
 #include <limits>
 #include <cmath>
 #include <array>
+#include <algorithm>
 
 #include "global.h"
 #include "mpi.h"
@@ -94,15 +95,6 @@ namespace BreedSolver
   using namespace std;
   using namespace dealii;
 
-  #include "my_solver_mpi_ortho_funcs.h"
-
-#ifdef __variant_1__
-  using namespace variant_1;
-#endif
-#ifdef __variant_2__
-  using namespace variant_2;
-#endif
-
   #include "CBase.h"
 
   template <int dim>
@@ -117,9 +109,7 @@ namespace BreedSolver
     void run2b ();
     void run2c ();
 
-    double m_T[2];
-    double m_W[5];
-    double m_I12; 
+    double m_I[8]; 
   protected:
     int DoIter( string="" );
 
@@ -227,10 +217,7 @@ namespace BreedSolver
     vector<Tensor<1, dim> > Psi_2_grad(n_q_points);
     vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
 
-    double JxW, p12, p1q, p2q, Q;
-    double I12 = 0.0;
-    double T[2] = {};
-    double W[5] = {};
+    double locint[8] = {};
 
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
     for (; cell!=endc; ++cell)
@@ -243,31 +230,30 @@ namespace BreedSolver
         fe_values.get_function_gradients( m_workspace_1, Psi_1_grad);
         fe_values.get_function_gradients( m_workspace_2, Psi_2_grad);
 
-        for ( unsigned int qp=0; qp<n_q_points; qp++ )
+        for ( unsigned qp=0; qp<n_q_points; qp++ )
         {
-          JxW = fe_values.JxW(qp);
-          p12 = Psi_1[qp]*Psi_2[qp];
-          p1q = Psi_1[qp]*Psi_1[qp];
-          p2q = Psi_2[qp]*Psi_2[qp];
-          Q = Potential_fct.value(fe_values.quadrature_point(qp)) - m_mu[0];
+          double JxW = fe_values.JxW(qp);
+          double p12 = Psi_1[qp]*Psi_2[qp];
+          double p1q = Psi_1[qp]*Psi_1[qp];
+          double p2q = Psi_2[qp]*Psi_2[qp];
+          double Q = Potential_fct.value(fe_values.quadrature_point(qp)) - m_mu[0];
 
-          T[0] += JxW*(Psi_1_grad[qp]*Psi_1_grad[qp] + Q*p1q);
-          T[1] += JxW*(Psi_2_grad[qp]*Psi_2_grad[qp] + Q*p2q);
-          I12  += JxW*(Psi_1_grad[qp]*Psi_2_grad[qp] + Q*p12);
-          W[0] += JxW*p1q*p1q;
-          W[1] += JxW*p2q*p2q;
-          W[2] += JxW*p1q*p2q;
-          W[3] += JxW*p1q*p12;
-          W[4] += JxW*p2q*p12;
+          locint[0] += JxW*p1q*p1q;
+          locint[1] += JxW*p2q*p2q;
+          locint[2] += JxW*p1q*p2q;
+          locint[3] += JxW*p1q*p12;
+          locint[4] += JxW*p2q*p12;
+          locint[5] += JxW*(Psi_1_grad[qp]*Psi_1_grad[qp] + Q*p1q);
+          locint[6] += JxW*(Psi_2_grad[qp]*Psi_2_grad[qp] + Q*p2q);
+          locint[7] += JxW*(Psi_1_grad[qp]*Psi_2_grad[qp] + Q*p12);
         }  
       }
     }
-    
-    for( int i=0; i<5; i++ ) W[i] *= m_gs[0];
 
-    MPI_Allreduce( T, m_T, 2, MPI_DOUBLE, MPI_SUM, mpi_communicator);
-    MPI_Allreduce( &I12, &m_I12, 1, MPI_DOUBLE, MPI_SUM, mpi_communicator);
-    MPI_Allreduce( W, &m_W, 5, MPI_DOUBLE, MPI_SUM, mpi_communicator);
+    for( int i=0; i<5; i++ ) locint[i] *= m_gs[0];
+
+    MPI_Allreduce( locint, m_I, 8, MPI_DOUBLE, MPI_SUM, mpi_communicator);
+
     m_computing_timer.exit_section();
   }
 
@@ -414,6 +400,7 @@ namespace BreedSolver
     MyRealTools::MPI::AssembleRHS_L2gradient<dim>( dof_handler, fe, constraints, m_workspace_1, Potential, m_mu[0], m_gs[0], m_res[0], m_system_rhs );
     m_res_old[0] = m_res[0];
     m_counter=0;
+    bool bempty;
     do
     {
       pcout << "--------------------------------------------------------------------------------" << endl;
@@ -423,15 +410,16 @@ namespace BreedSolver
       MyRealTools::MPI::AssembleSystem_Jacobian<dim>( dof_handler, fe, constraints, m_workspace_1, Potential, m_mu[0], m_gs[0], m_system_matrix);
       solve();
 
-      m_Psi_2.add( -m_t[1]/fabs(m_t[1]), m_newton_update); 
+      double tau;
+      m_workspace_2 = m_newton_update;
+      MyRealTools::MPI::compute_stepsize( mpi_communicator, dof_handler, fe, Potential, m_workspace_1, m_workspace_2, m_mu[0], m_gs[0], tau );
+
+      m_Psi_2.add( -tau*m_t[1]/fabs(m_t[1]), m_newton_update); 
       constraints.distribute(m_Psi_2);
 
-#ifdef __variant_1__
-      find_ortho_min_2();
-#endif
-#ifdef __variant_2__
-      find_ortho_min_2(false);
-#endif
+      bempty = find_ortho_min();
+
+      if( bempty ) return Status::FAILED;
         
       do_superposition();
       m_workspace_1 = m_Psi_ref;      
@@ -454,11 +442,13 @@ namespace BreedSolver
       m_table.insert( cols, MyTable::t2, m_t[1] );
       m_table.insert( cols, MyTable::l2norm_t, l2norm_t() );
 
+      m_counter++;
       if( m_root ) cout << m_table;
       if( m_res[0] < m_epsilon[0] ) { retval=Status::SUCCESS; break; }
       if( l2norm_t() < 1e-4 ) { retval=Status::ZERO_SOL; break; }
-
-      m_counter++;
+      if( m_counter == m_maxiter ) { retval=Status::MAXITER; break; }
+      if( isnan(m_res[0]) ) { retval=Status::MAXITER; break; }
+   
     }while( true );
     
     // Standard Newton 
@@ -471,7 +461,11 @@ namespace BreedSolver
       MyRealTools::MPI::AssembleSystem_Jacobian<dim>( dof_handler, fe, constraints, m_workspace_1, Potential, m_mu[0], m_gs[0], m_system_matrix);
       solve();
 
-      m_Psi_ref.add( -0.1, m_newton_update); 
+      double tau;
+      m_workspace_2 = m_newton_update;
+      MyRealTools::MPI::compute_stepsize( mpi_communicator, dof_handler, fe, Potential, m_workspace_1, m_workspace_2, m_mu[0], m_gs[0], tau );
+
+      m_Psi_ref.add( -tau, m_newton_update); 
       constraints.distribute(m_Psi_ref);
 
       m_workspace_1 = m_Psi_ref;
@@ -493,10 +487,11 @@ namespace BreedSolver
       m_table.insert( cols, MyTable::l2norm_t, l2norm_t() );
       m_table.insert( cols, MyTable::PARTICLE_NUMBER, m_N[0] );
 
+      m_counter++;
+
       if( m_root ) cout << m_table;
       if( m_res[0] < m_epsilon[1] ) { retval=Status::SUCCESS; break; }
-
-      m_counter++;
+      if( m_counter == m_maxiter ) { retval=Status::MAXITER; break; }
     }while( true );
     
     m_workspace_1 = m_Psi_ref;
@@ -683,12 +678,13 @@ namespace BreedSolver
         m_Psi_1 = m_Psi_ref;
         m_Psi_2 = 0;
       }
-      else if( status == Status::SLOW_CONV )
+      else if( status == Status::MAXITER )
       {
         m_Psi_2 = 0; 
       }
       else
       {
+        //m_Psi_2 = 0; 
         break;
       }
       m_mu[0] += m_gs[0]/fabs(m_gs[0])*m_dmu;
@@ -764,20 +760,22 @@ namespace BreedSolver
         Interpolate_R_to_C( path + "Cfinal.bin" );
 
         compute_tangent();
-        output_vector( m_workspace_ng, "tangent.vtu"  );
         m_Psi_1 = m_Psi_ref;
-        m_Psi_1.sadd( 0.1, m_workspace_ng );
+        m_Psi_1.sadd( m_t[1]/fabs(m_t[1])*0.01, m_workspace_ng );
         m_Psi_2 = 0;
+        output_vector( m_workspace_ng, "tangent_" + to_string(i) + ".vtu"  );
+        output_vector( m_Psi_1, "Psi_1_" + to_string(i) + ".vtu"  );
       }
-      else if( status == Status::SLOW_CONV )
+      else if( status == Status::MAXITER )
       {
         m_Psi_2 = 0; 
       }
       else
       {
-        break;
+        m_Psi_2 = 0; 
+        //break;
       }
-      m_mu[0] += m_gs[0]/fabs(m_gs[0])*m_mu_punkt;
+      m_mu[0] += m_gs[0]/fabs(m_gs[0])*0.01*m_mu_punkt;
       compute_E_lin( m_Psi_ref, T, N, W ); // TODO: kommentier mich aus, falls ich kein nehari reset habe
     }
     if( m_root ) m_results.dump_2_file( "results.csv" );
@@ -823,6 +821,7 @@ namespace BreedSolver
     m_mu_punkt = 1/sqrt(1+N);    
     m_workspace_ng *= m_mu_punkt; // +/- 1 / sqrt(1+N) 
 
+    pcout << "m_mu_punkt = " << m_mu_punkt << endl;
     m_computing_timer.exit_section();
   }  
 
