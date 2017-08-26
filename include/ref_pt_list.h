@@ -34,14 +34,17 @@ namespace MyUtils
   class ref_pt_list_item
   {
     public:
-      ref_pt_list_item() 
+      ref_pt_list_item()
       { 
         f = std::numeric_limits<double>::max();
+        failed = true;        
       };
       Point<dim,double> ti;
       Point<dim,double> t;
       Point<dim,double> df;
       double f;
+      bool failed;
+      int status;
 
       void DumpItem( std::ostream& );
       double l2norm_t() const;
@@ -64,7 +67,7 @@ namespace MyUtils
   void ref_pt_list_item<dim>::DumpItem( std::ostream& out )
   {
     out << std::scientific;
-    out << "|t|_l2 = " << l2norm_t() << ", |df|_l2 = " << l2norm_df() << ", f = " << f << std::endl;
+    out << "|t|_l2 = " << l2norm_t() << ", |df|_l2 = " << l2norm_df() << ", f = " << f << ", " << status << ", " << ( failed == true ? "true" : "false" )  << std::endl;
   }
 
   template <int dim>
@@ -132,7 +135,7 @@ namespace MyUtils
     typename std::vector<ref_pt_list_item<dim>>::iterator it = m_list.begin();
     for( ; it != m_list.end(); )
     {
-      if( (*it).l2norm_t() < threshold )
+      if( (*it).l2norm_t() < threshold || (*it).failed )
         it = m_list.erase(it);
       else
         it++;
