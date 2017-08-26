@@ -119,9 +119,7 @@ namespace BreedSolver
     void run2 ();
     void run2b ();
 
-    double m_T[2];
-    double m_W[5];
-    double m_I12; 
+    double m_I[8];
   protected:
     int DoIter( string="" );
     
@@ -637,10 +635,7 @@ namespace BreedSolver
     vector<Tensor<1, dim> > Psi_2_grad(n_q_points);
     vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
 
-    double JxW, p12, p1q, p2q, Q;
-    double I12 = 0.0;
-    double T[2] = {};
-    double W[5] = {};
+    double locint[8] = {};
 
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
     for (; cell!=endc; ++cell)
@@ -653,45 +648,31 @@ namespace BreedSolver
         fe_values.get_function_gradients(m_workspace_1, Psi_1_grad);
         fe_values.get_function_gradients(m_workspace_2, Psi_2_grad);
 
-        for (unsigned int qpt = 0; qpt < n_q_points; ++qpt)
+        for ( unsigned qp=0; qp<n_q_points; qp++ )
         {
-          JxW = fe_values.JxW(qpt)*fabs(fe_values.quadrature_point(qpt)[1]);
-          p12 = Psi_1[qpt]*Psi_2[qpt];
-          p1q = Psi_1[qpt]*Psi_1[qpt];
-          p2q = Psi_2[qpt]*Psi_2[qpt];
-          Q = Potential_fct.value(fe_values.quadrature_point(qpt)) - m_mu[0];
+          double JxW = fe_values.JxW(qp)*fabs(fe_values.quadrature_point(qp)[1]);
+          double p12 = Psi_1[qp]*Psi_2[qp];
+          double p1q = Psi_1[qp]*Psi_1[qp];
+          double p2q = Psi_2[qp]*Psi_2[qp];
+          double Q = Potential_fct.value(fe_values.quadrature_point(qp)) - m_mu[0];
 
-          T[0] += JxW*(Psi_1_grad[qpt]*Psi_1_grad[qpt] + Q*p1q);
-          T[1] += JxW*(Psi_2_grad[qpt]*Psi_2_grad[qpt] + Q*p2q);
-          I12  += JxW*(Psi_1_grad[qpt]*Psi_2_grad[qpt] + Q*p12);
-          W[0] += JxW*p1q*p1q;
-          W[1] += JxW*p2q*p2q;
-          W[2] += JxW*p1q*p2q;
-          W[3] += JxW*p1q*p12;
-          W[4] += JxW*p2q*p12;
+          locint[0] += JxW*p1q*p1q;
+          locint[1] += JxW*p2q*p2q;
+          locint[2] += JxW*p1q*p2q;
+          locint[3] += JxW*p1q*p12;
+          locint[4] += JxW*p2q*p12;
+          locint[5] += JxW*(Psi_1_grad[qp]*Psi_1_grad[qp] + Q*p1q);
+          locint[6] += JxW*(Psi_2_grad[qp]*Psi_2_grad[qp] + Q*p2q);
+          locint[7] += JxW*(Psi_1_grad[qp]*Psi_2_grad[qp] + Q*p12);
         }  
       }
     }
 
-    for( int i=0; i<5; i++ ) W[i] *= _FAKTOR_*m_gs[0];
-    T[0] *= _FAKTOR_;
-    T[1] *= _FAKTOR_;
-    I12 *= _FAKTOR_;
+    for( int i=0; i<5; i++ ) locint[i] *= m_gs[0];
+    for( int i=0; i<8; i++ ) locint[i] *= _FAKTOR_;
     
-    MPI_Allreduce( T, m_T, 2, MPI_DOUBLE, MPI_SUM, mpi_communicator);
-    MPI_Allreduce( &I12, &m_I12, 1, MPI_DOUBLE, MPI_SUM, mpi_communicator);
-    MPI_Allreduce( W, &m_W, 5, MPI_DOUBLE, MPI_SUM, mpi_communicator);
+    MPI_Allreduce( locint, m_I, 8, MPI_DOUBLE, MPI_SUM, mpi_communicator);
     m_computing_timer.exit_section();
-    /*
-    if( m_root )
-    {
-      printf( "m_T[0] := %.15e;\n", m_T[0] );
-      printf( "m_T[1] := %.15e;\n", m_T[1] );
-      printf( "m_I12 := %.15e;\n", m_I12 );
-      for( int i=0; i<5; i++ )
-        printf( "m_W[%d] := %.15e;\n", i, m_W[i] );
-    }
-    */
   }
 
   template <int dim>
@@ -840,12 +821,7 @@ namespace BreedSolver
       m_Psi_2.add( -1e-4*m_t[1]/fabs(m_t[1]), m_newton_update); 
       constraints.distribute(m_Psi_2);
 
-#ifdef __variant_1__
-      find_ortho_min_2();
-#endif
-#ifdef __variant_2__
-      find_ortho_min_2(false);
-#endif
+      find_ortho_min();
 
       do_superposition();
       assemble_rhs();

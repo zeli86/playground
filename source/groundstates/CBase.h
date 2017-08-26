@@ -17,8 +17,8 @@
  * along with atus-pro testing.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #include "MyParameterHandler.h"
+#include "nlopt.h"
 
 #ifndef __CBASE_H__
 #define __CBASE_H__
@@ -26,7 +26,19 @@
 #define STR1(x) #x
 #define STR2(x) STR1(x)
 
-enum Status { SUCCESS, FAILED, ZERO_SOL, SLOW_CONV };
+template <int dim>
+double myfunc(unsigned n, const double * t, double * grad, void * my_func_data)
+{
+  MySolver<dim> * sol = reinterpret_cast<MySolver<dim>*>(my_func_data); 
+  if (grad) 
+  {
+    grad[0] = t[0]*sol->m_I[5] + t[1]*sol->m_I[7] + t[0]*t[0]*t[0]*sol->m_I[0] + 3.0*t[0]*t[1]*t[1]*sol->m_I[2] + 3.0*t[0]*t[0]*t[1]*sol->m_I[3] + t[1]*t[1]*t[1]*sol->m_I[4];
+    grad[1] = t[1]*sol->m_I[6] + t[0]*sol->m_I[7] + t[1]*t[1]*t[1]*sol->m_I[1] + 3.0*t[0]*t[1]*t[1]*sol->m_I[4] + 3.0*t[0]*t[0]*t[1]*sol->m_I[2] + t[0]*t[0]*t[0]*sol->m_I[3];
+  }
+  return (0.25*sol->m_I[0]*pow(t[0],4) + 0.5*sol->m_I[5]*pow(t[0],2) + 0.25*sol->m_I[1]*pow(t[1],4) + t[0]*sol->m_I[4]*pow(t[1],3) +1.5*sol->m_I[2]*pow(t[0],2)*pow(t[1],2) +0.5*sol->m_I[6]*pow(t[1],2) +pow(t[0],3)*sol->m_I[3]*t[1] +t[0]*sol->m_I[7]*t[1]);
+}
+
+enum Status { SUCCESS, FAILED, ZERO_SOL, SLOW_CONV, MAXITER };
 
 template <int dim> 
 class CBase
@@ -36,7 +48,6 @@ class CBase
     virtual ~CBase() {};
     
     int find_ortho_min( bool=true );
-    int find_ortho_min_2( bool=true );
     void dump_info_xml( const string="" );
 
     const double l2norm_t() const;
@@ -46,7 +57,6 @@ class CBase
     MPI_Comm mpi_communicator;
   protected:
     void screening();
-    void screening_2();
 
     double m_t[dim];
     double m_t_guess[dim];
@@ -76,6 +86,7 @@ class CBase
     int m_rank;
 
     unsigned m_counter;
+    unsigned m_maxiter;
     unsigned m_global_refinement;
     unsigned m_total_no_cells;
     unsigned m_total_no_active_cells;    
@@ -133,6 +144,7 @@ CBase<dim>::CBase( const std::string xmlfilename  )
     m_NA = int(m_ph.Get_Algorithm("NA",0));
     m_Ndmu = m_ph.Get_Algorithm("Ndmu",0); 
     m_dmu = m_ph.Get_Algorithm("dmu",0);
+    m_maxiter = 1000;
   }
   catch( const std::string info )
   {
@@ -169,100 +181,42 @@ void CBase<dim>::screening()
 
   for( auto& it : m_ref_pt_list_tmp.m_list )
   {
-    size_t iter = 0;
-    int status;
+    nlopt_opt opt;
+    opt = nlopt_create(NLOPT_LD_MMA, dim);
+    nlopt_set_xtol_rel(opt, 1e-7);
+    nlopt_set_min_objective(opt, myfunc<dim>, this);
 
-    gsl_vector* x = gsl_vector_alloc(dim); 
-    gsl_multimin_function_fdf my_func;
-
-    my_func.n = dim;
-    my_func.f = fun<DIMENSION>;
-    my_func.df = fun_df<DIMENSION>;
-    my_func.fdf = fun_fdf<DIMENSION>;
-    my_func.params = this;
-
+    double * x = new double[dim];  
+    double minf; /* the minimum objective value, upon return */
+   
+    /* some initial guess */
     for( int i=0; i<dim; i++ )
-      gsl_vector_set (x, i, it.ti[i]); 
-
-    const gsl_multimin_fdfminimizer_type* T = gsl_multimin_fdfminimizer_conjugate_fr;
-    gsl_multimin_fdfminimizer* s = gsl_multimin_fdfminimizer_alloc (T, dim);
-
-    gsl_multimin_fdfminimizer_set (s, &my_func, x, 0.01, 1e-10);
-    do
-    {
-      iter++;
-      status = gsl_multimin_fdfminimizer_iterate (s);
-      if (status) break;
-      status = gsl_multimin_test_gradient (s->gradient, 1e-10);
+      x[i] = it.ti[i]; 
+    
+    int status = nlopt_optimize(opt, x, &minf);
+    /*if ( status < 0) {
+        printf("nlopt failed!\n");
     }
-    while( status == GSL_CONTINUE && iter < 10000 );
-    //printf ("status = %s\n", gsl_strerror (status));
+    else {
+        printf("found minimum at f(%g,%g) = %0.10g\n", x[0], x[1], minf);
+    }*/
 
-    it.f = s->f;
+    it.status = status;
+    it.failed = (status < 0);
+    if( !isfinite(minf) ) continue;
+    it.f = minf;
     for( int i=0; i<dim; i++ )
     {
-      it.t[i] = gsl_vector_get (s->x, i);
-      it.df[i] = gsl_vector_get (s->gradient, i);
+      it.t[i] = x[i];
+      //it.df[i] = 
     }
     //it.DumpItem( std::cout );
-    gsl_vector_free (x);
-    gsl_multimin_fdfminimizer_free (s);
+
+    delete [] x;
+    nlopt_destroy(opt);
   }
+
   m_ref_pt_list_tmp.remove_zero_ref_points();  
-}
-
-template <int dim>
-void CBase<dim>::screening_2()
-{
-  m_ref_pt_list_tmp.reset( 5, 20 );
-
-  for( auto& it : m_ref_pt_list_tmp.m_list )
-  {
-    size_t iter = 0;
-    int status;
-    double size;
-
-    gsl_vector* x = gsl_vector_alloc(dim); 
-    gsl_vector* ss = gsl_vector_alloc(dim); 
-    gsl_vector_set_all (ss, 1.0);        
-        
-    gsl_multimin_function my_func;
-
-    my_func.n = dim;
-    my_func.f = fun<DIMENSION>;
-    my_func.params = this;
-
-    for( int i=0; i<dim; i++ )
-      gsl_vector_set (x, i, it.ti[i]); 
-
-    const gsl_multimin_fminimizer_type* T = gsl_multimin_fminimizer_nmsimplex2;
-    gsl_multimin_fminimizer* s = gsl_multimin_fminimizer_alloc (T, dim);
-
-    gsl_multimin_fminimizer_set (s, &my_func, x, ss );
-    do
-    {
-      iter++;
-      status = gsl_multimin_fminimizer_iterate (s);
-      if (status) break;
-
-      size = gsl_multimin_fminimizer_size (s);
-      status = gsl_multimin_test_size (size, 1e-15);
-    }
-    while( status == GSL_CONTINUE && iter < 10000 );
-    //printf ("status = %s\n", gsl_strerror (status));
-
-    it.f = s->fval;
-    for( int i=0; i<dim; i++ )
-    {
-      it.t[i] = gsl_vector_get (s->x, i);
-    }
-    //it.DumpItem( std::cout );
-
-    gsl_vector_free (x);
-    gsl_vector_free (ss);
-    gsl_multimin_fminimizer_free (s);
-  }
-  m_ref_pt_list_tmp.remove_zero_ref_points();
 }
 
 template <int dim>
@@ -285,47 +239,11 @@ int CBase<dim>::find_ortho_min( bool bdel_f_non_zero )
 
     m_ref_pt_list_tmp.remove_zero_ref_points();
     m_ref_pt_list_tmp.remove_duplicates();
-    if(bdel_f_non_zero) m_ref_pt_list_tmp.remove_f_non_zero();
+    //if(bdel_f_non_zero) m_ref_pt_list_tmp.remove_f_non_zero();
     ///m_ref_pt_list_tmp.Dump( std::cout );
-    for( auto it : m_ref_pt_list_tmp.m_list )
-    {
-      double tmp1 = fabs(it.l2norm_t() - l2_norm_t_old);
-      if( tmp1 < min )
-      {
-        min = tmp1;
-        for( int i=0; i<dim; i++ )
-            m_t[i] = it.t[i];
-      }
-    }
-  }
-  int retval = m_ref_pt_list_tmp.m_list.empty();
-  MPI_Bcast( m_t, dim, MPI_DOUBLE, 0, mpi_communicator );
-  MPI_Bcast( &retval, dim, MPI_INT, 0, mpi_communicator );
-  m_computing_timer.exit_section();
-return retval;
-}
-
-template <int dim>
-int CBase<dim>::find_ortho_min_2( bool bdel_f_non_zero )
-{
-  compute_contributions();
-
-  m_computing_timer.enter_section(__func__);
-  
-  if( m_root )
-  {
-    double l2_norm_t_old = 0;
-    double min = std::numeric_limits<double>::max();
-    for( int i=0; i<dim; i++ )
-      l2_norm_t_old += m_t[i]*m_t[i];
-    l2_norm_t_old = sqrt(l2_norm_t_old);
-
-    CBase<dim>::screening_2();
-
-    m_ref_pt_list_tmp.remove_zero_ref_points();
-    m_ref_pt_list_tmp.remove_duplicates();
-    if(bdel_f_non_zero) m_ref_pt_list_tmp.remove_f_non_zero();
     //m_ref_pt_list_tmp.Dump( std::cout );
+
+    
     for( auto it : m_ref_pt_list_tmp.m_list )
     {
       double tmp1 = fabs(it.l2norm_t() - l2_norm_t_old);
@@ -336,13 +254,7 @@ int CBase<dim>::find_ortho_min_2( bool bdel_f_non_zero )
             m_t[i] = it.t[i];
       }
     }
-    
-    //WARNING: noch nicht getestet
-//     if( dim == 2 )
-//       if( m_t[0]/fabs(m_t[0]) < 0 )
-// 	for( int i=0; i<dim; i++ ) m_t[i] *= -1.0;
   }
-  
   int retval = m_ref_pt_list_tmp.m_list.empty();
   MPI_Bcast( m_t, dim, MPI_DOUBLE, 0, mpi_communicator );
   MPI_Bcast( &retval, dim, MPI_INT, 0, mpi_communicator );
