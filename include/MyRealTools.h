@@ -421,4 +421,56 @@ namespace MyRealTools { namespace MPI
       retval=std::min(fabs(std::min( fabs(xp),fabs(xm))), 1.0);
       if( isnan(retval) ) retval=1;
     }  
+
+    template <int dim>
+    void orthonormalize( MPI_Comm mpi_communicator, 
+                         const DoFHandler<dim>& dof_handler,
+                         const FE_Q<dim>& fe,
+                         const ConstraintMatrix& constraints,
+                         const LA::MPI::Vector& vec1,
+                         const LA::MPI::Vector& vec2,
+                         LA::MPI::Vector& retval )
+    {
+      assert( vec1.has_ghost_elements() == true );
+      assert( vec2.has_ghost_elements() == true );
+      assert( retval.has_ghost_elements() == false );
+      
+      const QGauss<dim> quadrature_formula(fe.degree+1);
+      FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_JxW_values);
+  
+      const unsigned dofs_per_cell = fe.dofs_per_cell;
+      const unsigned n_q_points = quadrature_formula.size();
+  
+      vector<double> u1(n_q_points);
+      vector<double> u2(n_q_points);
+      vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
+  
+      double local_int[2] = {};
+      double total_int[2] = {};
+      
+      typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
+      for (; cell!=endc; ++cell)
+      {
+        if( cell->is_locally_owned() )
+        {
+          fe_values.reinit (cell);
+          fe_values.get_function_values( vec1, u1 );
+          fe_values.get_function_values( vec2, u2 );
+  
+          for ( unsigned int qp=0; qp<n_q_points; qp++ )
+          {
+            double JxW = fe_values.JxW(qp);
+  
+            local_int[0] += JxW*u1[qp]*u2[qp];
+            local_int[1] += JxW*u2[qp]*u2[qp];
+          }  
+        }
+      }
+      MPI_Allreduce( local_int, total_int, 2, MPI_DOUBLE, MPI_SUM, mpi_communicator);
+
+      double fak = total_int[0]/total_int[1];
+      retval=0;
+      retval.add(1,vec1,-fak,vec2);
+      constraints.distribute(retval);
+    }  
 }}
