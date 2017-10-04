@@ -915,11 +915,21 @@ namespace MyComplexTools { namespace MPI
         rhs.compress(VectorOperation::add);
         matrix.compress(VectorOperation::add);
         
+        /*
         SolverControl solver_control;
         PETScWrappers::SparseDirectMUMPS solver(solver_control, mpi_communicator);
         solver.set_symmetric_mode(false);
         solver.solve(matrix, sol, rhs);
         constraints.distribute (sol);
+        */
+
+        SolverControl solver_control (sol.size(), 1e-15);
+        PETScWrappers::SolverBicgstab solver (solver_control, mpi_communicator);
+        PETScWrappers::PreconditionBlockJacobi::AdditionalData adata;
+        PETScWrappers::PreconditionBlockJacobi preconditioner(matrix,adata);    
+        solver.solve(matrix, sol, rhs, preconditioner);
+        constraints.distribute (sol);
+
         ret=sol;
     }  
  
