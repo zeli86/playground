@@ -499,7 +499,7 @@ int main ( int argc, char *argv[] )
 
   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv );
   {
-    HelperPrograms::MySolver<DIMENSION> solver("", "params.xml");
+    HelperPrograms::MySolver<2> solver("", "params.xml");
     solver.run("final.bin");
   }  
 return EXIT_SUCCESS;
