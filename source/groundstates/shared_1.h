@@ -135,18 +135,42 @@
   }
  
   template <int dim>
-  void MySolver<dim>::solve ()
+  bool MySolver<dim>::solve ()
   {
     m_computing_timer.enter_section(__func__);
     pcout << "Solving..." << endl;
-    
+/*        
     SolverControl solver_control;
-    
     PETScWrappers::SparseDirectMUMPS solver(solver_control, mpi_communicator);
     solver.set_symmetric_mode(false);
     solver.solve(m_system_matrix, m_newton_update, m_system_rhs);
     constraints.distribute (m_newton_update);
+*/    
+
+    m_newton_update = 0;
+    SolverControl solver_control (m_newton_update.size(), m_res[0]*1e-3);
+    //PETScWrappers::SolverGMRES solver (solver_control, mpi_communicator);
+    PETScWrappers::SolverBicgstab solver (solver_control, mpi_communicator);
+    
+    //PETScWrappers::PreconditionBlockJacobi::AdditionalData adata;
+    //PETScWrappers::PreconditionBlockJacobi preconditioner(m_system_matrix,adata);    
+    
+    PETScWrappers::PreconditionParaSails::AdditionalData adata;
+    PETScWrappers::PreconditionParaSails preconditioner(m_system_matrix,adata);    
+
+    try 
+    {
+      solver.solve(m_system_matrix, m_newton_update, m_system_rhs, preconditioner);
+    }
+    catch( ExceptionBase& e )
+    {
+      pcout << e.what() << endl;
+      //pcout << "Possible singular matrix!" << endl;
+      return false;
+    }
+    constraints.distribute (m_newton_update);
 
     m_computing_timer.exit_section();
+    return true;
   }
 #endif
