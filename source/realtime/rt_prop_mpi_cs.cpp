@@ -675,7 +675,7 @@ int main ( int argc, char *argv[] )
 
   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv );
   {
-    realtime_propagation::MySolver<DIMENSION> solver("params.xml");
+    realtime_propagation::MySolver<2> solver("params.xml");
     solver.run();
     //solver.run_restart();
   }
