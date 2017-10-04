@@ -122,8 +122,10 @@ using namespace std;
 
         if( !out.is_open() ) return false;
 
+        int Nt = N;
         out.write(reinterpret_cast<char*>(&m_no_lam), sizeof(int));
-
+        out.write(reinterpret_cast<char*>(&Nt), sizeof(int));
+        
         std::vector<double> tmp(N*m_no_lam);
 
         for( int s=0; s<m_no_lam; s++ )
@@ -143,9 +145,11 @@ using namespace std;
 
         if( !in.is_open() ) return false;
 
-        int no_lam;
+        int no_lam, Nt;
         in.read( reinterpret_cast<char*>(&no_lam), sizeof(int));
-   
+        in.read( reinterpret_cast<char*>(&Nt), sizeof(int));
+
+        assert( Nt == N );        
         assert( no_lam == m_no_lam );
         
         std::vector<double> tmp(N*m_no_lam);
