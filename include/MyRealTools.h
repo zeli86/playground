@@ -396,30 +396,42 @@ namespace MyRealTools { namespace MPI
           fe_values.get_function_gradients( psi, u_grad);
           fe_values.get_function_gradients( direction, d_grad);
   
-          for ( unsigned int qp=0; qp<n_q_points; qp++ )
+          for ( unsigned qp=0; qp<n_q_points; qp++ )
           {
             double JxW = fe_values.JxW(qp);
             double Q = Potential.value(fe_values.quadrature_point(qp)) - mu;
   
-            local_int[0] += JxW*(u_grad[qp]*d_grad[qp] + Q*u[qp]*d[qp] + gs*u[qp]*u[qp]*u[qp]*d[qp]);
-            //local_int[1] += JxW*(d_grad[qp]*d_grad[qp] + Q*d[qp]*d[qp] + 3*m_gs[0]*u[qp]*u[qp]*d[qp]*d[qp]);
-            local_int[2] += JxW*d[qp]*d[qp]*d[qp]*u[qp];
-            //local_int[3] += JxW*d[qp]*d[qp]*d[qp]*d[qp];
+            local_int[0] += JxW*(u_grad[qp]*d_grad[qp] + Q*u[qp]*d[qp] + gs*u[qp]*u[qp]*u[qp]*d[qp]); // tau^0
+            local_int[1] += JxW*(d_grad[qp]*d_grad[qp] + Q*d[qp]*d[qp] + 3*gs*u[qp]*u[qp]*d[qp]*d[qp]); // tau^1
+            local_int[2] += JxW*d[qp]*d[qp]*d[qp]*u[qp]; // tau^2
+            //local_int[3] += JxW*d[qp]*d[qp]*d[qp]*d[qp]; // tau^3
           }  
         }
       }
   
-      local_int[1] = local_int[0];
+      //local_int[1] = local_int[0];
       local_int[2] *= (3*gs);
-      local_int[3] *= (gs);
+      //local_int[3] *= (gs);
       
       MPI_Allreduce( local_int, total_int, 4, MPI_DOUBLE, MPI_SUM, mpi_communicator);
-  
+      //printf( "%e, %e, %e, %e\n", total_int[0], total_int[1], total_int[2], total_int[2] );
+
       double xm = -0.5*(total_int[1]-sqrt(total_int[1]*total_int[1]-4*total_int[2]*total_int[0])) / total_int[2];
       double xp = -0.5*(total_int[1]+sqrt(total_int[1]*total_int[1]-4*total_int[2]*total_int[0])) / total_int[2];
   
-      retval=std::min(fabs(std::min( fabs(xp),fabs(xm))), 1.0);
+      //retval=std::min(fabs(std::min( fabs(xp),fabs(xm))), 1.0);
+
+      if(  fabs(xp) < fabs(xm) )
+      {
+        retval = xp;
+      }
+      else
+      {
+        retval = xm;
+      }
+      if( fabs(retval) > 1 ) retval=retval/fabs(retval);
       if( isnan(retval) ) retval=1;
+
     }  
 
     template <int dim>
