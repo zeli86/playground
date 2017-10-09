@@ -53,6 +53,7 @@ namespace LA
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/error_estimator.h>
 #include <deal.II/numerics/derivative_approximation.h>
+#include <deal.II/base/exceptions.h>
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/function.h>
 #include <deal.II/base/timer.h>
@@ -122,8 +123,9 @@ namespace BreedSolver
     void estimate_error( double& );
     void Interpolate_R_to_C( string );
     void compute_tangent();
+    void compute_eigenvalues();
 
-    void solve();
+    bool solve();
     void compute_contributions();
     void compute_E_lin( LA::MPI::Vector&, double&, double&, double& );
 
@@ -149,6 +151,7 @@ namespace BreedSolver
     LA::MPI::Vector m_Psi_2;
     LA::MPI::Vector m_workspace_1;
     LA::MPI::Vector m_workspace_2;
+    LA::MPI::Vector m_workspace_3;
     LA::MPI::Vector m_workspace_ng;
     Vector<double> m_error_per_cell;
 
@@ -258,6 +261,70 @@ namespace BreedSolver
   }
 
   template <int dim>
+  void MySolver<dim>::compute_eigenvalues()
+  {
+    m_computing_timer.enter_section(__func__);
+
+    constraints.distribute(m_Psi_1);
+    constraints.distribute(m_Psi_2);
+
+    m_workspace_2 = m_Psi_1;
+    m_workspace_3 = m_Psi_2;
+    
+    CPotential<dim> Potential_fct ( m_omega );
+    const QGauss<dim> quadrature_formula(fe.degree+1);
+    FEValues<dim> fe_values (fe, quadrature_formula, update_gradients|update_values|update_JxW_values|update_quadrature_points);
+
+    const unsigned dofs_per_cell = fe.dofs_per_cell;
+    const unsigned n_q_points    = quadrature_formula.size();
+
+    vector<double> Psi_1(n_q_points);
+    vector<double> Psi_2(n_q_points);
+    vector<double> Psi_ref(n_q_points);
+    vector<Tensor<1, dim> > Psi_1_grad(n_q_points);
+    vector<Tensor<1, dim> > Psi_2_grad(n_q_points);
+    vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
+
+    double locint[3] = {};
+    double totint[3] = {};
+
+    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
+    for (; cell!=endc; ++cell)
+    {
+      if( cell->is_locally_owned() )
+      {
+        fe_values.reinit (cell);
+        fe_values.get_function_values( m_workspace_1, Psi_ref );
+        fe_values.get_function_values( m_workspace_2, Psi_1 );
+        fe_values.get_function_values( m_workspace_3, Psi_2 );
+        fe_values.get_function_gradients( m_workspace_2, Psi_1_grad);
+        fe_values.get_function_gradients( m_workspace_3, Psi_2_grad);
+
+        for ( unsigned qp=0; qp<n_q_points; qp++ )
+        {
+          double JxW = fe_values.JxW(qp);
+          double Pq = Psi_ref[qp]*Psi_ref[qp];
+          double Q = Potential_fct.value(fe_values.quadrature_point(qp)) - m_mu[0];
+
+          locint[0] += JxW*(Psi_1_grad[qp]*Psi_1_grad[qp] + (Q+3*m_gs[0]*Pq)*Psi_1[qp]*Psi_1[qp]);
+          locint[1] += JxW*(Psi_1_grad[qp]*Psi_2_grad[qp] + (Q+3*m_gs[0]*Pq)*Psi_1[qp]*Psi_2[qp]);
+          locint[2] += JxW*(Psi_2_grad[qp]*Psi_2_grad[qp] + (Q+3*m_gs[0]*Pq)*Psi_2[qp]*Psi_2[qp]);
+        }  
+      }
+    }
+
+    MPI_Allreduce( locint, totint, 3, MPI_DOUBLE, MPI_SUM, mpi_communicator);
+    
+    double e1 = 0.5*( totint[0] + totint[2] + sqrt(4*totint[1]*totint[1] + (totint[0] - totint[2])*(totint[0] - totint[2])));
+    double e2 = 0.5*( totint[0] + totint[2] - sqrt(4*totint[1]*totint[1] + (totint[0] - totint[2])*(totint[0] - totint[2])));
+    
+    pcout << "totint[0] == " << totint[0] << ", B == " << totint[2] << ", C == " << totint[1] << endl;
+    pcout << "e1 == " << e1 << ", e2 == " << e2 << endl;
+
+    m_computing_timer.exit_section();
+  }
+
+  template <int dim>
   void MySolver<dim>::setup_system()
   {
     m_computing_timer.enter_section(__func__);
@@ -275,6 +342,7 @@ namespace BreedSolver
     m_workspace_ng.reinit (locally_owned_dofs, mpi_communicator);
     m_workspace_1.reinit (locally_owned_dofs, locally_relevant_dofs, mpi_communicator);
     m_workspace_2.reinit (locally_owned_dofs, locally_relevant_dofs, mpi_communicator);
+    m_workspace_3.reinit (locally_owned_dofs, locally_relevant_dofs, mpi_communicator);
     m_error_per_cell.reinit(triangulation.n_active_cells());
     
     cout << "(" << m_rank << ") locally_owned_dofs = " << m_Psi_1.local_size()  << endl;
@@ -330,7 +398,7 @@ namespace BreedSolver
     data_out.add_data_vector (m_workspace_1, "m_Psi_1");
     data_out.add_data_vector (m_workspace_2, "m_Psi_2");
     data_out.add_data_vector (m_Psi_ref, "Potential");
-    data_out.build_patches ();
+    data_out.build_patches (gl_subdivisions);
     data_out.write_vtu_in_parallel ("guess.vtu", mpi_communicator );
 
     //DataOutBase::DataOutFilter data_filter(DataOutBase::DataOutFilterFlags(true,true));
@@ -358,7 +426,7 @@ namespace BreedSolver
     data_out.add_data_vector (m_workspace_1, "Psi_sol");
     data_out.add_data_vector (m_error_per_cell, "error per cell");
     data_out.add_data_vector (subdomain, "subdomain");
-    data_out.build_patches ();
+    data_out.build_patches (gl_subdivisions);
 
     filename = path + prefix + "-" + Utilities::int_to_string (m_counter,5) + ".vtu";
     data_out.write_vtu_in_parallel (filename.c_str(), mpi_communicator);
@@ -377,7 +445,7 @@ namespace BreedSolver
     DataOut<dim> data_out;
     data_out.attach_dof_handler (dof_handler);
     data_out.add_data_vector (m_workspace_1, "vec");
-    data_out.build_patches ();
+    data_out.build_patches (gl_subdivisions);
     data_out.write_vtu_in_parallel (filename.c_str(), mpi_communicator);
 
     m_computing_timer.exit_section();    
@@ -388,6 +456,8 @@ namespace BreedSolver
   {
     int retval = Status::SUCCESS;
     
+    static int bla=0;
+
     m_table.clear();
     
     m_t[0] = m_ti;
@@ -401,6 +471,7 @@ namespace BreedSolver
     m_res_old[0] = m_res[0];
     m_counter=0;
     bool bempty;
+
     do
     {
       pcout << "--------------------------------------------------------------------------------" << endl;
@@ -408,13 +479,22 @@ namespace BreedSolver
 
       m_workspace_1 = m_Psi_ref;
       MyRealTools::MPI::AssembleSystem_Jacobian<dim>( dof_handler, fe, constraints, m_workspace_1, Potential, m_mu[0], m_gs[0], m_system_matrix);
-      solve();
+      bool bsucc = solve();
+      if( !bsucc ) { return Status::SINGULAR; }
+
+/*
+      m_workspace_1 = m_Psi_1;
+      m_workspace_2 = m_newton_update;
+      MyRealTools::MPI::orthonormalize(mpi_communicator, dof_handler, fe, constraints, m_workspace_2, m_workspace_1, m_workspace_ng );
+      m_newton_update = m_workspace_ng;
+*/
+      //compute_eigenvalues();
 
       double tau;
       m_workspace_2 = m_newton_update;
       MyRealTools::MPI::compute_stepsize( mpi_communicator, dof_handler, fe, Potential, m_workspace_1, m_workspace_2, m_mu[0], m_gs[0], tau );
 
-      m_Psi_2.add( -tau*m_t[1]/fabs(m_t[1]), m_newton_update); 
+      m_Psi_2.add( tau*m_t[1]/fabs(m_t[1]), m_newton_update); 
       constraints.distribute(m_Psi_2);
 
       bempty = find_ortho_min();
@@ -436,6 +516,7 @@ namespace BreedSolver
       m_table.insert( cols, MyTable::RES, m_res[0] );
       m_table.insert( cols, MyTable::RESP, m_resp[0] );
       m_table.insert( cols, MyTable::RES_OVER_RESP, m_res_over_resp[0] );
+      m_table.insert( cols, MyTable::STEPSIZE, tau );
       m_table.insert( cols, MyTable::MU, m_mu[0] );
       m_table.insert( cols, MyTable::GS, m_gs[0] );
       m_table.insert( cols, MyTable::t1, m_t[0] );
@@ -447,7 +528,7 @@ namespace BreedSolver
       if( m_res[0] < m_epsilon[0] ) { retval=Status::SUCCESS; break; }
       if( l2norm_t() < 1e-4 ) { retval=Status::ZERO_SOL; break; }
       if( m_counter == m_maxiter ) { retval=Status::MAXITER; break; }
-      if( isnan(m_res[0]) ) { retval=Status::MAXITER; break; }
+      if( isnan(m_res[0]) ) { retval=retval=Status::FAILED; break; }
    
     }while( true );
     
@@ -459,13 +540,14 @@ namespace BreedSolver
 
       m_workspace_1 = m_Psi_ref;
       MyRealTools::MPI::AssembleSystem_Jacobian<dim>( dof_handler, fe, constraints, m_workspace_1, Potential, m_mu[0], m_gs[0], m_system_matrix);
-      solve();
+      bool bsucc = solve();
+      if( !bsucc ) { return Status::SINGULAR; }
 
       double tau;
       m_workspace_2 = m_newton_update;
       MyRealTools::MPI::compute_stepsize( mpi_communicator, dof_handler, fe, Potential, m_workspace_1, m_workspace_2, m_mu[0], m_gs[0], tau );
 
-      m_Psi_ref.add( -tau, m_newton_update); 
+      m_Psi_ref.add( tau*m_t[1]/fabs(m_t[1]), m_newton_update); 
       constraints.distribute(m_Psi_ref);
 
       m_workspace_1 = m_Psi_ref;
@@ -480,6 +562,7 @@ namespace BreedSolver
       m_table.insert( cols, MyTable::COUNTER, double(m_counter) );
       m_table.insert( cols, MyTable::RES, m_res[0] );
       m_table.insert( cols, MyTable::RESP, m_resp[0] );
+      m_table.insert( cols, MyTable::STEPSIZE, tau );
       m_table.insert( cols, MyTable::MU, m_mu[0] );
       m_table.insert( cols, MyTable::GS, m_gs[0] );
       m_table.insert( cols, MyTable::t1, m_t[0] );
@@ -491,6 +574,7 @@ namespace BreedSolver
 
       if( m_root ) cout << m_table;
       if( m_res[0] < m_epsilon[1] ) { retval=Status::SUCCESS; break; }
+      if( m_resp[0] < 0 ) { retval=Status::SUCCESS; break; }
       if( m_counter == m_maxiter ) { retval=Status::MAXITER; break; }
     }while( true );
     
@@ -639,7 +723,7 @@ namespace BreedSolver
     pcout << "W = " << W << endl;
     pcout << "m_mu = " << m_mu[0] << endl;
 
-    output_guess();
+    //output_guess();
     m_results.clear();
     for( int i=0; i<m_Ndmu; i++ )
     {
@@ -678,8 +762,9 @@ namespace BreedSolver
         m_Psi_1 = m_Psi_ref;
         m_Psi_2 = 0;
       }
-      else if( status == Status::MAXITER )
+      else if( status == Status::MAXITER || status == Status::SINGULAR )
       {
+        m_Psi_ref = m_Psi_1;
         m_Psi_2 = 0; 
       }
       else
@@ -689,6 +774,9 @@ namespace BreedSolver
       }
       m_mu[0] += m_gs[0]/fabs(m_gs[0])*m_dmu;
       compute_E_lin( m_Psi_ref, T, N, W ); // TODO: kommentier mich aus, falls ich kein nehari reset habe
+      pcout << "T = " << T << endl;
+      pcout << "N = " << N << endl;
+      pcout << "W = " << W << endl;      
     }
     if( m_root ) m_results.dump_2_file( "results.csv" );
   }
@@ -722,7 +810,7 @@ namespace BreedSolver
     pcout << "W = " << W << endl;
     pcout << "m_mu = " << m_mu[0] << endl;
 
-    output_guess();
+    //output_guess();
     m_results.clear();
     for( int i=0; i<m_Ndmu; i++ )
     {
@@ -757,17 +845,18 @@ namespace BreedSolver
         estimate_error(m_final_error);
         output_results(path,"final");
         dump_info_xml(path);
-        Interpolate_R_to_C( path + "Cfinal.bin" );
+        Interpolate_R_to_C( path + "Cfinal.bin" ); 
 
         compute_tangent();
         m_Psi_1 = m_Psi_ref;
-        m_Psi_1.sadd( m_t[1]/fabs(m_t[1])*0.01, m_workspace_ng );
+        m_Psi_1.sadd( m_t[1]/fabs(m_t[1])*m_dmu, m_workspace_ng );
         m_Psi_2 = 0;
-        output_vector( m_workspace_ng, "tangent_" + to_string(i) + ".vtu"  );
-        output_vector( m_Psi_1, "Psi_1_" + to_string(i) + ".vtu"  );
+        //output_vector( m_workspace_ng, "tangent_" + to_string(i) + ".vtu"  );
+        //output_vector( m_Psi_1, "Psi_1_" + to_string(i) + ".vtu"  );
       }
-      else if( status == Status::MAXITER )
+      else if( status == Status::MAXITER || status == Status::SINGULAR )
       {
+        m_Psi_ref = m_Psi_1;
         m_Psi_2 = 0; 
       }
       else
@@ -775,7 +864,8 @@ namespace BreedSolver
         m_Psi_2 = 0; 
         //break;
       }
-      m_mu[0] += m_gs[0]/fabs(m_gs[0])*0.01*m_mu_punkt;
+//      m_mu[0] += m_gs[0]/fabs(m_gs[0])*0.02*m_mu_punkt;
+      m_mu[0] += m_gs[0]/fabs(m_gs[0])*m_dmu;
       compute_E_lin( m_Psi_ref, T, N, W ); // TODO: kommentier mich aus, falls ich kein nehari reset habe
     }
     if( m_root ) m_results.dump_2_file( "results.csv" );
@@ -808,20 +898,39 @@ namespace BreedSolver
     
     CPotential<dim> Potential( m_omega );
     MyRealTools::MPI::AssembleSystem_tangent( dof_handler, fe, constraints, m_workspace_1, Potential, m_mu[0], m_gs[0], m_system_matrix, m_system_rhs );
-
+/*
     pcout << "Solving..." << endl;
     SolverControl solver_control;
     PETScWrappers::SparseDirectMUMPS solver(solver_control, mpi_communicator);
     solver.set_symmetric_mode(false);
     solver.solve(m_system_matrix, m_workspace_ng, m_system_rhs);
     constraints.distribute (m_workspace_ng);    
+*/
+    m_workspace_ng = 0;
+    SolverControl solver_control (m_newton_update.size(), 1e-15);
+    //PETScWrappers::SolverGMRES solver (solver_control, mpi_communicator);
+    PETScWrappers::SolverBicgstab solver (solver_control, mpi_communicator);
+    
+    PETScWrappers::PreconditionBlockJacobi::AdditionalData adata;
+    PETScWrappers::PreconditionBlockJacobi preconditioner(m_system_matrix,adata);    
+
+    try 
+    {
+      solver.solve(m_system_matrix, m_workspace_ng, m_system_rhs, preconditioner);
+    }
+    catch( ExceptionBase& e )
+    {
+      //pcout << e.what() << endl;
+      pcout << "Possible singular matrix!" << endl;
+    }
+    constraints.distribute (m_workspace_ng);
 
     m_workspace_1 = m_workspace_ng;
     double N = MyRealTools::MPI::Particle_Number( mpi_communicator, dof_handler, fe, m_workspace_1 );
-    m_mu_punkt = 1/sqrt(1+N);    
-    m_workspace_ng *= m_mu_punkt; // +/- 1 / sqrt(1+N) 
+    //m_mu_punkt = 1/sqrt(1+N);    
+    //m_workspace_ng *= m_mu_punkt; // +/- 1 / sqrt(1+N) 
 
-    pcout << "m_mu_punkt = " << m_mu_punkt << endl;
+    //pcout << "m_mu_punkt = " << m_mu_punkt << endl;
     m_computing_timer.exit_section();
   }  
 
@@ -852,12 +961,12 @@ namespace BreedSolver
 int main ( int argc, char *argv[] )
 {
   using namespace dealii;
-  deallog.depth_console (0);
+  //deallog.depth_console (2);
 
   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv );
   {
     BreedSolver::MySolver<DIMENSION> solver("params.xml");
-    solver.run2c ();
+    solver.run2b();
   }
 return EXIT_SUCCESS;
 }
