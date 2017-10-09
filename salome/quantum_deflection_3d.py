@@ -40,16 +40,14 @@ from salome.geom import geomBuilder
 import math
 import SALOMEDS
 
-Delta = 0.2
+Delta = 0.25
+HalfThickness = 2*Delta
 
-slit_height = 6*Delta # even number
-slit_width = 5*Delta
-slit_depth = 10*Delta
-slit_gap = 2*Delta # even number
-
-box_height = 40*Delta
-box_width = 40*Delta
-box_depth = 40*Delta
+NZ1 = 200
+NZ2 = 0.5*NZ1-HalfThickness
+NY1 = 100    
+NX1 = 50
+NX2 = 50
 
 geompy = geomBuilder.New(theStudy)
 
@@ -58,32 +56,24 @@ OX = geompy.MakeVectorDXDYDZ(1, 0, 0)
 OY = geompy.MakeVectorDXDYDZ(0, 1, 0)
 OZ = geompy.MakeVectorDXDYDZ(0, 0, 1)
 
-slit_one = geompy.MakeBoxDXDYDZ(slit_depth, slit_width, slit_height)
-translation_slit_one = geompy.MakeTranslation(slit_one, -0.5*slit_depth, -(slit_gap+slit_width), -0.5*slit_height)
+box_one = geompy.MakeBoxDXDYDZ( NX1*Delta, NY1*Delta, NZ1*Delta )
+box_two = geompy.MakeBoxDXDYDZ( NX2*Delta, NY1*Delta, NZ2*Delta )
+box_three = geompy.MakeBoxDXDYDZ( NX2*Delta, NY1*Delta, NZ2*Delta )
 
-slit_two = geompy.MakeBoxDXDYDZ( slit_depth, slit_width, slit_height)
-translation_slit_two = geompy.MakeTranslation(slit_two, -0.5*slit_depth, slit_gap, -0.5*slit_height)
+translation_box_two = geompy.MakeTranslation(box_two, NX1*Delta, 0, 0 )
+translation_box_three = geompy.MakeTranslation(box_three, NX1*Delta, 0, (NZ2+2*HalfThickness)*Delta )
 
-box_one = geompy.MakeBoxDXDYDZ(box_width, box_depth, box_height)
-translation_box_one = geompy.MakeTranslation(box_one, 0.5*slit_depth, -0.5*box_depth, -0.5*box_height)
-
-box_two = geompy.MakeBoxDXDYDZ(box_width, box_depth, box_height)
-translation_box_two = geompy.MakeTranslation(box_two, -0.5*slit_depth-box_width, -0.5*box_depth, -0.5*box_height)
-
-domain = geompy.MakeCompound([translation_slit_one, translation_slit_two, translation_box_one, translation_box_two])
+domain = geompy.MakeCompound([box_one, translation_box_two, translation_box_three])
 
 geompy.addToStudy( O, 'O' )
 geompy.addToStudy( OX, 'OX' )
 geompy.addToStudy( OY, 'OY' )
 geompy.addToStudy( OZ, 'OZ' )
-geompy.addToStudy( slit_one, 'slit_one' )
-geompy.addToStudy( translation_slit_one, 'translation_slit_one' )
-geompy.addToStudy( slit_two, 'slit_two' )
-geompy.addToStudy( translation_slit_two, 'translation_slit_two' )
 geompy.addToStudy( box_one, 'box_one' )
-geompy.addToStudy( translation_box_one, 'translation_box_one' )
 geompy.addToStudy( box_two, 'box_two' )
+geompy.addToStudy( box_three, 'box_three' )
 geompy.addToStudy( translation_box_two, 'translation_box_two' )
+geompy.addToStudy( translation_box_three, 'translation_box_three' )
 geompy.addToStudy( domain, 'domain' )
 
 ###
