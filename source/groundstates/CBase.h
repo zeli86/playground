@@ -38,7 +38,7 @@ double myfunc(unsigned n, const double * t, double * grad, void * my_func_data)
   return (0.25*sol->m_I[0]*pow(t[0],4) + 0.5*sol->m_I[5]*pow(t[0],2) + 0.25*sol->m_I[1]*pow(t[1],4) + t[0]*sol->m_I[4]*pow(t[1],3) +1.5*sol->m_I[2]*pow(t[0],2)*pow(t[1],2) +0.5*sol->m_I[6]*pow(t[1],2) +pow(t[0],3)*sol->m_I[3]*t[1] +t[0]*sol->m_I[7]*t[1]);
 }
 
-enum Status { SUCCESS, FAILED, ZERO_SOL, SLOW_CONV, MAXITER };
+enum Status { SUCCESS, FAILED, ZERO_SOL, SLOW_CONV, MAXITER, SINGULAR };
 
 template <int dim> 
 class CBase
@@ -183,7 +183,7 @@ void CBase<dim>::screening()
   {
     nlopt_opt opt;
     opt = nlopt_create(NLOPT_LD_MMA, dim);
-    nlopt_set_xtol_rel(opt, 1e-7);
+    nlopt_set_xtol_rel(opt, 1e-10);
     nlopt_set_min_objective(opt, myfunc<dim>, this);
 
     double * x = new double[dim];  
@@ -194,13 +194,14 @@ void CBase<dim>::screening()
       x[i] = it.ti[i]; 
     
     int status = nlopt_optimize(opt, x, &minf);
-    /*if ( status < 0) {
+/*
+    if ( status < 0) {
         printf("nlopt failed!\n");
     }
     else {
         printf("found minimum at f(%g,%g) = %0.10g\n", x[0], x[1], minf);
-    }*/
-
+    }
+*/
     it.status = status;
     it.failed = (status < 0);
     if( !isfinite(minf) ) continue;
