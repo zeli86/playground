@@ -94,6 +94,15 @@ Quadrangle_Parameters_1 = Quadrangle_2D.QuadrangleParameters(StdMeshersBuilder.Q
 Hexa_3D = Mesh_1.Hexahedron(algo=smeshBuilder.Hexa)
 isDone = Mesh_1.Compute()
 
+aCriteria = []
+aCriterion = smesh.GetCriterion(SMESH.FACE,SMESH.FT_FreeFaces,SMESH.FT_Undefined,0,SMESH.FT_Undefined,SMESH.FT_Undefined,6.9528e-310)
+aCriteria.append(aCriterion)
+aFilter = smesh.GetFilterFromCriteria(aCriteria)
+Group_phys_surface = Mesh_1.MakeGroupByFilter( 'phys_surface', aFilter )
+
+phys_vol = Mesh_1.CreateEmptyGroup( SMESH.VOLUME, 'Phys_Volume' )
+phys_vol.AddFrom( Mesh_1.GetMesh() )
+
 ## Set names of Mesh objects
 smesh.SetName(Regular_1D.GetAlgorithm(), 'Regular_1D')
 smesh.SetName(Quadrangle_2D.GetAlgorithm(), 'Quadrangle_2D')
@@ -101,8 +110,7 @@ smesh.SetName(Hexa_3D.GetAlgorithm(), 'Hexa_3D')
 smesh.SetName(Mesh_1.GetMesh(), 'Mesh_1')
 smesh.SetName(Quadrangle_Parameters_1, 'Quadrangle Parameters_1')
 smesh.SetName(Local_Length_1, 'Local Length_1')
-
-isDone = Mesh_1.Compute()
+smesh.SetName(phys_vol, 'Phys_Volume')
 
 
 if salome.sg.hasDesktop():

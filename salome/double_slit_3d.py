@@ -21,6 +21,12 @@
 # You should have received a copy of the GNU General Public License
 # along with ATUS-PRO.  If not, see <http://www.gnu.org/licenses/>.
 
+### IMPORTANT NOTE ###
+# 1) export mesh to med file format 
+# 2) open med file with gmsh (http://gmsh.info/)
+# 3) save mesh in gmsh format
+# This makes sure that the physical volumes and surfaces are read in correctly by deal.ii
+
 import sys
 import salome
 
@@ -86,6 +92,10 @@ geompy.addToStudy( box_two, 'box_two' )
 geompy.addToStudy( translation_box_two, 'translation_box_two' )
 geompy.addToStudy( domain, 'domain' )
 
+#for k in range(0,6):
+#    f_ind_1 = geompy.GetSubShapeID(translation_box_one, box_one_faces[k])
+#    print f_ind_1
+
 ###
 ### SMESH component
 ###
@@ -104,6 +114,15 @@ Quadrangle_Parameters_1 = Quadrangle_2D.QuadrangleParameters(StdMeshersBuilder.Q
 Hexa_3D = Mesh_1.Hexahedron(algo=smeshBuilder.Hexa)
 isDone = Mesh_1.Compute()
 
+aCriteria = []
+aCriterion = smesh.GetCriterion(SMESH.FACE,SMESH.FT_FreeFaces,SMESH.FT_Undefined,0,SMESH.FT_Undefined,SMESH.FT_Undefined,6.9528e-310)
+aCriteria.append(aCriterion)
+aFilter = smesh.GetFilterFromCriteria(aCriteria)
+Group_phys_surface = Mesh_1.MakeGroupByFilter( 'phys_surface', aFilter )
+
+phys_vol = Mesh_1.CreateEmptyGroup( SMESH.VOLUME, 'Phys_Volume' )
+phys_vol.AddFrom( Mesh_1.GetMesh() )
+
 ## Set names of Mesh objects
 smesh.SetName(Regular_1D.GetAlgorithm(), 'Regular_1D')
 smesh.SetName(Quadrangle_2D.GetAlgorithm(), 'Quadrangle_2D')
@@ -111,6 +130,8 @@ smesh.SetName(Hexa_3D.GetAlgorithm(), 'Hexa_3D')
 smesh.SetName(Mesh_1.GetMesh(), 'Mesh_1')
 smesh.SetName(Quadrangle_Parameters_1, 'Quadrangle Parameters_1')
 smesh.SetName(Local_Length_1, 'Local Length_1')
+smesh.SetName(phys_vol, 'Phys_Volume')
+#smesh.SetName(Group_1, 'Group_1')
 
 isDone = Mesh_1.Compute()
 
