@@ -12,10 +12,10 @@
                       (uiop:getenv "CXX")))
 
 (defvar *packages*
-  '((:name openmpi :version "2.1.1"
-     :url "https://www.open-mpi.org/software/ompi/v2.1/downloads/openmpi-2.1.1.tar.gz")
-    (:name lapack :version "3.7.0"
-     :url "http://www.netlib.org/lapack/lapack-3.7.0.tgz")
+  '((:name openmpi :version "3.0.0"
+     :url "https://www.open-mpi.org/software/ompi/v3.0/downloads/openmpi-3.0.0.tar.gz")
+    (:name lapack :version "3.8.0"
+     :url "http://www.netlib.org/lapack/lapack-3.8.0.tar.gz")
     (:name gsl :version "2.4"
      :url "ftp://ftp.gnu.org/gnu/gsl/gsl-2.4.tar.gz")
     (:name nlopt :version "2.4.2"
@@ -23,10 +23,10 @@
     (:name muparser :version "2.2.5"
      :url "https://codeload.github.com/beltoforion/muparser/tar.gz/v2.2.5"
      :path "muparser-2.2.5")
-    (:name p4est :version "1.1"
-     :url "http://p4est.github.io/release/p4est-1.1.tar.gz")
-    (:name petsc :version "3.7.5"
-     :url "http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-3.7.5.tar.gz")
+    (:name p4est :version "2.0"
+     :url "https://p4est.github.io/release/p4est-2.0.tar.gz")
+    (:name petsc :version "3.8.2"
+     :url "http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-3.8.2.tar.gz")
     (:name deal.ii :version "8.5.0"
      :url "https://github.com/dealii/dealii/releases/download/v8.5.0/dealii-8.5.0.tar.gz")
     (:name atus-pro :version "git"))
