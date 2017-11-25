@@ -35,12 +35,12 @@ endif()
 
 include(FindPackageHandleStandardArgs)
 
-find_package_handle_standard_args(GSL
+find_package_handle_standard_args(MUPARSER
       REQUIRED_VARS MUPARSER_INCLUDE_DIR MUPARSER_LIBRARY
       HANDLE_COMPONENTS
       )
 
 mark_as_advanced(
-        MUPARSER_LIBRARY
+        c_LIBRARY
         MUPARSER_INCLUDE_DIR
       )

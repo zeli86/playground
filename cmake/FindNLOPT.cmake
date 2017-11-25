@@ -35,7 +35,7 @@ endif()
 
 include(FindPackageHandleStandardArgs)
 
-find_package_handle_standard_args(GSL
+find_package_handle_standard_args(NLOPT
       REQUIRED_VARS NLOPT_INCLUDE_DIR NLOPT_LIBRARY
       HANDLE_COMPONENTS
       )
