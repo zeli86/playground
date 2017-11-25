@@ -143,15 +143,18 @@ from salome.StdMeshers import StdMeshersBuilder
 smesh = smeshBuilder.New(theStudy)
 Mesh_1 = smesh.Mesh(domain)
 Regular_1D = Mesh_1.Segment()
-Number_of_Segments_1 = Regular_1D.NumberOfSegments(10)
+Number_of_Segments_1 = Regular_1D.NumberOfSegments(5)
 Quadrangle_2D = Mesh_1.Quadrangle(algo=smeshBuilder.QUADRANGLE)
 Quadrangle_Parameters_1 = Quadrangle_2D.QuadrangleParameters(StdMeshersBuilder.QUAD_TRIANGLE_PREF,-1,[],[])
 Hexa_3D = Mesh_1.Hexahedron(algo=smeshBuilder.Hexa)
 isDone = Mesh_1.Compute()
+
+Mesh_1.MergeNodes(Mesh_1.FindCoincidentNodesOnPart( Mesh_1, 1e-11, [], 0 ),[])
+Mesh_1.MergeElements(Mesh_1.FindEqualElements( Mesh_1 ))
+
 Surface_Group_1_1 = Mesh_1.GroupOnGeom(Surface_Group_1,'Phys_Surface',SMESH.FACE)
 phys_vol = Mesh_1.CreateEmptyGroup( SMESH.VOLUME, 'Phys_Volume' )
 phys_vol.AddFrom( Mesh_1.GetMesh() )
-
 
 ## Set names of Mesh objects
 smesh.SetName(Regular_1D.GetAlgorithm(), 'Regular_1D')

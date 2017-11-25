@@ -21,6 +21,12 @@
 # You should have received a copy of the GNU General Public License
 # along with ATUS-PRO.  If not, see <http://www.gnu.org/licenses/>.
 
+### IMPORTANT NOTE ###
+# 1) export mesh to med file format 
+# 2) open med file with gmsh (http://gmsh.info/)
+# 3) save mesh in gmsh format
+# This makes sure that the physical volumes and surfaces are read in correctly by deal.ii
+
 import sys
 import salome
 
@@ -91,12 +97,17 @@ Quadrangle_2D = Mesh_1.Quadrangle(algo=smeshBuilder.QUADRANGLE)
 Quadrangle_Parameters_1 = Quadrangle_2D.QuadrangleParameters(StdMeshersBuilder.QUAD_QUADRANGLE_PREF,-1,[],[])
 isDone = Mesh_1.Compute()
 
+Mesh_1.MergeNodes(Mesh_1.FindCoincidentNodesOnPart( Mesh_1, 1e-11, [], 0 ),[])
+Group_1 = Mesh_1.CreateEmptyGroup( SMESH.EDGE, 'Phys_Boundary' )
+Group_1.AddFrom( Mesh_1.GetMesh() )
+
 ## Set names of Mesh objects
 smesh.SetName(Regular_1D.GetAlgorithm(), 'Regular_1D')
 smesh.SetName(Quadrangle_2D.GetAlgorithm(), 'Quadrangle_2D')
 smesh.SetName(Mesh_1.GetMesh(), 'Mesh_1')
 smesh.SetName(Quadrangle_Parameters_1, 'Quadrangle Parameters_1')
 smesh.SetName(Local_Length_1, 'Local Length_1')
+smesh.SetName(Group_1, 'Phys_Boundary')
 
 isDone = Mesh_1.Compute()
 

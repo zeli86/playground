@@ -33,9 +33,9 @@ import salome
 salome.salome_init()
 theStudy = salome.myStudy
 
-#import salome_notebook
-#notebook = salome_notebook.NoteBook(theStudy)
-#sys.path.insert( 0, r'/home/zeli/github/playground/salome')
+import salome_notebook
+notebook = salome_notebook.NoteBook(theStudy)
+sys.path.insert( 0, r'/home/zeli')
 
 ###
 ### GEOM component
@@ -46,16 +46,6 @@ from salome.geom import geomBuilder
 import math
 import SALOMEDS
 
-Delta = 0.2
-
-slit_height = 6*Delta # even number
-slit_width = 5*Delta
-slit_depth = 10*Delta
-slit_gap = 2*Delta # even number
-
-box_height = 40*Delta
-box_width = 40*Delta
-box_depth = 40*Delta
 
 geompy = geomBuilder.New(theStudy)
 
@@ -63,38 +53,47 @@ O = geompy.MakeVertex(0, 0, 0)
 OX = geompy.MakeVectorDXDYDZ(1, 0, 0)
 OY = geompy.MakeVectorDXDYDZ(0, 1, 0)
 OZ = geompy.MakeVectorDXDYDZ(0, 0, 1)
+geomObj_1 = geompy.MakeMarker(0, 0, 0, 1, 0, 0, 0, 1, 0)
 
-slit_one = geompy.MakeBoxDXDYDZ(slit_depth, slit_width, slit_height)
-translation_slit_one = geompy.MakeTranslation(slit_one, -0.5*slit_depth, -(slit_gap+slit_width), -0.5*slit_height)
+h = 20
+wh = 5
+bp = -2
+NumberOfSegments = 50
 
-slit_two = geompy.MakeBoxDXDYDZ( slit_depth, slit_width, slit_height)
-translation_slit_two = geompy.MakeTranslation(slit_two, -0.5*slit_depth, slit_gap, -0.5*slit_height)
+Vertex_1 = geompy.MakeVertex(-wh, 0, 0)
+Vertex_2 = geompy.MakeVertex(wh, 0, 0)
+Vertex_3 = geompy.MakeVertex(0, 0, bp)
+Vertex_4 = geompy.MakeVertex(-wh, 0, h)
+Vertex_5 = geompy.MakeVertex(wh, 0, h)
 
-box_one = geompy.MakeBoxDXDYDZ(box_width, box_depth, box_height)
-translation_box_one = geompy.MakeTranslation(box_one, 0.5*slit_depth, -0.5*box_depth, -0.5*box_height)
-
-box_two = geompy.MakeBoxDXDYDZ(box_width, box_depth, box_height)
-translation_box_two = geompy.MakeTranslation(box_two, -0.5*slit_depth-box_width, -0.5*box_depth, -0.5*box_height)
-
-domain = geompy.MakeCompound([translation_slit_one, translation_slit_two, translation_box_one, translation_box_two])
+Arc_1 = geompy.MakeArc(Vertex_1, Vertex_3, Vertex_2)
+Arc_1_vertex_2 = geompy.GetSubShape(Arc_1, [2])
+Line_1 = geompy.MakeLineTwoPnt(Arc_1_vertex_2, Vertex_4)
+Line_1_vertex_3 = geompy.GetSubShape(Line_1, [3])
+Line_2 = geompy.MakeLineTwoPnt(Line_1_vertex_3, Vertex_5)
+Arc_1_vertex_3 = geompy.GetSubShape(Arc_1, [3])
+Line_3 = geompy.MakeLineTwoPnt(Vertex_5, Arc_1_vertex_3)
+Face_1 = geompy.MakeFaceWires([Arc_1, Line_1, Line_2, Line_3], 1)
+Extrusion_1 = geompy.MakePrismVecH(Face_1, OY, 10)
 
 geompy.addToStudy( O, 'O' )
 geompy.addToStudy( OX, 'OX' )
 geompy.addToStudy( OY, 'OY' )
 geompy.addToStudy( OZ, 'OZ' )
-geompy.addToStudy( slit_one, 'slit_one' )
-geompy.addToStudy( translation_slit_one, 'translation_slit_one' )
-geompy.addToStudy( slit_two, 'slit_two' )
-geompy.addToStudy( translation_slit_two, 'translation_slit_two' )
-geompy.addToStudy( box_one, 'box_one' )
-geompy.addToStudy( translation_box_one, 'translation_box_one' )
-geompy.addToStudy( box_two, 'box_two' )
-geompy.addToStudy( translation_box_two, 'translation_box_two' )
-geompy.addToStudy( domain, 'domain' )
-
-#for k in range(0,6):
-#    f_ind_1 = geompy.GetSubShapeID(translation_box_one, box_one_faces[k])
-#    print f_ind_1
+geompy.addToStudy( Vertex_1, 'Vertex_1' )
+geompy.addToStudy( Vertex_2, 'Vertex_2' )
+geompy.addToStudy( Vertex_3, 'Vertex_3' )
+geompy.addToStudy( Vertex_4, 'Vertex_4' )
+geompy.addToStudy( Vertex_5, 'Vertex_5' )
+geompy.addToStudy( Arc_1, 'Arc_1' )
+geompy.addToStudyInFather( Arc_1, Arc_1_vertex_2, 'Arc_1:vertex_2' )
+geompy.addToStudy( Line_1, 'Line_1' )
+geompy.addToStudyInFather( Line_1, Line_1_vertex_3, 'Line_1:vertex_3' )
+geompy.addToStudy( Line_2, 'Line_2' )
+geompy.addToStudyInFather( Arc_1, Arc_1_vertex_3, 'Arc_1:vertex_3' )
+geompy.addToStudy( Line_3, 'Line_3' )
+geompy.addToStudy( Face_1, 'Face_1' )
+geompy.addToStudy( Extrusion_1, 'Extrusion_1' )
 
 ###
 ### SMESH component
@@ -106,25 +105,13 @@ from salome.smesh import smeshBuilder
 from salome.StdMeshers import StdMeshersBuilder
 
 smesh = smeshBuilder.New(theStudy)
-Mesh_1 = smesh.Mesh(domain)
+Mesh_1 = smesh.Mesh(Extrusion_1)
 Regular_1D = Mesh_1.Segment()
-Local_Length_1 = Regular_1D.LocalLength(Delta,None,1e-11)
+Number_of_Segments_1 = Regular_1D.NumberOfSegments(NumberOfSegments)
 Quadrangle_2D = Mesh_1.Quadrangle(algo=smeshBuilder.QUADRANGLE)
 Quadrangle_Parameters_1 = Quadrangle_2D.QuadrangleParameters(StdMeshersBuilder.QUAD_QUADRANGLE_PREF,-1,[],[])
 Hexa_3D = Mesh_1.Hexahedron(algo=smeshBuilder.Hexa)
 isDone = Mesh_1.Compute()
-
-Mesh_1.MergeNodes(Mesh_1.FindCoincidentNodesOnPart( Mesh_1, 1e-11, [], 0 ),[])
-Mesh_1.MergeElements(Mesh_1.FindEqualElements( Mesh_1 ))
-    
-aCriteria = []
-aCriterion = smesh.GetCriterion(SMESH.FACE,SMESH.FT_FreeFaces,SMESH.FT_Undefined,0,SMESH.FT_Undefined,SMESH.FT_Undefined,6.9528e-310)
-aCriteria.append(aCriterion)
-aFilter = smesh.GetFilterFromCriteria(aCriteria)
-Group_phys_surface = Mesh_1.MakeGroupByFilter( 'phys_surface', aFilter )
-
-phys_vol = Mesh_1.CreateEmptyGroup( SMESH.VOLUME, 'Phys_Volume' )
-phys_vol.AddFrom( Mesh_1.GetMesh() )
 
 ## Set names of Mesh objects
 smesh.SetName(Regular_1D.GetAlgorithm(), 'Regular_1D')
@@ -132,12 +119,7 @@ smesh.SetName(Quadrangle_2D.GetAlgorithm(), 'Quadrangle_2D')
 smesh.SetName(Hexa_3D.GetAlgorithm(), 'Hexa_3D')
 smesh.SetName(Mesh_1.GetMesh(), 'Mesh_1')
 smesh.SetName(Quadrangle_Parameters_1, 'Quadrangle Parameters_1')
-smesh.SetName(Local_Length_1, 'Local Length_1')
-smesh.SetName(phys_vol, 'Phys_Volume')
-#smesh.SetName(Group_1, 'Group_1')
-
-isDone = Mesh_1.Compute()
-
+smesh.SetName(Number_of_Segments_1, 'Number of Segments_1')
 
 if salome.sg.hasDesktop():
   salome.sg.updateObjBrowser(True)
