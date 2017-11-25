@@ -3,11 +3,17 @@ cmake_minimum_required(VERSION 3.1)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+message("**********************************************************************")
+execute_process(COMMAND sh -c "module list")
+message("**********************************************************************")
+
 find_package(MPI REQUIRED)
 find_package(GSL REQUIRED)
 find_package(NLOPT REQUIRED)
 find_package(MUPARSER REQUIRED)
 #find_package(Boost REQUIRED)
+message("**********************************************************************")
+
 
 include(GetGitRevisionDescription)
 get_git_head_revision(GIT_REFSPEC GIT_SHA1)
