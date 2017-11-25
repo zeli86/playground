@@ -1,12 +1,17 @@
-PROJECT (doktorarbeit)
-
-# specify compiler
-# cmake -DCMAKE_CXX_COMPILER=g++-6 -DCMAKE_C_COMPILER=gcc-6 ..
-
-cmake_minimum_required(VERSION 2.8)
-find_package(MPI REQUIRED)
+PROJECT (atus-playground)
+cmake_minimum_required(VERSION 3.1)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+find_package(MPI REQUIRED)
+find_package(GSL REQUIRED)
+find_package(NLOPT REQUIRED)
+find_package(MUPARSER REQUIRED)
+#find_package(Boost REQUIRED)
+
+include(GetGitRevisionDescription)
+get_git_head_revision(GIT_REFSPEC GIT_SHA1)
+add_definitions("-DGIT_SHA1=${GIT_SHA1}")
 
 option( BUILD_3D "3D" OFF )
 option( BUILD_HTRAP "3D" OFF )
@@ -24,31 +29,6 @@ ENDIF(NOT CMAKE_BUILD_TYPE)
 set( HOME $ENV{HOME} CACHE STRING INTERNAL )
 set( DIR_INC ${PROJECT_SOURCE_DIR}/include CACHE STRING INTERNAL )
 set( DIR_INC_2 ${PROJECT_SOURCE_DIR}/source/lib CACHE STRING INTERNAL )
-
-### NLOPT library paths
-find_library( NLOPT_LIBRARY NAMES nlopt PATHS ENV LD_LIBRARY_PATH NO_DEFAULT_PATH )
-if( NOT NLOPT_LIBRARY )
-  message( FATAL_ERROR "Could not find the nlopt library." )
-endif()
-get_filename_component( TMP ${NLOPT_LIBRARY} PATH )
-get_filename_component( TMP ${TMP} PATH )
-set( NLOPT_INC_DIR ${TMP}/include CACHE STRING INTERNAL )
-if( NLOPT_LIBRARY )
-  include_directories( ${NLOPT_INC_DIR} )
-endif()
-
-### GSL library paths
-find_library( GSL_LIBRARY_1 NAMES gsl  PATHS ENV LD_LIBRARY_PATH NO_DEFAULT_PATH )
-if( NOT GSL_LIBRARY_1 )
-  message( FATAL_ERROR "Could not find the gsl library." )
-endif()
-find_library( GSL_LIBRARY_2 NAMES gslcblas PATHS ENV LD_LIBRARY_PATH NO_DEFAULT_PATH )
-if( NOT GSL_LIBRARY_2 )
-  message( FATAL_ERROR "Could not find the gsl library." )
-endif()
-get_filename_component( TMP ${GSL_LIBRARY_1} PATH )
-get_filename_component( TMP ${TMP} PATH )
-set( GSL_INC_DIR ${TMP}/include CACHE STRING INTERNAL )
 
 ### p4est library paths
 find_library( P4EST_LIBRARY NAMES p4est PATHS ENV LD_LIBRARY_PATH NO_DEFAULT_PATH )
@@ -68,24 +48,6 @@ get_filename_component( TMP ${PETSC_LIBRARY} PATH )
 get_filename_component( TMP ${TMP} PATH )
 set( PETSC_INC_DIR ${TMP}/include CACHE STRING INTERNAL )
 
-### SLEPc library paths
-#find_library( SLEPC_LIBRARY NAMES slepc  PATHS ENV LD_LIBRARY_PATH NO_DEFAULT_PATH )
-#if( NOT SLEPC_LIBRARY )
-#  message( FATAL_ERROR "Could not find the SLEPc library." )
-#endif()
-#get_filename_component( TMP ${SLEPC_LIBRARY} PATH )
-#get_filename_component( TMP ${TMP} PATH )
-#set( SLEPC_INC_DIR ${TMP}/include CACHE STRING INTERNAL )
-
-# muParser library
-find_library( MUPARSER_LIBRARY NAMES muparser  PATHS ENV LD_LIBRARY_PATH NO_DEFAULT_PATH )
-if( NOT MUPARSER_LIBRARY )
-  message( FATAL_ERROR "Could not find libmuparser." )
-endif()
-get_filename_component( TMP ${MUPARSER_LIBRARY} PATH )
-get_filename_component( TMP ${TMP} PATH )
-set( MUPARSER_INC_DIR ${TMP}/include CACHE STRING INTERNAL )
-
 ### deal.ii library paths
 find_library( DEAL_II_LIBRARY NAMES deal_II  PATHS ENV LD_LIBRARY_PATH NO_DEFAULT_PATH )
 if( NOT DEAL_II_LIBRARY )
@@ -95,24 +57,22 @@ get_filename_component( TMP ${DEAL_II_LIBRARY} PATH )
 get_filename_component( TMP ${TMP} PATH )
 set( DEAL_INC_DIR ${TMP}/include CACHE STRING INTERNAL )
 
-#SET( BOOST_INC_DIR $ENV{MY_PATH_BOOST}/include CACHE STRING INTERNAL )
-#SET( BOOST_LIB_DIR $ENV{MY_PATH_BOOST}/lib CACHE STRING INTERNAL )
-
 SET( EXECUTABLE_OUTPUT_PATH  ${HOME}/bin )
 #SET( LIBRARY_OUTPUT_PATH  ${HOME}/bin/lib )
 #SET( EXECUTABLE_INSTALL_PATH  ${HOME}/bin )
 
-# Zuerst die Pfade angeben
-#=========================
-# ${DEAL_INC_DIR}/deal.II/bundled ${BOOST_INC_DIR}
-include_directories( ${MPI_CXX_INCLUDE_PATH} ${DIR_INC} ${DIR_INC_2} ${DEAL_INC_DIR} ${DEAL_INC_DIR}/deal.II/bundled ${GSL_INC_DIR} ${P4EST_INC_DIR} ${PETSC_INC_DIR} ${MUPARSER_INC_DIR} )
-
-#LINK_DIRECTORIES( ${DEAL_LIB_DIR} ${GSL_LIB_DIR} ${P4EST_LIB_DIR} ${PETSC_LIB_DIR} ${BOOST_LIB_DIR} )
-
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
-include(GetGitRevisionDescription)
-get_git_head_revision(GIT_REFSPEC GIT_SHA1)
-add_definitions("-DGIT_SHA1=${GIT_SHA1}")
+# set include dirs
+include_directories(  ${MPI_CXX_INCLUDE_PATH} 
+                      ${GSL_INCLUDE_DIR} 
+                      ${NLOPT_INCLUDE_DIR} 
+                      ${MUPARSER_INCLUDE_DIR}
+                      ${DIR_INC} 
+                      ${DIR_INC_2} 
+                      ${PETSC_INC_DIR} 
+                      ${P4EST_INC_DIR} 
+                      ${DEAL_INC_DIR} 
+                      ${DEAL_INC_DIR}/deal.II/bundled 
+)
 
 IF( BUILD_HTRAP )
   ADD_DEFINITIONS( -DPOTENTIAL=1 )
@@ -152,7 +112,8 @@ ADD_SUBDIRECTORY( source/stationary )
 #ADD_SUBDIRECTORY( source/resonances )
 #ADD_SUBDIRECTORY( source/trash )
 #ADD_SUBDIRECTORY( source/belen )
-ADD_SUBDIRECTORY( source/cont )
+ADD_SUBDIRECTORY( source/edu )
+#ADD_SUBDIRECTORY( source/cont )
 
 FILE(GLOB bash_sh "${PROJECT_SOURCE_DIR}/bash/*")
 
