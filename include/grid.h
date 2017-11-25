@@ -71,13 +71,13 @@
     GridGenerator::hyper_rectangle(triangulation, pt2, pt1);
     
 #if DIMENSION==2
-    triangulation.refine_global(4);    
+    triangulation.refine_global(5);    
     //triangulation.refine_global(6);    
-    double isovalues[] = {32,30,28};
+    double isovalues[] = {34,32,30};
 #endif
 #if DIMENSION==3
-    triangulation.refine_global(4);
-    double isovalues[] = {16,15,14,13};
+    triangulation.refine_global(3);
+    double isovalues[] = {18,16,14};
 #endif
     
     for( unsigned step=0; step<sizeof(isovalues)/sizeof(double); step++ )
