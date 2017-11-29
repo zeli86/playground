@@ -114,7 +114,7 @@ Quadrangle_Parameters_1 = Quadrangle_2D.QuadrangleParameters(StdMeshersBuilder.Q
 Hexa_3D = Mesh_1.Hexahedron(algo=smeshBuilder.Hexa)
 isDone = Mesh_1.Compute()
 
-Mesh_1.MergeNodes(Mesh_1.FindCoincidentNodesOnPart( Mesh_1, 1e-11, [], 0 ),[])
+Mesh_1.MergeNodes(Mesh_1.FindCoincidentNodesOnPart( Mesh_1, 1e-5, [], 0 ),[])
 Mesh_1.MergeElements(Mesh_1.FindEqualElements( Mesh_1 ))
     
 aCriteria = []
