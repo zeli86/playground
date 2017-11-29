@@ -24,7 +24,7 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <list>
+//#include <list>
 
 class MyParameterHandler
 {
@@ -44,6 +44,12 @@ public:
   double Get_Algorithm( const std::string, const int );
   std::vector<double> Get_Algorithm( const std::string );
 
+  std::string Get_String( const std::string, const int=0 );
+  std::vector<std::string> Get_AllStrings( const std::string );
+
+  double Get_Constant( const std::string );
+  std::map<std::string,double> Get_Constants_Map();
+
   void SaveXMLFile( const std::string& );
 
   int Get_NA(); 
@@ -52,13 +58,17 @@ public:
   //void Setup_muParser( mu::Parser& );
 protected:
   void populate_vconstants( const std::string, std::map<std::string,std::vector<double>>& );
+  void populate_constants();
   void populate_parameter();
+  void populate_stringlists();
   
   pugi::xml_document m_xml_doc;
   
+  std::map<std::string,double> m_map_constants;
   std::map<std::string,std::vector<double>> m_map_physics;
   std::map<std::string,std::vector<double>> m_map_mesh;
   std::map<std::string,std::vector<double>> m_map_algorithm;
+  std::map<std::string,std::vector<std::string>> m_map_strings;
   std::map<std::string,std::string> m_map_parameter;
 };
 
