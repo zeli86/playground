@@ -100,9 +100,15 @@ Quadrangle_2D = Mesh_1.Quadrangle(algo=smeshBuilder.QUADRANGLE)
 Quadrangle_Parameters_1 = Quadrangle_2D.QuadrangleParameters(StdMeshersBuilder.QUAD_QUADRANGLE_PREF,-1,[],[])
 isDone = Mesh_1.Compute()
 
-Mesh_1.MergeNodes(Mesh_1.FindCoincidentNodesOnPart( Mesh_1, 1e-11, [], 0 ),[])
-Group_1 = Mesh_1.CreateEmptyGroup( SMESH.EDGE, 'Phys_Boundary' )
-Group_1.AddFrom( Mesh_1.GetMesh() )
+Mesh_1.MergeNodes(Mesh_1.FindCoincidentNodesOnPart( Mesh_1, 1e-5, [], 0 ),[])
+
+aCriteria = []
+aCriterion = smesh.GetCriterion(SMESH.EDGE,SMESH.FT_FreeBorders,SMESH.FT_Undefined,0)
+aCriteria.append(aCriterion)
+aFilter = smesh.GetFilterFromCriteria(aCriteria)
+Group_1 = Mesh_1.MakeGroupByFilter( 'Phys_Boundary', aFilter )
+Group_2 = Mesh_1.CreateEmptyGroup( SMESH.FACE, 'Phys_Domain' )
+Group_2.AddFrom( Mesh_1.GetMesh() )
 
 ## Set names of Mesh objects
 smesh.SetName(Regular_1D.GetAlgorithm(), 'Regular_1D')
@@ -111,7 +117,9 @@ smesh.SetName(Mesh_1.GetMesh(), 'Mesh_1')
 smesh.SetName(Quadrangle_Parameters_1, 'Quadrangle Parameters_1')
 smesh.SetName(Local_Length_1, 'Local Length_1')
 smesh.SetName(Group_1, 'Phys_Boundary')
+smesh.SetName(Group_2, 'Phys_Domain')
 
+isDone = Mesh_1.Compute()
 
 #phys_boundary = Mesh_1.CreateEmptyGroup( SMESH.EDGE, 'Phys_Boundary' )
 #phys_boundary.AddFrom( Mesh_1.GetFreeBorders() )
