@@ -172,7 +172,7 @@ std::string MyParameterHandler::Get_String( const std::string k, const int p )
 {
   auto it = m_map_strings.find(k);
   if( it == m_map_strings.end() ) throw std::string( "Error: Could not find the key: " + k + " in section STRINGLISTS." );
-  if( p >= (*it).second.size() ) throw std::string( "Error in section STRINGLISTS: Access of vector element for key " + k + "is out of bounds." );
+  if( p >= (*it).second.size() ) throw std::string( "Error in section STRINGLISTS: Access of vector element for key " + k + " is out of bounds." );
 return (*it).second[p];
 }
 
@@ -212,7 +212,7 @@ double MyParameterHandler::Get_Physics( const std::string k, const int p )
 {
   auto it = m_map_physics.find(k);
   if( it == m_map_physics.end() ) throw std::string( "Error: Could not find the key " + k + " in section PHYSICS." ); 
-  if( p >= (*it).second.size() ) throw std::string( "Error in section PHYSICS: Access of vector element for key " + k + "is out of bounds." );
+  if( p >= (*it).second.size() ) throw std::string( "Error in section PHYSICS: Access of vector element for key " + k + " is out of bounds." );
 return (*it).second[p];
 }
 
@@ -227,7 +227,7 @@ double MyParameterHandler::Get_Mesh( const std::string k, const int p )
 {
   auto it = m_map_mesh.find(k);
   if( it == m_map_mesh.end() ) throw std::string( "Error: Could not find the key " + k + " in section MESH." ); 
-  if( p >= (*it).second.size() ) throw std::string( "Error in section MESH: Access of vector element for key " + k + "is out of bounds." );
+  if( p >= (*it).second.size() ) throw std::string( "Error in section MESH: Access of vector element for key " + k + " is out of bounds." );
 return (*it).second[p];
 }
 
@@ -242,7 +242,7 @@ double MyParameterHandler::Get_Algorithm( const std::string k, const int p )
 {
   auto it = m_map_algorithm.find(k);
   if( it == m_map_algorithm.end() ) throw std::string( "Error: Could not find the key " + k + " in section ALGORITHM." ); 
-  if( p >= (*it).second.size() ) throw std::string( "Error in section ALGORITHM: Access of vector element for key " + k + "is out of bounds." );
+  if( p >= (*it).second.size() ) throw std::string( "Error in section ALGORITHM: Access of vector element for key " + k + " is out of bounds." );
 return (*it).second[p];
 }
 
