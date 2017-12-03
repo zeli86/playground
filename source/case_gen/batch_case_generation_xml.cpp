@@ -18,10 +18,6 @@
 // along with atus-pro testing.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-/*
-Želimir Marojević
-*/
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -94,7 +90,7 @@ int main( int argc, char *argv[] )
 
       // PHYSICS childs
       node = physics_node.append_child("QN1");
-      tmpstr = to_string(i1) + "," + to_string(j1);
+      tmpstr = to_string(i1) + "," + to_string(j1) + ",0";
       node.append_child(pugi::node_pcdata).set_value(tmpstr.c_str());
 
       node = physics_node.append_child("omega");
@@ -175,7 +171,7 @@ int main( int argc, char *argv[] )
       //pbs_file << "mpirun --map-by core my_csolver_mpi\n";
       pbs_file.close();
 */
-
+/*
       string jobname = "breed-" + to_string(i1) + "_" + to_string(j1);
 
       string filename1 = jobname + "-job.sh";
@@ -195,6 +191,7 @@ int main( int argc, char *argv[] )
       slurm_file << "cd " << HomePath + "/" + base_folder + "/" + folder << "\n";
       slurm_file << "mpirun -np 8 my_newton_mpi\n";
       slurm_file.close();
+*/
     }
   }
 #endif
