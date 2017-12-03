@@ -2,6 +2,7 @@
 #include <cassert>
 #include <complex>
 #include <cmath>
+#include <vector>
 #include <deal.II/fe/fe_system.h>
 #include <deal.II/fe/fe_values.h>
 #include <deal.II/fe/fe_q.h>
@@ -10,6 +11,7 @@
 
 namespace MyComplexTools 
 {
+    using namespace std;
     using namespace dealii;
 
     template <int dim>
