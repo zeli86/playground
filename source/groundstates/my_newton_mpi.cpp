@@ -83,7 +83,6 @@ namespace LA
 #include "ref_pt_list.h"
 #include "MyParameterHandler.h"
 #include "MyRealTools.h"
-#include "MyComplexTools.h"
 #include "muParser.h"
 
 namespace BreedSolver
@@ -119,7 +118,6 @@ namespace BreedSolver
     void setup_system();
     void do_superposition();
     void estimate_error( double& );
-    void Interpolate_R_to_C( string );
     void compute_tangent();
     void compute_eigenvalues();
 
@@ -134,16 +132,13 @@ namespace BreedSolver
     parallel::distributed::Triangulation<dim> triangulation;
     FE_Q<dim> fe;
     DoFHandler<dim> dof_handler;
-    FESystem<dim> fe_2;
-    DoFHandler<dim> dof_handler_2;
-    IndexSet locally_owned_dofs, locally_owned_dofs_2;
-    IndexSet locally_relevant_dofs, locally_relevant_dofs_2;
-    ConstraintMatrix constraints, constraints_2;
+    IndexSet locally_owned_dofs;
+    IndexSet locally_relevant_dofs;
+    ConstraintMatrix constraints;
 
     LA::MPI::SparseMatrix m_system_matrix;
     LA::MPI::Vector m_system_rhs;
     LA::MPI::Vector m_newton_update;
-    LA::MPI::Vector m_Psi_C_ghosted;
     LA::MPI::Vector m_Psi_ref;
     LA::MPI::Vector m_Psi_1;
     LA::MPI::Vector m_Psi_2;
@@ -170,9 +165,7 @@ namespace BreedSolver
     CBase<2>(xmlfilename),
     triangulation (mpi_communicator, typename Triangulation<dim>::MeshSmoothing(Triangulation<dim>::limit_level_difference_at_vertices|Triangulation<dim>::eliminate_refined_inner_islands|Triangulation<dim>::smoothing_on_refinement|Triangulation<dim>::smoothing_on_coarsening)),
     fe (gl_degree_fe),
-    dof_handler (triangulation),
-    fe_2 (FE_Q<dim>(gl_degree_fe),2),
-    dof_handler_2 (triangulation)
+    dof_handler (triangulation)
   {
   }
 
@@ -180,7 +173,6 @@ namespace BreedSolver
   MySolver<dim>::~MySolver ()
   {
     dof_handler.clear ();
-    dof_handler_2.clear ();
   }
   
   #include "shared_1.h"
@@ -357,20 +349,6 @@ namespace BreedSolver
     DoFTools::make_sparsity_pattern (dof_handler, csp, constraints, false);
     SparsityTools::distribute_sparsity_pattern (csp, dof_handler.n_locally_owned_dofs_per_processor(), mpi_communicator, locally_relevant_dofs);
     m_system_matrix.reinit (locally_owned_dofs, locally_owned_dofs, csp, mpi_communicator);
-    
-    // stuff for the second dof handler
-    dof_handler_2.distribute_dofs (fe_2);
-
-    locally_owned_dofs_2 = dof_handler_2.locally_owned_dofs ();
-    DoFTools::extract_locally_relevant_dofs (dof_handler_2, locally_relevant_dofs_2);
-
-    m_Psi_C_ghosted.reinit (locally_owned_dofs_2, locally_relevant_dofs_2, mpi_communicator);
-
-    constraints_2.clear ();
-    constraints_2.reinit (locally_relevant_dofs_2);
-    DoFTools::make_hanging_node_constraints (dof_handler_2, constraints_2);
-    VectorTools::interpolate_boundary_values (dof_handler_2, 0, ZeroFunction<dim>(2), constraints_2);
-    constraints_2.close ();
 
     m_computing_timer.exit_section();
   }
@@ -631,7 +609,6 @@ namespace BreedSolver
     {
       output_results("","final");
       save(  path + "final.bin" );
-      Interpolate_R_to_C( path + "Cfinal.bin" );
       
       dump_info_xml();
     }
@@ -746,6 +723,8 @@ namespace BreedSolver
 
       if( status == Status::SUCCESS )
       {
+        estimate_error(m_final_error);
+
         save( path + "final.bin" );
         save_one( path + "final_one.bin" );
         vector<double> newgs = {m_gs[0]*m_N[0]}; 
@@ -753,10 +732,8 @@ namespace BreedSolver
         m_ph.SaveXMLFile( path + "params_one.xml" );
         newgs[0] = m_gs[0];
         m_ph.Set_Physics( "gs_1", newgs );
-        estimate_error(m_final_error);
         output_results(path,"final");
         dump_info_xml(path);
-        Interpolate_R_to_C( path + "Cfinal.bin" );
         m_Psi_1 = m_Psi_ref;
         m_Psi_2 = 0;
       }
@@ -833,6 +810,8 @@ namespace BreedSolver
 
       if( status == Status::SUCCESS )
       {
+        estimate_error(m_final_error);
+
         save( path + "final.bin" );
         save_one( path + "final_one.bin" );
         vector<double> newgs = {m_gs[0]*m_N[0]}; 
@@ -840,10 +819,9 @@ namespace BreedSolver
         m_ph.SaveXMLFile( path + "params_one.xml" );
         newgs[0] = m_gs[0];
         m_ph.Set_Physics( "gs_1", newgs );
-        estimate_error(m_final_error);
+
         output_results(path,"final");
         dump_info_xml(path);
-        Interpolate_R_to_C( path + "Cfinal.bin" ); 
 
         compute_tangent();
         m_Psi_1 = m_Psi_ref;
@@ -868,24 +846,7 @@ namespace BreedSolver
     }
     if( m_root ) m_results.dump_2_file( "results.csv" );
   }  
-  
-  template<int dim>
-  void MySolver<dim>::Interpolate_R_to_C( string filename )
-  {
-    m_computing_timer.enter_section(__func__);
-
-    constraints.distribute(m_Psi_ref);
-    m_workspace_1=m_Psi_ref;
-
-    MyComplexTools::MPI::Interpolate_R_to_C( mpi_communicator, dof_handler, fe, m_workspace_1, dof_handler_2, fe_2, constraints_2, m_Psi_C_ghosted );
-
-    parallel::distributed::SolutionTransfer<dim,LA::MPI::Vector> solution_transfer(dof_handler_2);
-    solution_transfer.prepare_serialization(m_Psi_C_ghosted);
-    triangulation.save( filename.c_str() );
-
-    m_computing_timer.exit_section();    
-  }  
-
+    
   template <int dim>
   void MySolver<dim>::compute_tangent ()
   {
