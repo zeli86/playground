@@ -261,7 +261,8 @@ namespace HelperPrograms
     triangulation (mpi_communicator, typename Triangulation<dim>::MeshSmoothing(Triangulation<dim>::smoothing_on_refinement|Triangulation<dim>::smoothing_on_coarsening)),
     fe (FE_Q<dim>(gl_degree_fe), 2),
     dof_handler (triangulation),
-    pcout (cout, (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)),
+    m_root(Utilities::MPI::this_mpi_process(mpi_communicator) == 0),
+    pcout (cout, m_root),
     m_sel(0)
   {
     m_omega = m_ph.Get_Physics("omega");
@@ -274,7 +275,6 @@ namespace HelperPrograms
     m_zmin = m_ph.Get_Mesh("zrange",0);
     m_zmax = m_ph.Get_Mesh("zrange",1);
   
-    m_root = (Utilities::MPI::this_mpi_process(mpi_communicator) == 0);
     MPI_Comm_rank(mpi_communicator, &m_rank);
   }
 

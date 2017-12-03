@@ -18,9 +18,6 @@
 // along with atus-pro testing.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-/** Želimir Marojević
- */
-
 #include <deal.II/lac/generic_linear_algebra.h>
 
 namespace LA
@@ -263,7 +260,8 @@ namespace HelperPrograms
     triangulation (mpi_communicator, typename Triangulation<dim>::MeshSmoothing(Triangulation<dim>::smoothing_on_refinement|Triangulation<dim>::smoothing_on_coarsening)),
     fe (gl_degree_fe),
     dof_handler (triangulation),
-    pcout (cout, (Utilities::MPI::this_mpi_process(mpi_communicator) == 0))
+    m_root(Utilities::MPI::this_mpi_process(mpi_communicator) == 0),
+    pcout (cout, m_root)
   {
     m_omega = m_ph.Get_Physics("omega");
     m_gs = m_ph.Get_Physics("gs_1",0);
@@ -275,7 +273,6 @@ namespace HelperPrograms
     m_zmin = m_ph.Get_Mesh("zrange",0);
     m_zmax = m_ph.Get_Mesh("zrange",1);
   
-    m_root = (Utilities::MPI::this_mpi_process(mpi_communicator) == 0);
     MPI_Comm_rank(mpi_communicator, &m_rank);
   }
 
