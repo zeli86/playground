@@ -8,6 +8,7 @@
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/lac/vector.h>
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
+#include <deal.II/lac/generic_linear_algebra.h>
 
 namespace MyComplexTools 
 {
@@ -88,7 +89,7 @@ namespace MyComplexTools
         matrix=0;
         rhs=0;
 
-        const QGauss<1> quadrature_formula(fe.degree+1);
+        const QGauss<dim> quadrature_formula(fe.degree+1);
         const FEValuesExtractors::Scalar rt (0);
         const FEValuesExtractors::Scalar it (1);
         const double dth = 0.5*dt;
@@ -148,7 +149,7 @@ namespace MyComplexTools
         matrix=0;
         rhs=0;
 
-        const QGauss<1> quadrature_formula(fe.degree+1);
+        const QGauss<dim> quadrature_formula(fe.degree+1);
         const FEValuesExtractors::Scalar rt (0);
         const FEValuesExtractors::Scalar it (1);
         const double dth = 0.5*dt;
@@ -209,7 +210,7 @@ namespace MyComplexTools
         matrix=0;
         rhs=0;
 
-        const QGauss<1> quadrature_formula(fe.degree+1);
+        const QGauss<dim> quadrature_formula(fe.degree+1);
         const FEValuesExtractors::Scalar rt (0);
         const FEValuesExtractors::Scalar it (1);
         const double dth = 0.5*dt;
@@ -266,7 +267,7 @@ namespace MyComplexTools
                             const Vector<double>& vec )
     {
         double retval=0;
-        const QGauss<1> quadrature_formula(fe.degree+1);
+        const QGauss<dim> quadrature_formula(fe.degree+1);
         const FEValuesExtractors::Scalar rt (0);
         const FEValuesExtractors::Scalar it (1);
 
@@ -290,7 +291,83 @@ namespace MyComplexTools
             }            
         }                  
     return retval;
-    }      
+    }
+
+    template<int dim>
+    void Expectation_value_position( const DoFHandler<dim>& dof_handler,
+                                     const FESystem<dim>& fe,
+                                     const Vector<double>& vec,
+                                     vector<double>& retval )
+    {
+        assert( retval.size() == dim );
+
+        for( int i=0; i<dim; i++ )
+          retval[i] = 0;
+
+        const QGauss<dim> quadrature_formula(fe.degree+1);
+        const FEValuesExtractors::Scalar rt (0);
+        const FEValuesExtractors::Scalar it (1);
+
+        FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_quadrature_points|update_JxW_values);
+
+        const unsigned dofs_per_cell = fe.dofs_per_cell;
+        const unsigned n_q_points    = quadrature_formula.size();
+
+        vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
+        vector<Vector<double>> vals(n_q_points,Vector<double>(2));
+
+        Point<dim> tmp;
+        typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
+        for( ; cell!=endc; cell++ )
+        {
+            fe_values.reinit (cell);
+            fe_values.get_function_values(vec, vals);
+
+            for( unsigned qp=0; qp<n_q_points; qp++ )
+            {
+                double JxWxn = fe_values.JxW(qp)*(vals[qp][0]*vals[qp][0]+vals[qp][1]*vals[qp][1]);
+                Point<dim> spacept = fe_values.quadrature_point(qp);
+                tmp += JxWxn*spacept;
+            }            
+        }
+
+        for( int i=0; i<dim; i++ )
+          retval[i] = tmp[i];
+    }
+
+    template<int dim>
+    void Expectation_value_momentum( const DoFHandler<dim>& dof_handler,
+                                     const FESystem<dim>& fe,
+                                     const Vector<double>& vec,
+                                     vector<double>& retval )
+    {
+        assert( retval.size() == dim );
+
+        for( int i=0; i<dim; i++ )
+          retval[i] = 0;
+       
+        Point<dim> tmp;
+        
+        const QGauss<dim>  quadrature_formula(fe.degree+1);
+        FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_gradients|update_JxW_values);
+
+        const unsigned n_q_points = quadrature_formula.size();
+        vector<Vector<double>> vec_vals(n_q_points,Vector<double>(2));
+        vector<vector<Tensor<1,dim>>> vec_grads(n_q_points, vector<Tensor<1,dim>>(2));
+    
+        typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
+        for( ; cell!=endc; cell++ )
+        {
+            fe_values.reinit (cell);
+            fe_values.get_function_values( vec, vec_vals );
+            for( unsigned qp=0; qp<n_q_points; qp++ )
+            {
+                double JxW = fe_values.JxW(qp);
+                for( unsigned i=0; i<dim; i++ ) 
+                    retval[i] += JxW*(vec_vals[qp][0]*vec_grads[qp][1][i] - vec_vals[qp][1]*vec_grads[qp][0][i]);
+            }
+        }
+    }        
 } // end of namespace
 
 namespace MyComplexTools { namespace MPI
