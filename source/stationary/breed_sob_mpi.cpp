@@ -83,6 +83,7 @@ namespace LA
 #include "functions.h"
 #include "MyParameterHandler.h"
 #include "my_table.h"
+#include "MyRealTools.h"
 #include "MyComplexTools.h"
 
 #define STR1(x) #x
@@ -144,9 +145,7 @@ namespace BreedSolver
     //void load( string );
     void dump_info_xml( const string );
     void Project_gradient();
-    void Interpolate_R_to_C();
-    
-    double Particle_Number( LA::MPI::Vector& );
+    //void Interpolate_R_to_C();
     
     void solve();
     void compute_E_lin( LA::MPI::Vector&, double&, double&, double& );
@@ -162,14 +161,9 @@ namespace BreedSolver
     parallel::distributed::Triangulation<dim> triangulation;
     FE_Q<dim> fe;
     DoFHandler<dim> dof_handler;
-    FESystem<dim> fe_2;
-    DoFHandler<dim> dof_handler_2;
     IndexSet locally_owned_dofs;
     IndexSet locally_relevant_dofs;
-    IndexSet locally_owned_dofs_2;
-    IndexSet locally_relevant_dofs_2;
     ConstraintMatrix constraints;
-    ConstraintMatrix constraints_2;
 
     LA::MPI::SparseMatrix m_system_matrix;
     LA::MPI::Vector m_system_rhs;
@@ -198,12 +192,11 @@ namespace BreedSolver
     m_computing_timer_log("benchmark.txt"),
     m_computing_timer(mpi_communicator, m_computing_timer_log, TimerOutput::summary, TimerOutput:: cpu_and_wall_times ), 
     m_ph(xmlfilename),
-    pcout (cout, (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)),
+    m_root(Utilities::MPI::this_mpi_process(mpi_communicator) == 0),
+    pcout (cout, m_root),
     triangulation (mpi_communicator, typename Triangulation<dim>::MeshSmoothing(Triangulation<dim>::limit_level_difference_at_vertices|Triangulation<dim>::eliminate_refined_inner_islands|Triangulation<dim>::smoothing_on_refinement|Triangulation<dim>::smoothing_on_coarsening)),
     fe (gl_degree_fe),
-    dof_handler (triangulation),
-    fe_2 (FE_Q<dim>(gl_degree_fe), 2),
-    dof_handler_2 (triangulation)    
+    dof_handler (triangulation)
   {
     try
     {
@@ -227,7 +220,6 @@ namespace BreedSolver
       MPI_Abort( mpi_communicator, 0 );
     }    
     
-    m_root = (Utilities::MPI::this_mpi_process(mpi_communicator) == 0);
     MPI_Comm_rank(mpi_communicator, &m_rank);
 
     m_counter = 0;
@@ -238,7 +230,6 @@ namespace BreedSolver
   MySolver<dim>::~MySolver ()
   {
     dof_handler.clear();
-    dof_handler_2.clear();
   }
  
   template <int dim>
@@ -287,38 +278,6 @@ namespace BreedSolver
     m_computing_timer.exit_section();
   }
 
-  template<int dim>
-  double MySolver<dim>::Particle_Number( LA::MPI::Vector& vec )
-  {
-    m_computing_timer.enter_section(__func__);
-    double tmp1=0, retval=0;
-   
-    constraints.distribute(vec);
-    m_workspace_1 = vec;
-
-    const QGauss<dim>  quadrature_formula(fe.degree+1);
-    FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_JxW_values|update_quadrature_points);
-
-    const unsigned n_q_points = quadrature_formula.size();
-    vector<double> vals(n_q_points);
-
-    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for (; cell!=endc; ++cell)
-    {
-      if( cell->is_locally_owned() )
-      {
-        fe_values.reinit (cell);
-        fe_values.get_function_values( m_workspace_1, vals );      
-
-        for ( unsigned qp=0; qp<n_q_points; qp++ )
-          tmp1 += fe_values.JxW(qp)*(vals[qp]*vals[qp]);
-      }
-    }
-    MPI_Allreduce( &tmp1, &retval, 1, MPI_DOUBLE, MPI_SUM, mpi_communicator);
-    m_computing_timer.exit_section();
-  return retval;
-  }
-  
   template<int dim>
   void MySolver<dim>::Project_gradient()
   {
@@ -790,20 +749,6 @@ namespace BreedSolver
     SparsityTools::distribute_sparsity_pattern (dsp, dof_handler.n_locally_owned_dofs_per_processor(), mpi_communicator, locally_relevant_dofs);
     m_system_matrix.reinit (locally_owned_dofs, locally_owned_dofs, dsp, mpi_communicator);    
 
-    // stuff for the second dof handler
-    dof_handler_2.distribute_dofs (fe_2);
-
-    locally_owned_dofs_2 = dof_handler_2.locally_owned_dofs ();
-    DoFTools::extract_locally_relevant_dofs (dof_handler_2, locally_relevant_dofs_2);
-
-    m_Psi_C_ghosted.reinit (locally_owned_dofs_2, locally_relevant_dofs_2, mpi_communicator);
-
-    constraints_2.clear ();
-    constraints_2.reinit (locally_relevant_dofs_2);
-    DoFTools::make_hanging_node_constraints (dof_handler_2, constraints_2);
-    VectorTools::interpolate_boundary_values (dof_handler_2, 0, ZeroFunction<dim>(2), constraints_2, ComponentMask(mask));
-    constraints_2.close ();
-
     m_computing_timer.exit_section();
   }
 
@@ -879,7 +824,7 @@ namespace BreedSolver
       m_Psi.add( -1e-3, m_sob_grad);
 
       //compute_mu(m_mu);
-      m_N=Particle_Number(m_Psi);
+      m_N = MyRealTools::MPI::Particle_Number( mpi_communicator, dof_handler, fe, m_Psi );
       
       if( fabs(m_N-1)>1e-5 ) m_Psi *= 1/sqrt(m_N);
       
@@ -906,8 +851,8 @@ namespace BreedSolver
       m_counter++;
     }while( true );
 
-    m_N = Particle_Number(m_Psi);
-    
+    m_N = MyRealTools::MPI::Particle_Number( mpi_communicator, dof_handler, fe, m_Psi);
+          
     if( m_N < 1e-5 ) retval = Status::ZERO_SOL;
     
     string filename = path + "log.csv";
@@ -938,18 +883,14 @@ namespace BreedSolver
     pcout << "T = " << T << endl;
     pcout << "N = " << N << endl;
     pcout << "W = " << W << endl;
-    //pcout << "m_mu = " << m_mu << endl;
 
     status = DoIter("");
     
-    constraints.distribute(m_Psi);
-    m_workspace_1 = m_Psi;
-    MyComplexTools::MPI::Interpolate_R_to_C( mpi_communicator, dof_handler, fe, m_workspace_1, dof_handler_2, fe_2, constraints_2, m_Psi_C_ghosted );
-
     if( status == Status::SUCCESS )
     {
       //output_results("","final");
       //output_results("","final");
+      save("final.bin");
       //dump_info_xml("");
     }
 
