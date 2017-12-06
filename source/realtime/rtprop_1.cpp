@@ -65,6 +65,7 @@
 #include <iomanip>
 
 #include "MyParameterHandler.h"
+#include "MyComplexTools.h"
 #include "my_table.h"
 #include "functions.h"
 
@@ -81,9 +82,6 @@ namespace realtime_propagation
     ~MySolver();
 
     void run ();
-    double Particle_Number( Vector<double>& );
-    void Expectation_value_momentum( Vector<double>&, double& );
-    void Expectation_value_position( Vector<double>&, double& );
 
   protected:
     void make_grid();
@@ -176,32 +174,7 @@ namespace realtime_propagation
   }
   
   #include "utils_complex.h"
-
-  /** Computes the particle number of the dof function vec
-   */
-  double MySolver::Particle_Number( Vector<double>& vec )
-  {
-    m_computing_timer.enter_section(__func__);
-    double retval=0;
-
-    const QGauss<1>  quadrature_formula(fe.degree+1);
-    FEValues<1> fe_values (fe, quadrature_formula, update_values|update_JxW_values);
-
-    const unsigned n_q_points = quadrature_formula.size();
-    vector<Vector<double>> vec_vals(n_q_points,Vector<double>(2));
-
-    DoFHandler<1>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for (; cell!=endc; ++cell)
-    {
-      fe_values.reinit (cell);
-      fe_values.get_function_values( vec, vec_vals );
-      for( unsigned qp=0; qp<n_q_points; qp++ )
-         retval += fe_values.JxW(qp)*(vec_vals[qp][0]*vec_vals[qp][0]+vec_vals[qp][1]*vec_vals[qp][1]);
-    }
-    m_computing_timer.exit_section();
-  return retval;
-  }  
-  
+ 
   void MySolver::make_grid ()
   {
     m_computing_timer.enter_section(__func__);
@@ -237,62 +210,6 @@ namespace realtime_propagation
 
     sparsity_pattern.copy_from(dsp);
     system_matrix.reinit (sparsity_pattern);
-    m_computing_timer.exit_section();
-  }  
-  
-  void MySolver::Expectation_value_position( Vector<double>& vec, double& retval )
-  {
-    m_computing_timer.enter_section(__func__);
-    double JxWxn;
-    retval=0;
-    
-    const QGauss<1>  quadrature_formula(fe.degree+1);
-    FEValues<1> fe_values (fe, quadrature_formula, update_values|update_quadrature_points|update_JxW_values);
-
-    const unsigned n_q_points = quadrature_formula.size();
-    vector<Vector<double>> vec_vals(n_q_points,Vector<double>(2));
-    Point<1> spacept;
-
-    DoFHandler<1>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for( ; cell!=endc; cell++ )
-    {
-      fe_values.reinit (cell);
-      fe_values.get_function_values( vec, vec_vals );
-      for( unsigned qp=0; qp<n_q_points; qp++ )
-      {
-        JxWxn = fe_values.JxW(qp)*(vec_vals[qp][0]*vec_vals[qp][0]+vec_vals[qp][1]*vec_vals[qp][1]);
-        spacept = fe_values.quadrature_point(qp);
-        retval += JxWxn*spacept[0];
-      }
-    }
-    m_computing_timer.exit_section();
-  }  
-
-  void MySolver::Expectation_value_momentum( Vector<double>& vec, double& retval )
-  {
-    m_computing_timer.enter_section(__func__);
-    
-    retval=0;
-    
-    const QGauss<1>  quadrature_formula(fe.degree+1);
-    FEValues<1> fe_values (fe, quadrature_formula, update_values|update_gradients|update_JxW_values);
-
-    const unsigned n_q_points = quadrature_formula.size();
-    vector<Vector<double>> vec_vals(n_q_points,Vector<double>(2));
-    vector<vector<Tensor<1,1>>> vec_grads(n_q_points, vector<Tensor<1,1>>(2));
-
-    DoFHandler<1>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for( ; cell!=endc; cell++ )
-    {
-      fe_values.reinit (cell);
-      fe_values.get_function_values( vec, vec_vals );
-      fe_values.get_function_gradients( vec, vec_grads );
-
-      for( unsigned qp=0; qp<n_q_points; qp++ )
-      {
-        retval += fe_values.JxW(qp)*(vec_vals[qp][0]*vec_grads[qp][1][0] - vec_vals[qp][1]*vec_grads[qp][0][0]);
-      }
-    }
     m_computing_timer.exit_section();
   }  
 
@@ -530,20 +447,20 @@ namespace realtime_propagation
     cout << "max_cell_diameter = " << max_cell_diameter << "\n";
     cout << "dt/dx^2 == " << m_dt/(min_cell_diameter*min_cell_diameter) << endl;
     
-    double p;
-    double pos;
+    vector<double> p(1,0);
+    vector<double> pos(1,0);
 
     output_results("");
 
-    N = Particle_Number(m_Psi);
+    N = MyComplexTools::Particle_Number( dof_handler, fe, m_Psi );
     //cout << "N == " << N << endl;
-    Expectation_value_position( m_Psi, pos );
-    Expectation_value_momentum( m_Psi, p );
+    MyComplexTools::Expectation_value_position( dof_handler, fe, m_Psi, pos );
+    MyComplexTools::Expectation_value_momentum( dof_handler, fe, m_Psi, p );
 
     cout << "t == " << m_t << endl;
     cout << "N == " << N << endl;
-    cout << "p == " << p/N << endl;
-    cout << "pos == " << pos/N << endl;
+    cout << "p == " << p[0]/N << endl;
+    cout << "pos == " << pos[0]/N << endl;
 
     for( unsigned i=1; i<=m_NA; i++ )
     {
@@ -553,15 +470,16 @@ namespace realtime_propagation
         DoIter();
       }
       
-      N = Particle_Number(m_Psi);
-      Expectation_value_position( m_Psi, pos );
-      Expectation_value_momentum( m_Psi, p );
+      N = MyComplexTools::Particle_Number( dof_handler, fe, m_Psi );
+      MyComplexTools::Expectation_value_position( dof_handler, fe, m_Psi, pos );
+      MyComplexTools::Expectation_value_momentum( dof_handler, fe, m_Psi, p );
 
       cout << "N == " << N << endl;
-      cout << "p == " << p/N << endl;
-      cout << "pos == " << pos/N << endl;
+      cout << "p == " << p[0]/N << endl;
+      cout << "pos == " << pos[0]/N << endl;
 
       output_results("");
+      save( "solution-" + to_string(m_t) + ".bin" );
     }
   }
 } // end of namespace 
