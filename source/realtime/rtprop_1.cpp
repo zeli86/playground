@@ -109,9 +109,6 @@ namespace realtime_propagation
     Vector<double> m_workspace;
     Vector<double> m_error_per_cell;
 
-    ofstream m_computing_timer_log;
-    TimerOutput m_computing_timer;    
-
     double m_gs;
     double m_t;
     double m_dt;
@@ -138,9 +135,7 @@ namespace realtime_propagation
     m_ph(xmlfilename),
     triangulation (),
     fe (FE_Q<1>(1), 2),
-    dof_handler (triangulation),
-    m_computing_timer_log("benchmark.txt"),
-    m_computing_timer( m_computing_timer_log, TimerOutput::summary, TimerOutput::cpu_and_wall_times )
+    dof_handler (triangulation)
   {
     try
     {
@@ -162,11 +157,9 @@ namespace realtime_propagation
       std::cerr << info << endl;
       exit(0);
     }    
-
-    //m_t = m_ph.get_double("t");
   }
 
-  /** Default constructor
+  /** Default destructor
    */
   MySolver::~MySolver ()
   {
@@ -177,20 +170,15 @@ namespace realtime_propagation
  
   void MySolver::make_grid ()
   {
-    m_computing_timer.enter_section(__func__);
-
     Point<1,double> pt1( m_xmin );
     Point<1,double> pt2( m_xmax );
 
     GridGenerator::hyper_rectangle(triangulation, pt2, pt1);
     triangulation.refine_global(m_global_refinement);
-    
-    m_computing_timer.exit_section();
   }
   
   void MySolver::setup_system()
   {
-    m_computing_timer.enter_section(__func__);
     dof_handler.distribute_dofs (fe);
     DoFRenumbering::component_wise (dof_handler);
 
@@ -203,14 +191,11 @@ namespace realtime_propagation
 
     system_rhs = 0;
 
-    vector<bool> mask (dof_handler.get_fe().n_components(), true );    
-    
     DynamicSparsityPattern dsp(dof_handler.n_dofs());
     DoFTools::make_sparsity_pattern (dof_handler, dsp);
 
     sparsity_pattern.copy_from(dsp);
     system_matrix.reinit (sparsity_pattern);
-    m_computing_timer.exit_section();
   }  
 
   /** Output of data to vtu files
@@ -218,8 +203,6 @@ namespace realtime_propagation
    */
   void MySolver::output_results ( string path ) 
   {
-    m_computing_timer.enter_section(__func__);
-
     ComputeIntensity<1> intensities;
     ComputePhase<1> phase;
     
@@ -236,8 +219,6 @@ namespace realtime_propagation
     string filename = path + "solution-" + to_string(m_t) + ".gnuplot";
     ofstream output (filename);
     data_out.write_gnuplot ( output );
-
-    m_computing_timer.exit_section();
   }   
 
   void MySolver::save( string filename )
@@ -252,7 +233,6 @@ namespace realtime_propagation
 
   void MySolver::assemble_system ()
   {
-    m_computing_timer.enter_section(__func__);
     const QGauss<1> quadrature_formula(fe.degree+1);
 
     CPotential<1> Potential ( m_omega );
@@ -327,13 +307,10 @@ namespace realtime_propagation
     map<types::global_dof_index,double> boundary_values;
     VectorTools::interpolate_boundary_values (dof_handler, 0, ZeroFunction<1>(2), boundary_values);
     MatrixTools::apply_boundary_values (boundary_values, system_matrix, newton_update, system_rhs);
-    
-    m_computing_timer.exit_section();
   }
   
   void MySolver::assemble_rhs ()
   {
-    m_computing_timer.enter_section(__func__);
     const QGauss<1> quadrature_formula(fe.degree+1);
 
     CPotential<1> Potential (m_omega);
@@ -392,25 +369,18 @@ namespace realtime_propagation
     VectorTools::interpolate_boundary_values (dof_handler, 0, ZeroFunction<1>(2), boundary_values);
     MatrixTools::apply_boundary_values (boundary_values, system_matrix, newton_update, system_rhs);
 
-    m_res = system_rhs.l2_norm();    
-    m_computing_timer.exit_section();
+    m_res = system_rhs.l2_norm(); 
   }
   
   void MySolver::solve ()
   {
-    m_computing_timer.enter_section(__func__);
-
     SparseDirectUMFPACK  A_direct;
     A_direct.initialize(system_matrix);
     A_direct.vmult (newton_update, system_rhs);
-
-    m_computing_timer.exit_section();
   }
 
   void MySolver::DoIter()
   {
-    m_computing_timer.enter_section(__func__);
-
     m_Psi_t = 0; 
     m_res = 0;
     assemble_rhs();
@@ -429,7 +399,6 @@ namespace realtime_propagation
     m_t += m_dt;
 
     m_Psi = m_Psi_t;
-    m_computing_timer.exit_section();
   }
 
   void MySolver::run()

@@ -22,6 +22,22 @@
 #define __CBASE_NO_MPI_H__
 
 #include "ref_pt_list.h"
+#include "nlopt.h"
+
+template <int dim>
+class MySolver;
+
+template <int dim>
+double myfunc(unsigned n, const double * t, double * grad, void * my_func_data)
+{
+  MySolver<dim> * sol = reinterpret_cast<MySolver<dim>*>(my_func_data); 
+  if (grad) 
+  {
+    grad[0] = t[0]*sol->m_I[5] + t[1]*sol->m_I[7] + t[0]*t[0]*t[0]*sol->m_I[0] + 3.0*t[0]*t[1]*t[1]*sol->m_I[2] + 3.0*t[0]*t[0]*t[1]*sol->m_I[3] + t[1]*t[1]*t[1]*sol->m_I[4];
+    grad[1] = t[1]*sol->m_I[6] + t[0]*sol->m_I[7] + t[1]*t[1]*t[1]*sol->m_I[1] + 3.0*t[0]*t[1]*t[1]*sol->m_I[4] + 3.0*t[0]*t[0]*t[1]*sol->m_I[2] + t[0]*t[0]*t[0]*sol->m_I[3];
+  }
+  return (0.25*sol->m_I[0]*pow(t[0],4) + 0.5*sol->m_I[5]*pow(t[0],2) + 0.25*sol->m_I[1]*pow(t[1],4) + t[0]*sol->m_I[4]*pow(t[1],3) +1.5*sol->m_I[2]*pow(t[0],2)*pow(t[1],2) +0.5*sol->m_I[6]*pow(t[1],2) +pow(t[0],3)*sol->m_I[3]*t[1] +t[0]*sol->m_I[7]*t[1]);
+}
 
 enum Status { SUCCESS, FAILED, ZERO_SOL, SLOW_CONV, CONTINUE };
 
@@ -43,8 +59,8 @@ class CBase
     double m_t[dim];
     double m_t_guess[dim];
 
-    double m_xmin;
-    double m_xmax;
+    double m_xmin, m_xmax;
+    double m_ymin, m_ymax;
 
     double m_res;
     double m_res_inf;
@@ -52,11 +68,11 @@ class CBase
     double m_resp;
     double m_res_over_resp;
     double m_ti;
-    vector<double> m_epsilon;
-    
+    double m_final_error;
     double m_mu;
     double m_dmu;
     double m_gs;
+    vector<double> m_epsilon;
     vector<double> m_omega;
 
     double m_N;
@@ -69,9 +85,7 @@ class CBase
     unsigned m_Ndmu;
     
     unsigned m_QN1[3];
-    
-    ofstream m_computing_timer_log;
-    TimerOutput m_computing_timer;    
+
     MyParameterHandler m_ph;
 
     MyUtils::ref_pt_list<dim> m_ref_pt_list;
@@ -81,8 +95,6 @@ class CBase
 template <int dim>
 CBase<dim>::CBase( const std::string& xmlfilename ) 
   : 
-  m_computing_timer_log("benchmark.txt"),
-  m_computing_timer( m_computing_timer_log, TimerOutput::summary, TimerOutput:: cpu_and_wall_times ), 
   m_ph(xmlfilename)
 {
   m_QN1[0] = unsigned(m_ph.Get_Physics("QN1",0));
@@ -123,57 +135,48 @@ void CBase<dim>::screening()
 
   for( auto& it : m_ref_pt_list_tmp.m_list )
   {
-    size_t iter = 0;
-    int status;
-    double size;
+    nlopt_opt opt;
+    opt = nlopt_create(NLOPT_LD_MMA, dim);
+    nlopt_set_xtol_rel(opt, 1e-10);
+    nlopt_set_min_objective(opt, myfunc<dim>, this);
 
-    gsl_vector* x = gsl_vector_alloc(dim); 
-    gsl_vector* ss = gsl_vector_alloc(dim); 
-    gsl_vector_set_all (ss, 1.0);        
-        
-    gsl_multimin_function my_func;
-
-    my_func.n = dim;
-    my_func.f = fun<DIMENSION>;
-    my_func.params = this;
-
+    double * x = new double[dim];  
+    double minf; /* the minimum objective value, upon return */
+   
+    /* some initial guess */
     for( int i=0; i<dim; i++ )
-      gsl_vector_set (x, i, it.ti[i]); 
-
-    const gsl_multimin_fminimizer_type* T = gsl_multimin_fminimizer_nmsimplex2;
-    gsl_multimin_fminimizer* s = gsl_multimin_fminimizer_alloc (T, dim);
-
-    gsl_multimin_fminimizer_set (s, &my_func, x, ss );
-    do
-    {
-      iter++;
-      status = gsl_multimin_fminimizer_iterate (s);
-      if (status) break;
-
-      size = gsl_multimin_fminimizer_size (s);
-      status = gsl_multimin_test_size (size, 1e-10);
+      x[i] = it.ti[i]; 
+    
+    int status = nlopt_optimize(opt, x, &minf);
+/*
+    if ( status < 0) {
+        printf("nlopt failed!\n");
     }
-    while( status == GSL_CONTINUE && iter < 1000 );
-    //printf ("status = %s\n", gsl_strerror (status));
-
-    it.f = s->fval;
+    else {
+        printf("found minimum at f(%g,%g) = %0.10g\n", x[0], x[1], minf);
+    }
+*/
+    it.status = status;
+    it.failed = (status < 0);
+    if( !isfinite(minf) ) continue;
+    it.f = minf;
     for( int i=0; i<dim; i++ )
     {
-      it.t[i] = gsl_vector_get (s->x, i);
+      it.t[i] = x[i];
+      //it.df[i] = 
     }
     //it.DumpItem( std::cout );
 
-    gsl_vector_free (x);
-    gsl_vector_free (ss);
-    gsl_multimin_fminimizer_free (s);
+    delete [] x;
+    nlopt_destroy(opt);
   }
-  m_ref_pt_list_tmp.remove_zero_ref_points();
+
+  m_ref_pt_list_tmp.remove_zero_ref_points();  
 }
 
 template <int dim>
 void CBase<dim>::find_ortho_min( bool bdel_f_non_zero )
 {
-  m_computing_timer.enter_section(__func__);
   compute_contributions();
 
   double l2_norm_t_old = 0;
@@ -198,7 +201,6 @@ void CBase<dim>::find_ortho_min( bool bdel_f_non_zero )
           m_t[i] = it.t[i];
     }
   }
-  m_computing_timer.exit_section();  
 }
 
 #endif

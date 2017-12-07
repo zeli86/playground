@@ -276,7 +276,6 @@ namespace MyComplexTools
         const unsigned dofs_per_cell = fe.dofs_per_cell;
         const unsigned n_q_points    = quadrature_formula.size();
 
-        vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
         vector<Vector<double>> vals(n_q_points,Vector<double>(2));
 
         typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();

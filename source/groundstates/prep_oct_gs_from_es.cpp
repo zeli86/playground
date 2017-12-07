@@ -95,9 +95,6 @@ namespace BreedSolver
   using namespace std;
   using namespace dealii;
 
-  template <int dim>
-  class MySolver; // class forward declaration
-
   enum Status { SUCCESS, FAILED, ZERO_SOL, SLOW_CONV };
 
   template <int dim>

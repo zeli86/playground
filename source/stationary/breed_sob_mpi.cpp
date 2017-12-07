@@ -18,9 +18,6 @@
 // along with atus-pro testing.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-/** Želimir Marojević
- */
-
 #include <deal.II/lac/generic_linear_algebra.h>
 
 namespace LA
@@ -45,38 +42,29 @@ namespace LA
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/index_set.h>
 #include <deal.II/base/timer.h>
-#include <deal.II/base/function_parser.h>
+//#include <deal.II/base/function_parser.h>
 
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/tria_accessor.h>
 #include <deal.II/grid/tria_iterator.h>
 #include <deal.II/grid/tria_boundary_lib.h>
-#include <deal.II/grid/grid_out.h>
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_accessor.h>
 #include <deal.II/dofs/dof_tools.h>
-#include <deal.II/fe/fe_system.h>
 #include <deal.II/fe/fe_values.h>
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/numerics/data_out.h>
-#include <deal.II/numerics/error_estimator.h>
 #include <deal.II/distributed/tria.h>
 #include <deal.II/distributed/grid_refinement.h>
 #include <deal.II/distributed/solution_transfer.h>
-
-#include <gsl/gsl_vector.h>
-#include <gsl/gsl_multimin.h>
 
 #include <fstream>
 #include <iostream>
 #include <iomanip>
 #include <cstdlib>
-#include <locale>
 #include <limits>
 #include <cmath>
-#include <array>
-#include <unistd.h>
 
 #include "global.h"
 #include "mpi.h"
@@ -142,10 +130,8 @@ namespace BreedSolver
     void compute_Psi_sob();
     void compute_mu();
     void save( string );
-    //void load( string );
     void dump_info_xml( const string );
     void Project_gradient();
-    //void Interpolate_R_to_C();
     
     void solve();
     void compute_E_lin( LA::MPI::Vector&, double&, double&, double& );
@@ -354,7 +340,6 @@ namespace BreedSolver
     vector<double> vals(n_q_points);
     vector<Tensor<1,dim>> grads(n_q_points);
 
-    double JxW, Q1, pq, tmp;
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
     for ( ; cell!=endc; ++cell )
     {
@@ -369,8 +354,8 @@ namespace BreedSolver
 
         for ( unsigned qp=0; qp<n_q_points; qp++ )
         {
-          JxW = fe_values.JxW(qp);
-          Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs*(vals[qp]*vals[qp]);
+          double JxW = fe_values.JxW(qp);
+          double Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs*(vals[qp]*vals[qp]);
 
           for ( unsigned i=0; i<dofs_per_cell; i++ )
           {
@@ -470,9 +455,6 @@ namespace BreedSolver
     CPotential<dim> Potential( m_omega );
     const QGauss<dim> quadrature_formula(fe.degree+1);
     
-    constraints.distribute(m_Psi);
-    m_workspace_1=m_Psi;    
-    
     m_system_matrix=0;
 
     FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_gradients|update_JxW_values|update_quadrature_points);
@@ -483,7 +465,6 @@ namespace BreedSolver
     FullMatrix<double> cell_matrix (dofs_per_cell, dofs_per_cell);
     vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
     
-    double JxW, Q1;
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
     for ( ; cell!=endc; ++cell )
     {
@@ -494,8 +475,8 @@ namespace BreedSolver
 
         for ( unsigned qp=0; qp<n_q_points; qp++ )
         {
-          JxW = fe_values.JxW(qp);
-	        //Q1 = Potential.value(fe_values.quadrature_point(qp)); 
+          double JxW = fe_values.JxW(qp);
+	        //double Q1 = Potential.value(fe_values.quadrature_point(qp)); 
 
           for (unsigned int i=0; i<dofs_per_cell; ++i)
             for (unsigned int j=0; j<dofs_per_cell; ++j)

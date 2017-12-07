@@ -21,7 +21,6 @@ add_definitions("-DGIT_SHA1=${GIT_SHA1}")
 
 option( BUILD_3D "3D" OFF )
 option( BUILD_HTRAP "3D" OFF )
-option( BUILD_VARIANT2 "Variant 2" ON )
 option( BUILD_NEHARI "Disables the initial point in function space being set to the Nehari value" ON )
 
 set(CMAKE_CXX_FLAGS_RELEASE "-std=gnu++11 -march=native -O3 -fopenmp -mieee-fp -funroll-loops -ftree-vectorize -w -s")
@@ -94,14 +93,6 @@ IF( BUILD_3D )
 ELSE()
   ADD_DEFINITIONS( -DDIMENSION=2 )
   MESSAGE(STATUS "*** Building 2D" )
-ENDIF()
-
-IF( BUILD_VARIANT2 )
-  ADD_DEFINITIONS( -D__variant_2__ )
-  MESSAGE(STATUS "*** Building __variant_2__" )
-ELSE()
-  ADD_DEFINITIONS( -D__variant_1__ )
-  MESSAGE(STATUS "*** Building __variant_1__" )  
 ENDIF()
 
 if( BUILD_NEHARI )

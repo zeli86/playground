@@ -6,10 +6,40 @@
 #include <deal.II/fe/fe_values.h>
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/lac/vector.h>
+#include <deal.II/lac/generic_linear_algebra.h>
 
 namespace MyRealTools
 {
-    using namespace dealii;
+  using namespace dealii;
+
+  template<int dim>
+  double Particle_Number( const DoFHandler<dim>& dof_handler,
+                          const FE_Q<dim>& fe,
+                          const Vector<double>& vec )
+  {
+    double retval=0;
+    const QGauss<dim> quadrature_formula(fe.degree+1);
+
+    FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_quadrature_points|update_JxW_values);
+
+    const unsigned dofs_per_cell = fe.dofs_per_cell;
+    const unsigned n_q_points = quadrature_formula.size();
+
+    std::vector<double> vals(n_q_points);
+
+    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
+    for( ; cell!=endc; cell++ )
+    {
+      fe_values.reinit (cell);
+      fe_values.get_function_values(vec, vals);
+
+      for( unsigned qp=0; qp<n_q_points; qp++ )
+      {
+        retval += fe_values.JxW(qp)*vals[qp]*vals[qp];
+      }            
+    }                  
+  return retval;
+  }
 }
 
 namespace MyRealTools { namespace MPI

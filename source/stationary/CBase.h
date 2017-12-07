@@ -18,139 +18,102 @@
  */
 
 
-#include "MyParameterHandler.h"
-#include <algorithm>
-#include <cassert>
-#include <limits>
-#include <random>
-#include <vector>
-#include <array>
-#include <gsl/gsl_vector.h>
-#include <gsl/gsl_matrix.h>
-#include <gsl/gsl_multiroots.h>
-
-#ifndef __CBASE2_H__
-#define __CBASE2_H__
+#ifndef __CBASE_H__
+#define __CBASE_H__
 
 #define STR1(x) #x
 #define STR2(x) STR1(x)
 
-enum Status { SUCCESS, FAILED, ZERO_SOL, SLOW_CONV };
+#include "ref_pt_list.h"
+#include "nlopt.h"
 
-double operator*( const vector<double>& rhs, const vector<double>& lhs )
+template <int dim>
+class MySolver;
+
+template <int dim>
+double myfunc(unsigned n, const double * t, double * grad, void * my_func_data)
 {
-  assert( rhs.size() == lhs.size() );
-    
-  double retval=0;
-  const unsigned dim=rhs.size();
-  for( unsigned i=0; i<dim; i++ )
-    retval += rhs[i]*lhs[i];
-
-return retval;
-}
-
-bool my_fun0( const vector<double>& rhs, const vector<double>& lhs )
-{
-  assert( rhs.size() == lhs.size() );
-    
-  double n1=0, n2=0;
-  const unsigned dim=rhs.size();
-  for( unsigned i=0; i<dim; i++ )
+  MySolver<dim> * sol = reinterpret_cast<MySolver<dim>*>(my_func_data); 
+  if (grad) 
   {
-    n1 += rhs[i]*rhs[i];
-    n2 += lhs[i]*lhs[i];
-  }    
-  return (n1 < n2);
+    grad[0] = t[0]*sol->m_I[5] + t[1]*sol->m_I[7] + t[0]*t[0]*t[0]*sol->m_I[0] + 3.0*t[0]*t[1]*t[1]*sol->m_I[2] + 3.0*t[0]*t[0]*t[1]*sol->m_I[3] + t[1]*t[1]*t[1]*sol->m_I[4];
+    grad[1] = t[1]*sol->m_I[6] + t[0]*sol->m_I[7] + t[1]*t[1]*t[1]*sol->m_I[1] + 3.0*t[0]*t[1]*t[1]*sol->m_I[4] + 3.0*t[0]*t[0]*t[1]*sol->m_I[2] + t[0]*t[0]*t[0]*sol->m_I[3];
+  }
+  return (0.25*sol->m_I[0]*pow(t[0],4) + 0.5*sol->m_I[5]*pow(t[0],2) + 0.25*sol->m_I[1]*pow(t[1],4) + t[0]*sol->m_I[4]*pow(t[1],3) +1.5*sol->m_I[2]*pow(t[0],2)*pow(t[1],2) +0.5*sol->m_I[6]*pow(t[1],2) +pow(t[0],3)*sol->m_I[3]*t[1] +t[0]*sol->m_I[7]*t[1]);
 }
 
-bool my_fun1( const vector<double>& rhs, const vector<double>& lhs )
-{
-  assert( rhs.size() == lhs.size() );
-    
-  double n1=0, n2=0;
-  const unsigned dim=rhs.size();
-  for( unsigned i=0; i<dim; i++ )
-  {
-    n1 += rhs[i]*rhs[i];
-    n2 += lhs[i]*lhs[i];
-  }  
-  return (fabs(n1-n2)<1e-5);
-}
+enum Status { SUCCESS, FAILED, ZERO_SOL, SLOW_CONV, MAXITER, SINGULAR };
 
-class CBase2
+template <int dim> 
+class CBase
 {
   public:
-    CBase2( const std::string );
-    virtual ~CBase2() {};
+    CBase( const std::string );
+    virtual ~CBase() {};
     
+    int find_ortho_min( bool=true );
     void dump_info_xml( const string="" );
-    double l2norm_t() { return m_t[0]*m_t[0]+m_t[1]*m_t[1]; };
-  
+
+    const double l2norm_t() const;
+    
     virtual void compute_contributions()=0;
  
     MPI_Comm mpi_communicator;
-    gsl_multiroot_function_fdf m_fun;
-
-    void find_new_t();
   protected:
-    double m_T[2];
-    double m_W[5];
-    double m_V2[9];
-    double m_I12; 
-    double m_x[2];
-    double m_f[2];
-    double m_f_df[4];
-
-    void generate_initial_points();
     void screening();
-    void select_t();
-    void compute_f_df();
-    
-    double m_t[2];
-    double m_t_old[2];
+
+    double m_t[dim];
+    double m_t_guess[dim];
+
     double m_xmin, m_xmax;
     double m_ymin, m_ymax;
     double m_zmin, m_zmax;
-    double m_res;
-    double m_res_old;
-    double m_resp;
-    double m_res_over_resp;
+
+    double m_res[2];
+    double m_res_inf[2];
+    double m_res_old[2];
+    double m_resp[2];
+    double m_res_over_resp[2];
     double m_ti;    
     double m_final_error;
-    double m_mu;
+    
+    double m_mu[2];
     double m_dmu;
-    double m_N;
-    double m_L_halbe;
-
     vector<double> m_epsilon;
     vector<double> m_gs;
+    vector<double> m_gs2;
     vector<double> m_omega;
-    vector<vector<double>> m_found_t;
-    vector<vector<double>> m_t_guess;
+
+    double m_N[2];
 
     bool m_root;
     int m_rank;
-    int m_max_iter;
 
     unsigned m_counter;
+    unsigned m_maxiter;
     unsigned m_global_refinement;
     unsigned m_total_no_cells;
     unsigned m_total_no_active_cells;    
     unsigned m_NA;
     unsigned m_Ndmu;
-    unsigned m_no_initial_points;
+    
     unsigned m_QN1[3];
-    //unsigned m_QN2[3];
+    unsigned m_QN2[3];
+    unsigned m_QN3[3];
+    unsigned m_QN4[3];
     
     ofstream m_computing_timer_log;
     TimerOutput m_computing_timer;    
     MyParameterHandler m_ph;
     ConditionalOStream pcout;
 
+    MyUtils::ref_pt_list<dim> m_ref_pt_list;
+    MyUtils::ref_pt_list<dim> m_ref_pt_list_tmp;
     string m_guess_str;
 };
 
-CBase2::CBase2( const std::string xmlfilename  ) 
+template <int dim>
+CBase<dim>::CBase( const std::string xmlfilename  ) 
   : 
   mpi_communicator(MPI_COMM_WORLD), 
   m_computing_timer_log("benchmark.txt"),
@@ -158,16 +121,14 @@ CBase2::CBase2( const std::string xmlfilename  )
   m_ph(xmlfilename),
   pcout (cout, (Utilities::MPI::this_mpi_process(mpi_communicator) == 0))
 {
-  m_root = (Utilities::MPI::this_mpi_process(mpi_communicator) == 0);
-  MPI_Comm_rank(mpi_communicator, &m_rank);
- 
   try 
   {
     m_omega = m_ph.Get_Physics("omega");
     m_gs = m_ph.Get_Physics("gs_1");
-    m_QN1[0] = unsigned(m_ph.Get_Physics("QN1",0));
-    m_QN1[1] = unsigned(m_ph.Get_Physics("QN1",1));
-    m_QN1[2] = unsigned(m_ph.Get_Physics("QN1",2));
+    m_gs2 = m_ph.Get_Physics("gs_1");
+    m_QN1[0] = int(m_ph.Get_Physics("QN1",0));
+    m_QN1[1] = int(m_ph.Get_Physics("QN1",1));
+    m_QN1[2] = int(m_ph.Get_Physics("QN1",2));
 
     m_xmin = m_ph.Get_Mesh("xrange",0);
     m_xmax = m_ph.Get_Mesh("xrange",1);
@@ -178,12 +139,16 @@ CBase2::CBase2( const std::string xmlfilename  )
     m_global_refinement = unsigned(m_ph.Get_Mesh("global_refinements",0));
 
     m_ti = m_ph.Get_Algorithm("ti",0);
+    m_epsilon = m_ph.Get_Algorithm("epsilon");
     m_t[0] = m_ti;
     m_t[1] = m_ti;
+    m_t_guess[0] = m_ti;
+    m_t_guess[1] = m_ti;
+
     m_NA = int(m_ph.Get_Algorithm("NA",0));
     m_Ndmu = m_ph.Get_Algorithm("Ndmu",0); 
     m_dmu = m_ph.Get_Algorithm("dmu",0);
-    m_epsilon = m_ph.Get_Algorithm("epsilon");
+    m_maxiter = 1000;
   }
   catch( const std::string info )
   {
@@ -191,172 +156,121 @@ CBase2::CBase2( const std::string xmlfilename  )
     MPI_Abort( mpi_communicator, 0 );
   }
 
-  m_counter=0;
-  m_max_iter=200;
-  m_final_error=0;
-  m_L_halbe = 20;
-  m_no_initial_points = 100;
-  generate_initial_points();
-  memset( m_V2,0,9*sizeof(double) );
-}
-
-void CBase2::generate_initial_points()
-{
-  for( auto& el : m_t_guess )
-    el.clear();
-
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_real_distribution<> dis(-m_L_halbe, m_L_halbe);
+  /*
+  m_mu[0] = m_ph.get_double("mu");
+  m_mu[1] = m_ph.get_double("mu2");
+  m_guess_str = m_ph.get( "guess_fct" );
+  */
   
-  vector<double> tmp;
-  for( unsigned n=0; n<m_no_initial_points; n++ ) 
-  {
-    tmp.push_back(dis(gen));
-    tmp.push_back(dis(gen));
-    m_t_guess.push_back(tmp);
-    tmp.clear();
-  }
+  m_root = (Utilities::MPI::this_mpi_process(mpi_communicator) == 0);
+  MPI_Comm_rank(mpi_communicator, &m_rank);
+  
+  m_counter=0;
+  m_final_error=0;
 }
 
-void CBase2::screening()
+template <int dim>
+const double CBase<dim>::l2norm_t() const
 {
-  m_found_t.clear();
+  double retval=0;
+  for( int i=0; i<dim; i++ )
+    retval += m_t[i]*m_t[i];
+return sqrt(retval);
+}
+
+template <int dim>
+void CBase<dim>::screening()
+{
+  m_ref_pt_list_tmp.reset( 5, 20 );
+
+  for( auto& it : m_ref_pt_list_tmp.m_list )
+  {
+    nlopt_opt opt;
+    opt = nlopt_create(NLOPT_LD_MMA, dim);
+    nlopt_set_xtol_rel(opt, 1e-10);
+    nlopt_set_min_objective(opt, myfunc<dim>, this);
+
+    double * x = new double[dim];  
+    double minf; /* the minimum objective value, upon return */
+   
+    /* some initial guess */
+    for( int i=0; i<dim; i++ )
+      x[i] = it.ti[i]; 
+    
+    int status = nlopt_optimize(opt, x, &minf);
+/*
+    if ( status < 0) {
+        printf("nlopt failed!\n");
+    }
+    else {
+        printf("found minimum at f(%g,%g) = %0.10g\n", x[0], x[1], minf);
+    }
+*/
+    it.status = status;
+    it.failed = (status < 0);
+    if( !isfinite(minf) ) continue;
+    it.f = minf;
+    for( int i=0; i<dim; i++ )
+    {
+      it.t[i] = x[i];
+      //it.df[i] = 
+    }
+    //it.DumpItem( std::cout );
+
+    delete [] x;
+    nlopt_destroy(opt);
+  }
+
+  m_ref_pt_list_tmp.remove_zero_ref_points();  
+}
+
+template <int dim>
+int CBase<dim>::find_ortho_min( bool bdel_f_non_zero )
+{
   compute_contributions();
 
-  int iter;
-  vector<double> vec(2);
+  m_computing_timer.enter_section(__func__);
 
-  for( unsigned n=0; n<m_no_initial_points; n++ )
+  if( m_root )
   {
-    m_x[0] = m_t_guess[n][0];
-    m_x[1] = m_t_guess[n][1];
+    double l2_norm_t_old = 0;
+    double min = std::numeric_limits<double>::max();
+    for( int i=0; i<dim; i++ )
+      l2_norm_t_old += m_t[i]*m_t[i];
 
-    double f_norm, x_norm;
-    iter=0;
-    do    
+    l2_norm_t_old = sqrt(l2_norm_t_old);
+
+    CBase<dim>::screening();
+
+    m_ref_pt_list_tmp.remove_zero_ref_points();
+    m_ref_pt_list_tmp.remove_duplicates();
+    //if(bdel_f_non_zero) m_ref_pt_list_tmp.remove_f_non_zero();
+    ///m_ref_pt_list_tmp.Dump( std::cout );
+    //m_ref_pt_list_tmp.Dump( std::cout );
+
+    
+    for( auto it : m_ref_pt_list_tmp.m_list )
     {
-      compute_f_df();
-
-      double fak = 1.0/(m_f_df[0]*m_f_df[3]-m_f_df[2]*m_f_df[1]);
-
-      double a2 = fak*m_f_df[3];
-      double b2 = -fak*m_f_df[2];
-      double c2 = -fak*m_f_df[1];
-      double d2 = fak*m_f_df[0];
-
-      m_x[0] -= (a2*m_f[0]+b2*m_f[1]);
-      m_x[1] -= (c2*m_f[0]+d2*m_f[1]);      
-
-      f_norm = m_f[0]*m_f[0]+m_f[1]*m_f[1];
-      x_norm = m_x[0]*m_x[0]+m_x[1]*m_x[1];
-      iter++;
-      //pcout << n << ", " << iter << " , x_norm = " << x_norm << ", f_norm = " << f_norm << endl;
-    }
-    while ( iter < m_max_iter && f_norm > 1e-10 );
-
-    //pcout << iter << " , x_norm = " << x_norm << ", f_norm = " << f_norm << endl;
-
-    if( iter < m_max_iter && f_norm < 1e-10 && x_norm > 0.1 )
-    {
-      vec[0] = m_x[0];
-      vec[1] = m_x[1];
-      m_found_t.push_back(vec);
+      double tmp1 = fabs(it.l2norm_t() - l2_norm_t_old);
+      if( tmp1 < min )
+      {
+        min = tmp1;
+        for( int i=0; i<dim; i++ )
+            m_t[i] = it.t[i];
+      }
     }
   }
-  
- for ( vector<vector<double>>::iterator it=m_found_t.begin(); it!=m_found_t.end(); /*it++*/ ) 
- {
-   if( fabs((*it)[0]) < 1e-5 || fabs((*it)[1]) < 1e-5 ) 
-     it = m_found_t.erase(it);
-   else 
-     ++it;
-  }
-
-  std::sort( m_found_t.begin(), m_found_t.end(), my_fun0 );
-  m_found_t.erase( std::unique(m_found_t.begin(), m_found_t.end(), my_fun1), m_found_t.end() );  
+  int retval = m_ref_pt_list_tmp.m_list.empty();
+  MPI_Bcast( m_t, dim, MPI_DOUBLE, 0, mpi_communicator );
+  MPI_Bcast( &retval, dim, MPI_INT, 0, mpi_communicator );
+  m_computing_timer.exit_section();
+return retval;
 }
 
-void CBase2::select_t ()
+template <int dim>
+void CBase<dim>::dump_info_xml ( const string path )
 {
-  int sel=-1;
-  double old_norm = m_t_old[0]*m_t_old[0]+m_t_old[1]*m_t_old[1]; 
-  double diff = std::numeric_limits<double>::max();
-  for( int i=0; i<m_found_t.size(); i++ )
-  {
-    //double tmp = fabs( m_found_t[i][0]*m_found_t[i][0] - old_norm);
-    double tmp = fabs( m_found_t[i][0]*m_found_t[i][0] + m_found_t[i][1]*m_found_t[i][1] - old_norm);
-    if( tmp < diff )
-    {
-      sel=i;
-      diff=tmp;
-    }
-    //pcout << "i = " << i << ", " <<  m_found_t[i][0] << ", " << m_found_t[i][1] << endl;
-  }
-  m_t[0] = m_found_t[sel][0];
-  m_t[1] = m_found_t[sel][1];
-  
-  //pcout << "sel = " << sel << endl;
-  //pcout << "selected " <<  m_t[0] << ", " <<  m_t[1] << ", " << fabs( m_t[0]*m_t[0] + m_t[1]*m_t[1] - old_norm) << endl;
-}
-
-void CBase2::find_new_t ()
-{
-  m_t_old[0] = m_t[0];
-  m_t_old[1] = m_t[1];
-
-  screening();
-/*  
-  for( auto el : m_found_t )
-  {
-    pcout << el*el;
-    for( auto el2 : el )
-      pcout << "\t" << el2;
-    pcout << endl;
-  }
-*/  
-  if( m_root ) select_t();
-  MPI_Bcast( m_t, 2, MPI_DOUBLE, 0, mpi_communicator);
-}
-
-void CBase2::compute_f_df()
-{
-  memset(m_f,0,2*sizeof(double));
-  memset(m_f_df,0,4*sizeof(double));
-
-  const double t0 = m_x[0];
-  const double t1 = m_x[1];
-  const double t0q = t0*t0;
-  const double t1q = t1*t1;
-  const double t0k = t0q*t0;
-  const double t1k = t1q*t1;
-
-  m_f[0] = t0*m_T[0] + t1*m_I12;
-  m_f[0] += t0k*m_W[0] + 3*t0*t1q*m_W[2] + 3*t0q*t1*m_W[3] + t1k*m_W[4];
-  m_f[0] += t0k*m_V2[0] + t0q*t1*(m_V2[1]+m_V2[6]) + t0*t1q*(m_V2[2]+m_V2[7]) + t1k*m_V2[8];
-  m_f[1] = t1*m_T[1] + t0*m_I12; 
-  m_f[1] += t1k*m_W[1] + 3*t0*t1q*m_W[4] + 3*t0q*t1*m_W[2] + t0k*m_W[3];
-  m_f[1] += t0k*m_V2[6] + t0q*t1*(m_V2[7]+m_V2[3]) + t0*t1q*(m_V2[8]+m_V2[4]) + t1k*m_V2[5];
-
-  // df0/dt0
-  m_f_df[0] = m_T[0] + 3*t0q*m_W[0] + 3*t1q*m_W[2] + 6*t0*t1*m_W[3];
-  m_f_df[0] += 3*t0q*m_V2[0] + 2*t0*t1*(m_V2[1]+m_V2[6]) + t1q*(m_V2[2]+m_V2[7]);
-
-  // df0/dt1
-  m_f_df[2] = m_I12 + 6*t0*t1*m_W[2] + 3*t0q*m_W[3] + 3*t1q*m_W[4];
-  m_f_df[2] += t0q*(m_V2[1]+m_V2[6]) + 2*t0*t1*(m_V2[2]+m_V2[7]) + 3*t1q*m_V2[8];
-
-  // df1/dt0
-  m_f_df[1] = m_I12 + 3*t1q*m_W[4] + 6*t0*t1*m_W[2] + 3*t0q*m_W[3];
-  m_f_df[1] += 3*t0q*m_V2[6] + 2*t0*t1*(m_V2[7]+m_V2[3]) + t1q*(m_V2[8]+m_V2[4]);
-
-  // df1/dt1
-  m_f_df[3] = m_T[1] + 3*t1q*m_W[1] + 6*t0*t1*m_W[4] + 3*t0q*m_W[2];
-  m_f_df[3] += t0q*(m_V2[7]+m_V2[3]) + 2*t0*t1*(m_V2[8]+m_V2[4]) + 3*t1q*m_V2[5];
-}
-
-void CBase2::dump_info_xml ( const string path )
-{
+  //TODO: change to pugixml
   string filename = path + "info.xml";
 
   wofstream fs2;
@@ -365,9 +279,12 @@ void CBase2::dump_info_xml ( const string path )
   locale utf8_locale("en_US.UTF8");
   fs2.imbue(utf8_locale); 
   fs2 << L"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<INFO>\n";
-  fs2 << L"<MU>" << m_mu << L"</MU>\n";
+  fs2 << L"<MU>" << m_mu[0] << L"</MU>\n";
+  fs2 << L"<MU2>" << m_mu[1] << L"</MU2>\n";
   fs2 << L"<GS>" << m_gs[0] << L"</GS>\n";
-  fs2 << L"<N>" << m_N << "L</N>\n";
+  fs2 << L"<GS2>" << m_gs[1] << L"</GS2>\n";
+  fs2 << L"<N>" << m_N[0] << "L</N>\n";
+  fs2 << L"<N2>" << m_N[1] << "L</N2>\n";
   fs2 << L"<XMIN>" << m_xmin << L"</XMIN>\n";
   fs2 << L"<XMAX>" << m_xmax << L"</XMAX>\n";
   fs2 << L"<YMIN>" << m_ymin << L"</YMIN>\n";

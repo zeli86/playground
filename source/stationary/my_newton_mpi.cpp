@@ -64,9 +64,6 @@ namespace LA
 #include <deal.II/distributed/grid_refinement.h>
 #include <deal.II/distributed/solution_transfer.h>
 
-#include <gsl/gsl_vector.h>
-#include <gsl/gsl_multimin.h>
-
 #include <fstream>
 #include <iostream>
 #include <stdlib.h>
@@ -80,16 +77,13 @@ namespace LA
 #include "mpi.h"
 #include "functions.h"
 #include "my_table.h"
-#include "ref_pt_list.h"
+//#include "ref_pt_list.h"
 #include "MyParameterHandler.h"
 #include "MyRealTools.h"
 #include "muParser.h"
 
 namespace BreedSolver
 {
-  template <int dim>
-  class MySolver;
-
   using namespace std;
   using namespace dealii;
 

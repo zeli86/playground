@@ -81,7 +81,7 @@ namespace LA
 #include "functions.h"
 #include "my_table.h"
 #include "MyParameterHandler.h"
-#include "CBase.h"
+#include "CBase2.h"
 
 #define STR1(x) #x
 #define STR2(x) STR1(x)
