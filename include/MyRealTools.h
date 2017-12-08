@@ -10,6 +10,7 @@
 
 namespace MyRealTools
 {
+  using namespace std;
   using namespace dealii;
 
   template<int dim>
