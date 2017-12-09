@@ -33,9 +33,7 @@ namespace MyComplexTools
     const FEValuesExtractors::Scalar rt(0);
     const FEValuesExtractors::Scalar it(1);
 
-    FEValues<dim> fe_values(fe, quadrature_formula,
-                            update_values | update_quadrature_points |
-                            update_JxW_values);
+    FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_quadrature_points | update_JxW_values);
 
     const unsigned dofs_per_cell = fe.dofs_per_cell;
     const unsigned n_q_points = quadrature_formula.size();
@@ -45,15 +43,13 @@ namespace MyComplexTools
 
     vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
     vector<Vector<double>> vals(n_q_points, Vector<double>(2));
-    vector<vector<Tensor<1, dim>>> vals_grad(n_q_points,
-        vector<Tensor<1, dim>>(2));
+    vector<vector<Tensor<1, dim>>> vals_grad(n_q_points,vector<Tensor<1, dim>>(2));
 
     const double a = std::real(z);
     const double b = std::imag(z);
 
-    typename DoFHandler<dim>::active_cell_iterator cell =
-      dof_handler.begin_active(),
-      endc = dof_handler.end();
+    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
+                                                   endc = dof_handler.end(); 
     for (; cell != endc; cell++)
     {
       cell_matrix = 0;
@@ -82,8 +78,7 @@ namespace MyComplexTools
         }
       }
       cell->get_dof_indices(local_dof_indices);
-      constraints.distribute_local_to_global(cell_matrix, cell_rhs,
-                                             local_dof_indices, matrix, rhs);
+      constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, matrix, rhs);
     }
   }
 
@@ -116,12 +111,9 @@ namespace MyComplexTools
 
     vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
     vector<Vector<double>> vals(n_q_points, Vector<double>(2));
-    vector<vector<Tensor<1, dim>>> vals_grad(n_q_points,
-        vector<Tensor<1, dim>>(2));
+    vector<vector<Tensor<1, dim>>> vals_grad(n_q_points, vector<Tensor<1, dim>>(2));
 
-    typename DoFHandler<dim>::active_cell_iterator cell =
-      dof_handler.begin_active(),
-      endc = dof_handler.end();
+    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
     for (; cell != endc; cell++)
     {
       cell_matrix = 0;
@@ -140,30 +132,14 @@ namespace MyComplexTools
         {
           for (unsigned j = 0; j < dofs_per_cell; j++)
           {
-            cell_matrix(i, j) +=
-              JxW * (fe_values[rt].value(i, qp) * fe_values[rt].value(j, qp) -
-                     dth * (fe_values[rt].gradient(i, qp) *
-                            fe_values[it].gradient(j, qp) +
-                            pot * fe_values[rt].value(i, qp) *
-                            fe_values[it].value(j, qp)) +
-                     fe_values[it].value(i, qp) * fe_values[it].value(j, qp) +
-                     dth * (fe_values[it].gradient(i, qp) *
-                            fe_values[rt].gradient(j, qp) +
-                            pot * fe_values[it].value(i, qp) *
-                            fe_values[rt].value(j, qp)));
+            cell_matrix(i, j) += JxW * (fe_values[rt].value(i, qp) * fe_values[rt].value(j, qp) - dth * (fe_values[rt].gradient(i, qp) * fe_values[it].gradient(j, qp) + pot * fe_values[rt].value(i, qp) * fe_values[it].value(j, qp)) + fe_values[it].value(i, qp) * fe_values[it].value(j, qp) + dth * (fe_values[it].gradient(i, qp) * fe_values[rt].gradient(j, qp) + pot * fe_values[it].value(i, qp) * fe_values[rt].value(j, qp)));
           }
-          cell_rhs(i) +=
-            JxW * (vals[qp][0] * fe_values[rt].value(i, qp) +
-                   dth * (vals_grad[qp][1] * fe_values[rt].gradient(i, qp) +
-                          pot * vals[qp][1] * fe_values[rt].value(i, qp)) +
-                   vals[qp][1] * fe_values[it].value(i, qp) -
-                   dth * (vals_grad[qp][0] * fe_values[it].gradient(i, qp) +
-                          pot * vals[qp][0] * fe_values[it].value(i, qp)));
+          cell_rhs(i) += JxW * (vals[qp][0] * fe_values[rt].value(i, qp) + dth * (vals_grad[qp][1] * fe_values[rt].gradient(i, qp) + pot * vals[qp][1] * fe_values[rt].value(i, qp)) + 
+                                vals[qp][1] * fe_values[it].value(i, qp) - dth * (vals_grad[qp][0] * fe_values[it].gradient(i, qp) + pot * vals[qp][0] * fe_values[it].value(i, qp)));
         }
       }
       cell->get_dof_indices(local_dof_indices);
-      constraints.distribute_local_to_global(cell_matrix, cell_rhs,
-                                             local_dof_indices, matrix, rhs);
+      constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, matrix, rhs);
     }
   }
 
@@ -183,9 +159,7 @@ namespace MyComplexTools
     const FEValuesExtractors::Scalar it(1);
     const double dth = 0.5 * dt;
 
-    FEValues<dim> fe_values(fe, quadrature_formula,
-                            update_values | update_gradients |
-                            update_quadrature_points | update_JxW_values);
+    FEValues<dim> fe_values(fe, quadrature_formula,  update_values | update_gradients | update_quadrature_points | update_JxW_values);
 
     const unsigned dofs_per_cell = fe.dofs_per_cell;
     const unsigned n_q_points = quadrature_formula.size();
@@ -195,12 +169,10 @@ namespace MyComplexTools
 
     vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
     vector<Vector<double>> vals(n_q_points, Vector<double>(2));
-    vector<vector<Tensor<1, dim>>> vals_grad(n_q_points,
-        vector<Tensor<1, dim>>(2));
+    vector<vector<Tensor<1, dim>>> vals_grad(n_q_points, vector<Tensor<1, dim>>(2));
 
-    typename DoFHandler<dim>::active_cell_iterator cell =
-      dof_handler.begin_active(),
-      endc = dof_handler.end();
+    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
+                                                   endc = dof_handler.end();
     for (; cell != endc; cell++)
     {
       cell_matrix = 0;
@@ -218,24 +190,17 @@ namespace MyComplexTools
         {
           for (unsigned j = 0; j < dofs_per_cell; j++)
           {
-            cell_matrix(i, j) +=
-              JxW * (fe_values[rt].value(i, qp) * fe_values[rt].value(j, qp) -
-                     dth * fe_values[rt].gradient(i, qp) *
-                     fe_values[it].gradient(j, qp) +
-                     fe_values[it].value(i, qp) * fe_values[it].value(j, qp) +
-                     dth * fe_values[it].gradient(i, qp) *
-                     fe_values[rt].gradient(j, qp));
+            cell_matrix(i, j) += JxW * (fe_values[rt].value(i, qp) * fe_values[rt].value(j, qp) - 
+                                        dth * fe_values[rt].gradient(i, qp) * fe_values[it].gradient(j, qp) +
+                                        fe_values[it].value(i, qp) * fe_values[it].value(j, qp) +
+                                        dth * fe_values[it].gradient(i, qp) * fe_values[rt].gradient(j, qp));
           }
-          cell_rhs(i) +=
-            JxW * (vals[qp][0] * fe_values[rt].value(i, qp) +
-                   dth * vals_grad[qp][1] * fe_values[rt].gradient(i, qp) +
-                   vals[qp][1] * fe_values[it].value(i, qp) -
-                   dth * vals_grad[qp][0] * fe_values[it].gradient(i, qp));
+          cell_rhs(i) += JxW * (vals[qp][0] * fe_values[rt].value(i, qp) + dth * vals_grad[qp][1] * fe_values[rt].gradient(i, qp) +
+                                vals[qp][1] * fe_values[it].value(i, qp) - dth * vals_grad[qp][0] * fe_values[it].gradient(i, qp));
         }
       }
       cell->get_dof_indices(local_dof_indices);
-      constraints.distribute_local_to_global(cell_matrix, cell_rhs,
-                                             local_dof_indices, matrix, rhs);
+      constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, matrix, rhs);
     }
   }
 
@@ -256,9 +221,7 @@ namespace MyComplexTools
     const FEValuesExtractors::Scalar it(1);
     const double dth = 0.5 * dt;
 
-    FEValues<dim> fe_values(fe, quadrature_formula,
-                            update_values | update_quadrature_points |
-                            update_JxW_values);
+    FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_quadrature_points | update_JxW_values);
 
     const unsigned dofs_per_cell = fe.dofs_per_cell;
     const unsigned n_q_points = quadrature_formula.size();
@@ -268,12 +231,10 @@ namespace MyComplexTools
 
     vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
     vector<Vector<double>> vals(n_q_points, Vector<double>(2));
-    vector<vector<Tensor<1, dim>>> vals_grad(n_q_points,
-        vector<Tensor<1, dim>>(2));
+    vector<vector<Tensor<1, dim>>> vals_grad(n_q_points, vector<Tensor<1, dim>>(2));
 
-    typename DoFHandler<dim>::active_cell_iterator cell =
-      dof_handler.begin_active(),
-      endc = dof_handler.end();
+    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
+                                                   endc = dof_handler.end();
     for (; cell != endc; cell++)
     {
       cell_matrix = 0;
@@ -297,17 +258,15 @@ namespace MyComplexTools
         {
           for (unsigned j = 0; j < dofs_per_cell; j++)
           {
-            cell_matrix(i, j) +=
-              JxW * (fe_values[rt].value(i, qp) * fe_values[rt].value(j, qp) +
-                     fe_values[it].value(i, qp) * fe_values[it].value(j, qp));
+            cell_matrix(i, j) += JxW * (fe_values[rt].value(i, qp) * fe_values[rt].value(j, qp) +
+                                        fe_values[it].value(i, qp) * fe_values[it].value(j, qp));
           }
           cell_rhs(i) += JxW * ((a * c - b * d) * fe_values[rt].value(i, qp) +
                                 (b * c + a * d) * fe_values[it].value(i, qp));
         }
       }
       cell->get_dof_indices(local_dof_indices);
-      constraints.distribute_local_to_global(cell_matrix, cell_rhs,
-                                             local_dof_indices, matrix, rhs);
+      constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, matrix, rhs);
     }
   }
 
@@ -320,18 +279,15 @@ namespace MyComplexTools
     const FEValuesExtractors::Scalar rt(0);
     const FEValuesExtractors::Scalar it(1);
 
-    FEValues<dim> fe_values(fe, quadrature_formula,
-                            update_values | update_quadrature_points |
-                            update_JxW_values);
+    FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_quadrature_points | update_JxW_values);
 
     const unsigned dofs_per_cell = fe.dofs_per_cell;
     const unsigned n_q_points = quadrature_formula.size();
 
     vector<Vector<double>> vals(n_q_points, Vector<double>(2));
 
-    typename DoFHandler<dim>::active_cell_iterator cell =
-      dof_handler.begin_active(),
-      endc = dof_handler.end();
+    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
+                                                   endc = dof_handler.end();
     for (; cell != endc; cell++)
     {
       fe_values.reinit(cell);
@@ -339,8 +295,7 @@ namespace MyComplexTools
 
       for (unsigned qp = 0; qp < n_q_points; qp++)
       {
-        retval += fe_values.JxW(qp) *
-                  (vals[qp][0] * vals[qp][0] + vals[qp][1] * vals[qp][1]);
+        retval += fe_values.JxW(qp) * (vals[qp][0] * vals[qp][0] + vals[qp][1] * vals[qp][1]);
       }
     }
     return retval;
@@ -361,9 +316,7 @@ namespace MyComplexTools
     const FEValuesExtractors::Scalar rt(0);
     const FEValuesExtractors::Scalar it(1);
 
-    FEValues<dim> fe_values(fe, quadrature_formula,
-                            update_values | update_quadrature_points |
-                            update_JxW_values);
+    FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_quadrature_points | update_JxW_values);
 
     const unsigned dofs_per_cell = fe.dofs_per_cell;
     const unsigned n_q_points = quadrature_formula.size();
@@ -372,9 +325,8 @@ namespace MyComplexTools
     vector<Vector<double>> vals(n_q_points, Vector<double>(2));
 
     Point<dim> tmp;
-    typename DoFHandler<dim>::active_cell_iterator cell =
-      dof_handler.begin_active(),
-      endc = dof_handler.end();
+    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
+                                                   endc = dof_handler.end();
     for (; cell != endc; cell++)
     {
       fe_values.reinit(cell);
@@ -382,8 +334,7 @@ namespace MyComplexTools
 
       for (unsigned qp = 0; qp < n_q_points; qp++)
       {
-        double JxWxn = fe_values.JxW(qp) *
-                       (vals[qp][0] * vals[qp][0] + vals[qp][1] * vals[qp][1]);
+        double JxWxn = fe_values.JxW(qp) * (vals[qp][0] * vals[qp][0] + vals[qp][1] * vals[qp][1]);
         Point<dim> spacept = fe_values.quadrature_point(qp);
         tmp += JxWxn * spacept;
       }
@@ -407,18 +358,15 @@ namespace MyComplexTools
     Point<dim> tmp;
 
     const QGauss<dim> quadrature_formula(fe.degree + 1);
-    FEValues<dim> fe_values(fe, quadrature_formula,
-                            update_values | update_gradients | update_JxW_values);
+    FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_gradients | update_JxW_values);
 
     const unsigned n_q_points = quadrature_formula.size();
     vector<Vector<double>> vec_vals(n_q_points, Vector<double>(2));
-    vector<vector<Tensor<1, dim>>> vec_grads(n_q_points,
-        vector<Tensor<1, dim>>(2));
+    vector<vector<Tensor<1, dim>>> vec_grads(n_q_points, vector<Tensor<1, dim>>(2));
 
-    typename DoFHandler<dim>::active_cell_iterator cell =
-      dof_handler.begin_active(),
-      endc = dof_handler.end();
-    for (; cell != endc; cell++)
+    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), 
+                                                   endc = dof_handler.end();
+    for (; cell != endc; cell++) 
     {
       fe_values.reinit(cell);
       fe_values.get_function_values(vec, vec_vals);
@@ -426,8 +374,7 @@ namespace MyComplexTools
       {
         double JxW = fe_values.JxW(qp);
         for (unsigned i = 0; i < dim; i++)
-          retval[i] += JxW * (vec_vals[qp][0] * vec_grads[qp][1][i] -
-                              vec_vals[qp][1] * vec_grads[qp][0][i]);
+          retval[i] += JxW * (vec_vals[qp][0] * vec_grads[qp][1][i] - vec_vals[qp][1] * vec_grads[qp][0][i]);
       }
     }
   }
@@ -454,17 +401,14 @@ namespace MyComplexTools
     SparsityPattern sparsity_pattern;
     DynamicSparsityPattern dsp(dof_handler_2.n_dofs(), dof_handler_2.n_dofs());
     DoFTools::make_sparsity_pattern(dof_handler_2, dsp);
-    constraints.condense(dsp);
     sparsity_pattern.copy_from(dsp);
     matrix.reinit(sparsity_pattern);
 
     rhs = 0;
     matrix = 0;
 
-    FEValues<dim> fe_values(fe, quadrature_formula,
-                            update_values | update_JxW_values);
-    FEValues<dim> fe_values_2(fe_2, quadrature_formula,
-                              update_values | update_JxW_values);
+    FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_JxW_values);
+    FEValues<dim> fe_values_2(fe_2, quadrature_formula, update_values | update_JxW_values);
 
     const unsigned dofs_per_cell = fe_2.dofs_per_cell;
     const unsigned n_q_points = quadrature_formula.size();
@@ -475,11 +419,9 @@ namespace MyComplexTools
     Vector<double> cell_rhs(dofs_per_cell);
     FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
 
-    typename DoFHandler<dim>::active_cell_iterator cell =
-      dof_handler.begin_active(),
-      endc = dof_handler.end();
-    typename DoFHandler<dim>::active_cell_iterator cell_2 =
-      dof_handler_2.begin_active();
+    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
+                                                   endc = dof_handler.end();
+    typename DoFHandler<dim>::active_cell_iterator cell_2 = dof_handler_2.begin_active();
     for (; cell != endc; cell++, cell_2++)
     {
       cell_rhs = 0;
@@ -507,18 +449,8 @@ namespace MyComplexTools
         }
       }
       cell_2->get_dof_indices(local_dof_indices);
-
-      for (unsigned i = 0; i < dofs_per_cell; i++)
-      {
-        for (unsigned j = 0; j < dofs_per_cell; j++)
-        {
-          matrix.add(local_dof_indices[i], local_dof_indices[j],
-                     cell_matrix(i, j));
-        }
-        rhs(local_dof_indices[i]) += cell_rhs(i);
-      }
+      constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, matrix, rhs);
     }
-    constraints.condense(matrix, rhs);
 
     SparseDirectUMFPACK A_direct;
     A_direct.initialize(matrix);
@@ -528,7 +460,6 @@ namespace MyComplexTools
 
     ret = sol;
   }
-
 } // end of namespace
 
 namespace MyComplexTools
@@ -560,8 +491,7 @@ namespace MyComplexTools
       const FEValuesExtractors::Scalar rt(0);
       const FEValuesExtractors::Scalar it(1);
 
-      FEValues<dim> fe_values(fe, quadrature_formula,
-                              update_values | update_JxW_values);
+      FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_JxW_values);
 
       const unsigned dofs_per_cell = fe.dofs_per_cell;
       const unsigned n_q_points = quadrature_formula.size();
@@ -575,9 +505,8 @@ namespace MyComplexTools
       const double a = std::real(z);
       const double b = std::imag(z);
 
-      typename DoFHandler<dim>::active_cell_iterator cell =
-        dof_handler.begin_active(),
-        endc = dof_handler.end();
+      typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
+                                                     endc = dof_handler.end();
       for (; cell != endc; cell++)
       {
         if (cell->is_locally_owned())
@@ -596,9 +525,8 @@ namespace MyComplexTools
             {
               for (unsigned j = 0; j < dofs_per_cell; j++)
               {
-                cell_matrix(i, j) +=
-                  JxW * (fe_values[rt].value(i, qp) * fe_values[rt].value(j, qp) +
-                         fe_values[it].value(i, qp) * fe_values[it].value(j, qp));
+                cell_matrix(i, j) += JxW * (fe_values[rt].value(i, qp) * fe_values[rt].value(j, qp) +
+                                            fe_values[it].value(i, qp) * fe_values[it].value(j, qp));
               }
               double c = vals[qp][0];
               double d = vals[qp][1];
@@ -607,8 +535,7 @@ namespace MyComplexTools
             }
           }
           cell->get_dof_indices(local_dof_indices);
-          constraints.distribute_local_to_global(cell_matrix, cell_rhs,
-                                                 local_dof_indices, matrix, rhs);
+          constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, matrix, rhs);
         }
       }
       rhs.compress(VectorOperation::add);
@@ -633,9 +560,7 @@ namespace MyComplexTools
       const FEValuesExtractors::Scalar rt(0);
       const FEValuesExtractors::Scalar it(1);
 
-      FEValues<dim> fe_values(fe, quadrature_formula,
-                              update_values | update_quadrature_points |
-                              update_JxW_values);
+      FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_quadrature_points | update_JxW_values);
 
       const unsigned dofs_per_cell = fe.dofs_per_cell;
       const unsigned n_q_points = quadrature_formula.size();
@@ -646,9 +571,8 @@ namespace MyComplexTools
 
       vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
 
-      typename DoFHandler<dim>::active_cell_iterator cell =
-        dof_handler.begin_active(),
-        endc = dof_handler.end();
+      typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
+                                                     endc = dof_handler.end();
       for (; cell != endc; cell++)
       {
         if (cell->is_locally_owned())
@@ -664,8 +588,7 @@ namespace MyComplexTools
             double JxW = fe_values.JxW(qp);
             double c = vals[qp][0];
             double d = vals[qp][1];
-            double phi =
-              -gamdt * (vals[qp][0] * vals[qp][0] + vals[qp][1] * vals[qp][1]);
+            double phi = -gamdt * (vals[qp][0] * vals[qp][0] + vals[qp][1] * vals[qp][1]);
             double a, b;
             sincos(phi, &b, &a);
 
@@ -673,17 +596,15 @@ namespace MyComplexTools
             {
               for (unsigned j = 0; j < dofs_per_cell; j++)
               {
-                cell_matrix(i, j) +=
-                  JxW * (fe_values[rt].value(i, qp) * fe_values[rt].value(j, qp) +
-                         fe_values[it].value(i, qp) * fe_values[it].value(j, qp));
+                cell_matrix(i, j) += JxW * (fe_values[rt].value(i, qp) * fe_values[rt].value(j, qp) +
+                                            fe_values[it].value(i, qp) * fe_values[it].value(j, qp));
               }
               cell_rhs(i) += JxW * ((a * c - b * d) * fe_values[rt].value(i, qp) +
                                     (b * c + a * d) * fe_values[it].value(i, qp));
             }
           }
           cell->get_dof_indices(local_dof_indices);
-          constraints.distribute_local_to_global(cell_matrix, cell_rhs,
-                                                 local_dof_indices, matrix, rhs);
+          constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, matrix, rhs);
         }
       }
       rhs.compress(VectorOperation::add);
@@ -709,9 +630,7 @@ namespace MyComplexTools
       const FEValuesExtractors::Scalar rt(0);
       const FEValuesExtractors::Scalar it(1);
 
-      FEValues<dim> fe_values(fe, quadrature_formula,
-                              update_values | update_quadrature_points |
-                              update_JxW_values);
+      FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_quadrature_points | update_JxW_values);
 
       const unsigned dofs_per_cell = fe.dofs_per_cell;
       const unsigned n_q_points = quadrature_formula.size();
@@ -722,9 +641,8 @@ namespace MyComplexTools
 
       vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
 
-      typename DoFHandler<dim>::active_cell_iterator cell =
-        dof_handler.begin_active(),
-        endc = dof_handler.end();
+      typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
+                                                     endc = dof_handler.end();
       for (; cell != endc; cell++)
       {
         if (cell->is_locally_owned())
@@ -740,10 +658,7 @@ namespace MyComplexTools
             double JxW = fe_values.JxW(qp);
             double c = vals[qp][0];
             double d = vals[qp][1];
-            double phi =
-              -dt *
-              (gam * (vals[qp][0] * vals[qp][0] + vals[qp][1] * vals[qp][1]) +
-               Potential.value(fe_values.quadrature_point(qp)));
+            double phi = -dt * (gam * (vals[qp][0] * vals[qp][0] + vals[qp][1] * vals[qp][1]) + Potential.value(fe_values.quadrature_point(qp)));
             double a, b;
             sincos(phi, &b, &a);
 
@@ -751,17 +666,15 @@ namespace MyComplexTools
             {
               for (unsigned j = 0; j < dofs_per_cell; j++)
               {
-                cell_matrix(i, j) +=
-                  JxW * (fe_values[rt].value(i, qp) * fe_values[rt].value(j, qp) +
-                         fe_values[it].value(i, qp) * fe_values[it].value(j, qp));
+                cell_matrix(i, j) += JxW * (fe_values[rt].value(i, qp) * fe_values[rt].value(j, qp) +
+                                            fe_values[it].value(i, qp) * fe_values[it].value(j, qp));
               }
               cell_rhs(i) += JxW * ((a * c - b * d) * fe_values[rt].value(i, qp) +
                                     (b * c + a * d) * fe_values[it].value(i, qp));
             }
           }
           cell->get_dof_indices(local_dof_indices);
-          constraints.distribute_local_to_global(cell_matrix, cell_rhs,
-                                                 local_dof_indices, matrix, rhs);
+          constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, matrix, rhs);
         }
       }
       rhs.compress(VectorOperation::add);
@@ -788,9 +701,7 @@ namespace MyComplexTools
       const FEValuesExtractors::Scalar it(1);
       const double dth = 0.5 * dt;
 
-      FEValues<dim> fe_values(fe, quadrature_formula,
-                              update_values | update_gradients |
-                              update_quadrature_points | update_JxW_values);
+      FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_gradients | update_quadrature_points | update_JxW_values);
 
       const unsigned dofs_per_cell = fe.dofs_per_cell;
       const unsigned n_q_points = quadrature_formula.size();
@@ -798,14 +709,12 @@ namespace MyComplexTools
       FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
       Vector<double> cell_rhs(dofs_per_cell);
       vector<Vector<double>> vals(n_q_points, Vector<double>(2));
-      vector<vector<Tensor<1, dim>>> vals_grad(n_q_points,
-          vector<Tensor<1, dim>>(2));
+      vector<vector<Tensor<1, dim>>> vals_grad(n_q_points, vector<Tensor<1, dim>>(2));
 
       vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
 
-      typename DoFHandler<dim>::active_cell_iterator cell =
-        dof_handler.begin_active(),
-        endc = dof_handler.end();
+      typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
+                                                     endc = dof_handler.end();
       for (; cell != endc; cell++)
       {
         if (cell->is_locally_owned())
@@ -826,30 +735,17 @@ namespace MyComplexTools
             {
               for (unsigned j = 0; j < dofs_per_cell; j++)
               {
-                cell_matrix(i, j) +=
-                  JxW * (fe_values[rt].value(i, qp) * fe_values[rt].value(j, qp) -
-                         dth * (fe_values[rt].gradient(i, qp) *
-                                fe_values[it].gradient(j, qp) +
-                                pot * fe_values[rt].value(i, qp) *
-                                fe_values[it].value(j, qp)) +
-                         fe_values[it].value(i, qp) * fe_values[it].value(j, qp) +
-                         dth * (fe_values[it].gradient(i, qp) *
-                                fe_values[rt].gradient(j, qp) +
-                                pot * fe_values[it].value(i, qp) *
-                                fe_values[rt].value(j, qp)));
+                cell_matrix(i, j) += JxW * (fe_values[rt].value(i, qp) * fe_values[rt].value(j, qp) -
+                                            dth * (fe_values[rt].gradient(i, qp) * fe_values[it].gradient(j, qp) + pot * fe_values[rt].value(i, qp) * fe_values[it].value(j, qp)) +
+                                            fe_values[it].value(i, qp) * fe_values[it].value(j, qp) +
+                                            dth * (fe_values[it].gradient(i, qp) * fe_values[rt].gradient(j, qp) + pot * fe_values[it].value(i, qp) * fe_values[rt].value(j, qp)));
               }
-              cell_rhs(i) +=
-                JxW * (vals[qp][0] * fe_values[rt].value(i, qp) +
-                       dth * (vals_grad[qp][1] * fe_values[rt].gradient(i, qp) +
-                              pot * vals[qp][1] * fe_values[rt].value(i, qp)) +
-                       vals[qp][1] * fe_values[it].value(i, qp) -
-                       dth * (vals_grad[qp][0] * fe_values[it].gradient(i, qp) +
-                              pot * vals[qp][0] * fe_values[it].value(i, qp)));
+              cell_rhs(i) += JxW * (vals[qp][0] * fe_values[rt].value(i, qp) + dth * (vals_grad[qp][1] * fe_values[rt].gradient(i, qp) + pot * vals[qp][1] * fe_values[rt].value(i, qp)) +
+                                    vals[qp][1] * fe_values[it].value(i, qp) - dth * (vals_grad[qp][0] * fe_values[it].gradient(i, qp) + pot * vals[qp][0] * fe_values[it].value(i, qp)));
             }
           }
           cell->get_dof_indices(local_dof_indices);
-          constraints.distribute_local_to_global(cell_matrix, cell_rhs,
-                                                 local_dof_indices, matrix, rhs);
+          constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, matrix, rhs);
         }
       }
       rhs.compress(VectorOperation::add);
@@ -875,9 +771,7 @@ namespace MyComplexTools
       const FEValuesExtractors::Scalar it(1);
       const double dth = 0.5 * dt;
 
-      FEValues<dim> fe_values(fe, quadrature_formula,
-                              update_values | update_gradients |
-                              update_quadrature_points | update_JxW_values);
+      FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_gradients | update_quadrature_points | update_JxW_values);
 
       const unsigned dofs_per_cell = fe.dofs_per_cell;
       const unsigned n_q_points = quadrature_formula.size();
@@ -885,14 +779,12 @@ namespace MyComplexTools
       FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
       Vector<double> cell_rhs(dofs_per_cell);
       vector<Vector<double>> vals(n_q_points, Vector<double>(2));
-      vector<vector<Tensor<1, dim>>> vals_grad(n_q_points,
-          vector<Tensor<1, dim>>(2));
+      vector<vector<Tensor<1, dim>>> vals_grad(n_q_points, vector<Tensor<1, dim>>(2));
 
       vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
 
-      typename DoFHandler<dim>::active_cell_iterator cell =
-        dof_handler.begin_active(),
-        endc = dof_handler.end();
+      typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
+                                                     endc = dof_handler.end();
       for (; cell != endc; cell++)
       {
         if (cell->is_locally_owned())
@@ -912,24 +804,17 @@ namespace MyComplexTools
             {
               for (unsigned j = 0; j < dofs_per_cell; j++)
               {
-                cell_matrix(i, j) +=
-                  JxW * (fe_values[rt].value(i, qp) * fe_values[rt].value(j, qp) -
-                         dth * fe_values[rt].gradient(i, qp) *
-                         fe_values[it].gradient(j, qp) +
-                         fe_values[it].value(i, qp) * fe_values[it].value(j, qp) +
-                         dth * fe_values[it].gradient(i, qp) *
-                         fe_values[rt].gradient(j, qp));
+                cell_matrix(i, j) += JxW * (fe_values[rt].value(i, qp) * fe_values[rt].value(j, qp) -
+                                            dth * fe_values[rt].gradient(i, qp) *
+                                            fe_values[it].gradient(j, qp) + fe_values[it].value(i, qp) * fe_values[it].value(j, qp) + 
+                                            dth * fe_values[it].gradient(i, qp) * fe_values[rt].gradient(j, qp));
               }
-              cell_rhs(i) +=
-                JxW * (vals[qp][0] * fe_values[rt].value(i, qp) +
-                       dth * vals_grad[qp][1] * fe_values[rt].gradient(i, qp) +
-                       vals[qp][1] * fe_values[it].value(i, qp) -
-                       dth * vals_grad[qp][0] * fe_values[it].gradient(i, qp));
+              cell_rhs(i) += JxW * (vals[qp][0] * fe_values[rt].value(i, qp) + dth * vals_grad[qp][1] * fe_values[rt].gradient(i, qp) +
+                                    vals[qp][1] * fe_values[it].value(i, qp) - dth * vals_grad[qp][0] * fe_values[it].gradient(i, qp));
             }
           }
           cell->get_dof_indices(local_dof_indices);
-          constraints.distribute_local_to_global(cell_matrix, cell_rhs,
-                                                 local_dof_indices, matrix, rhs);
+          constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, matrix, rhs);
         }
       }
       rhs.compress(VectorOperation::add);
@@ -946,15 +831,13 @@ namespace MyComplexTools
       double tmp = 0;
 
       const QGauss<dim> quadrature_formula(fe.degree + 1);
-      FEValues<dim> fe_values(fe, quadrature_formula,
-                              update_values | update_JxW_values);
+      FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_JxW_values);
 
       const unsigned n_q_points = quadrature_formula.size();
       vector<Vector<double>> vec_vals(n_q_points, Vector<double>(2));
 
-      typename DoFHandler<dim>::active_cell_iterator cell =
-        dof_handler.begin_active(),
-        endc = dof_handler.end();
+      typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
+                                                     endc = dof_handler.end();
       for (; cell != endc; cell++)
       {
         if (cell->is_locally_owned())
@@ -963,8 +846,7 @@ namespace MyComplexTools
           fe_values.get_function_values(vec, vec_vals);
           for (unsigned qp = 0; qp < n_q_points; qp++)
           {
-            tmp += fe_values.JxW(qp) * (vec_vals[qp][0] * vec_vals[qp][0] +
-                                        vec_vals[qp][1] * vec_vals[qp][1]);
+            tmp += fe_values.JxW(qp) * (vec_vals[qp][0] * vec_vals[qp][0] + vec_vals[qp][1] * vec_vals[qp][1]);
           }
         }
       }
@@ -975,10 +857,10 @@ namespace MyComplexTools
     }
 
     template <int dim>
-    std::complex<double>
-    L2_dot_product(MPI_Comm mpi_communicator, const DoFHandler<dim> &dof_handler,
-                   const FESystem<dim> &fe, const LA::MPI::Vector &vec1,
-                   const LA::MPI::Vector &vec2)
+    std::complex<double> L2_dot_product(MPI_Comm mpi_communicator, 
+                                        const DoFHandler<dim> &dof_handler,
+                                        const FESystem<dim> &fe, const LA::MPI::Vector &vec1,
+                                        const LA::MPI::Vector &vec2)
     {
       assert(vec1.has_ghost_elements() == true);
       assert(vec2.has_ghost_elements() == true);
@@ -987,16 +869,14 @@ namespace MyComplexTools
       double retval[] = {0, 0};
 
       const QGauss<dim> quadrature_formula(fe.degree + 1);
-      FEValues<dim> fe_values(fe, quadrature_formula,
-                              update_values | update_JxW_values);
+      FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_JxW_values);
 
       const unsigned n_q_points = quadrature_formula.size();
       vector<Vector<double>> vec_vals_1(n_q_points, Vector<double>(2));
       vector<Vector<double>> vec_vals_2(n_q_points, Vector<double>(2));
 
-      typename DoFHandler<dim>::active_cell_iterator cell =
-        dof_handler.begin_active(),
-        endc = dof_handler.end();
+      typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
+                                                     endc = dof_handler.end();
       for (; cell != endc; cell++)
       {
         if (cell->is_locally_owned())
@@ -1007,10 +887,8 @@ namespace MyComplexTools
           for (unsigned qp = 0; qp < n_q_points; qp++)
           {
             double JxW = fe_values.JxW(qp);
-            tmp[0] += JxW * (vec_vals_1[qp][0] * vec_vals_2[qp][0] +
-                             vec_vals_1[qp][1] * vec_vals_2[qp][1]);
-            tmp[1] += JxW * (vec_vals_1[qp][0] * vec_vals_2[qp][1] -
-                             vec_vals_1[qp][1] * vec_vals_2[qp][0]);
+            tmp[0] += JxW * (vec_vals_1[qp][0] * vec_vals_2[qp][0] + vec_vals_1[qp][1] * vec_vals_2[qp][1]);
+            tmp[1] += JxW * (vec_vals_1[qp][0] * vec_vals_2[qp][1] - vec_vals_1[qp][1] * vec_vals_2[qp][0]);
           }
         }
       }
@@ -1031,16 +909,13 @@ namespace MyComplexTools
       Point<dim> tmp;
 
       const QGauss<dim> quadrature_formula(fe.degree + 1);
-      FEValues<dim> fe_values(fe, quadrature_formula,
-                              update_values | update_quadrature_points |
-                              update_JxW_values);
+      FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_quadrature_points | update_JxW_values);
 
       const unsigned n_q_points = quadrature_formula.size();
       vector<Vector<double>> vec_vals(n_q_points, Vector<double>(2));
 
-      typename DoFHandler<dim>::active_cell_iterator cell =
-        dof_handler.begin_active(),
-        endc = dof_handler.end();
+      typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
+                                                     endc = dof_handler.end();
       for (; cell != endc; cell++)
       {
         if (cell->is_locally_owned())
@@ -1049,8 +924,7 @@ namespace MyComplexTools
           fe_values.get_function_values(vec, vec_vals);
           for (unsigned qp = 0; qp < n_q_points; qp++)
           {
-            double JxWxn = fe_values.JxW(qp) * (vec_vals[qp][0] * vec_vals[qp][0] +
-                                                vec_vals[qp][1] * vec_vals[qp][1]);
+            double JxWxn = fe_values.JxW(qp) * (vec_vals[qp][0] * vec_vals[qp][0] + vec_vals[qp][1] * vec_vals[qp][1]);
             Point<dim> spacept = fe_values.quadrature_point(qp);
             tmp += JxWxn * spacept;
           }
@@ -1060,8 +934,7 @@ namespace MyComplexTools
       vector<double> tmpv(dim, 0);
       for (unsigned i = 0; i < dim; i++)
         tmpv[i] = tmp[i];
-      MPI_Allreduce(tmpv.data(), retval.data(), dim, MPI_DOUBLE, MPI_SUM,
-                    mpi_communicator);
+      MPI_Allreduce(tmpv.data(), retval.data(), dim, MPI_DOUBLE, MPI_SUM, mpi_communicator);
     }
 
     template <int dim>
@@ -1079,16 +952,13 @@ namespace MyComplexTools
       Point<dim> tmp;
 
       const QGauss<dim> quadrature_formula(fe.degree + 1);
-      FEValues<dim> fe_values(fe, quadrature_formula,
-                              update_values | update_quadrature_points |
-                              update_JxW_values);
+      FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_quadrature_points | update_JxW_values);
 
       const unsigned n_q_points = quadrature_formula.size();
       vector<Vector<double>> vec_vals(n_q_points, Vector<double>(2));
 
-      typename DoFHandler<dim>::active_cell_iterator cell =
-        dof_handler.begin_active(),
-        endc = dof_handler.end();
+      typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
+                                                     endc = dof_handler.end();
       for (; cell != endc; cell++)
       {
         if (cell->is_locally_owned())
@@ -1097,8 +967,7 @@ namespace MyComplexTools
           fe_values.get_function_values(vec, vec_vals);
           for (unsigned qp = 0; qp < n_q_points; qp++)
           {
-            double JxWxn = fe_values.JxW(qp) * (vec_vals[qp][0] * vec_vals[qp][0] +
-                                                vec_vals[qp][1] * vec_vals[qp][1]);
+            double JxWxn = fe_values.JxW(qp) * (vec_vals[qp][0] * vec_vals[qp][0] + vec_vals[qp][1] * vec_vals[qp][1]);
             Point<dim> spacept = fe_values.quadrature_point(qp);
             for (unsigned i = 0; i < dim; i++)
               tmp[i] += JxWxn * (spacept[i] - pos[i]) * (spacept[i] - pos[i]);
@@ -1108,8 +977,7 @@ namespace MyComplexTools
       vector<double> tmpv(dim, 0);
       for (unsigned i = 0; i < dim; i++)
         tmpv[i] = tmp[i];
-      MPI_Allreduce(tmpv.data(), retval.data(), dim, MPI_DOUBLE, MPI_SUM,
-                    mpi_communicator);
+      MPI_Allreduce(tmpv.data(), retval.data(), dim, MPI_DOUBLE, MPI_SUM, mpi_communicator);
     }
 
     template <int dim>
@@ -1125,17 +993,14 @@ namespace MyComplexTools
       Point<dim> tmp;
 
       const QGauss<dim> quadrature_formula(fe.degree + 1);
-      FEValues<dim> fe_values(fe, quadrature_formula,
-                              update_values | update_gradients | update_JxW_values);
+      FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_gradients | update_JxW_values);
 
       const unsigned n_q_points = quadrature_formula.size();
       vector<Vector<double>> vec_vals(n_q_points, Vector<double>(2));
-      vector<vector<Tensor<1, dim>>> vec_grads(n_q_points,
-          vector<Tensor<1, dim>>(2));
+      vector<vector<Tensor<1, dim>>> vec_grads(n_q_points, vector<Tensor<1, dim>>(2));
 
-      typename DoFHandler<dim>::active_cell_iterator cell =
-        dof_handler.begin_active(),
-        endc = dof_handler.end();
+      typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
+                                                    endc = dof_handler.end(); 
       for (; cell != endc; cell++)
       {
         if (cell->is_locally_owned())
@@ -1146,8 +1011,7 @@ namespace MyComplexTools
           {
             double JxW = fe_values.JxW(qp);
             for (unsigned i = 0; i < dim; i++)
-              tmp[i] += JxW * (vec_vals[qp][0] * vec_grads[qp][1][i] -
-                               vec_vals[qp][1] * vec_grads[qp][0][i]);
+              tmp[i] += JxW * (vec_vals[qp][0] * vec_grads[qp][1][i] - vec_vals[qp][1] * vec_grads[qp][0][i]);
           }
         }
       }
@@ -1155,8 +1019,7 @@ namespace MyComplexTools
       vector<double> tmpv(dim);
       for (unsigned i = 0; i < dim; i++)
         tmpv[i] = tmp[i];
-      MPI_Allreduce(tmpv.data(), retval.data(), dim, MPI_DOUBLE, MPI_SUM,
-                    mpi_communicator);
+      MPI_Allreduce(tmpv.data(), retval.data(), dim, MPI_DOUBLE, MPI_SUM, mpi_communicator);
     }
 
     template <int dim>
@@ -1185,9 +1048,7 @@ namespace MyComplexTools
 
       DynamicSparsityPattern dsp(locally_relevant_dofs);
       DoFTools::make_sparsity_pattern(dof_handler_2, dsp, constraints, false);
-      SparsityTools::distribute_sparsity_pattern(
-        dsp, dof_handler_2.n_locally_owned_dofs_per_processor(), mpi_communicator,
-        locally_relevant_dofs);
+      SparsityTools::distribute_sparsity_pattern(dsp, dof_handler_2.n_locally_owned_dofs_per_processor(), mpi_communicator, locally_relevant_dofs);
       LA::MPI::SparseMatrix matrix;
       matrix.reinit(locally_owned_dofs, locally_owned_dofs, dsp, mpi_communicator);
 
@@ -1195,10 +1056,8 @@ namespace MyComplexTools
       sol = 0;
       matrix = 0;
 
-      FEValues<dim> fe_values(fe, quadrature_formula,
-                              update_values | update_JxW_values);
-      FEValues<dim> fe_values_2(fe_2, quadrature_formula,
-                                update_values | update_JxW_values);
+      FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_JxW_values);
+      FEValues<dim> fe_values_2(fe_2, quadrature_formula, update_values | update_JxW_values);
 
       const unsigned dofs_per_cell = fe_2.dofs_per_cell;
       const unsigned n_q_points = quadrature_formula.size();
@@ -1209,11 +1068,9 @@ namespace MyComplexTools
       Vector<double> cell_rhs(dofs_per_cell);
       FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
 
-      typename DoFHandler<dim>::active_cell_iterator cell =
-        dof_handler.begin_active(),
-        endc = dof_handler.end();
-      typename DoFHandler<dim>::active_cell_iterator cell_2 =
-        dof_handler_2.begin_active();
+      typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
+                                                     endc = dof_handler.end();
+      typename DoFHandler<dim>::active_cell_iterator cell_2 = dof_handler_2.begin_active();
       for (; cell != endc; cell++, cell_2++)
       {
         if (cell->is_locally_owned())
@@ -1235,16 +1092,13 @@ namespace MyComplexTools
               cell_rhs(i) += JxW * tmp1 * fe_values_2[rt].value(i, qp);
               for (unsigned j = 0; j < dofs_per_cell; j++)
               {
-                cell_matrix(i, j) +=
-                  JxW *
-                  (fe_values_2[rt].value(i, qp) * fe_values_2[rt].value(j, qp) +
-                   fe_values_2[it].value(i, qp) * fe_values_2[it].value(j, qp));
+                cell_matrix(i, j) += JxW * (fe_values_2[rt].value(i, qp) * fe_values_2[rt].value(j, qp) +
+                                            fe_values_2[it].value(i, qp) * fe_values_2[it].value(j, qp));
               }
             }
           }
           cell_2->get_dof_indices(local_dof_indices);
-          constraints.distribute_local_to_global(cell_matrix, cell_rhs,
-                                                 local_dof_indices, matrix, rhs);
+          constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, matrix, rhs);
         }
       }
       rhs.compress(VectorOperation::add);
