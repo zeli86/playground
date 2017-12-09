@@ -101,6 +101,8 @@ namespace realtime_propagation
     void rt_propagtion_forward ( const int ); 
     void rt_propagtion_backward ( const int ); 
     void compute_correction ( const int ); 
+    void compute_cost( double& );
+    double compute_dot_product( const LAPACKFullMatrix<double>&, const LAPACKFullMatrix<double>& );
 
     void make_grid();
     void setup_system();
@@ -110,7 +112,7 @@ namespace realtime_propagation
     void solve_eq1();
     void output_results ( string );
     void output_vec ( string, Vector<double>& );
-
+    void compute_beta();
     MyParameterHandler m_ph;
     Triangulation<dim> triangulation;
     FESystem<dim> fe;
@@ -135,6 +137,11 @@ namespace realtime_propagation
     double m_dth; // 0.5*m_dt
     vector<double> m_omega;
     vector<double> m_norm_grad;
+    vector<double> m_beta;
+    LAPACKFullMatrix<double> m_grad;
+    LAPACKFullMatrix<double> m_old_grad;
+    LAPACKFullMatrix<double> m_direction;
+    LAPACKFullMatrix<double> m_old_direction;
 
     double m_N;
     double m_T;

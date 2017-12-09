@@ -110,19 +110,16 @@
         for( unsigned qp=0; qp<n_q_points; qp++ )
         {
           double JxW = fe_values.JxW(qp);
-          double a = p[qp][0];
-          double b = p[qp][1];
-          double c = Psi[qp][0];
-          double d = Psi[qp][1];
-          double pot = m_potential.value(fe_values.quadrature_point(qp)) + 2*m_gs*(c*c+d*d);
-
-          double beta = sqrt(c*c+d*d+pot*pot);
+          double ar = m_gs*(Psi[qp][0]*Psi[qp][0]-Psi[qp][1]*Psi[qp][1]);
+          double ai = 2*m_gs*Psi[qp][0]*Psi[qp][1];
+          double A = m_potential.value(fe_values.quadrature_point(qp)) + 2*m_gs*(Psi[qp][0]*Psi[qp][0]+Psi[qp][1]*Psi[qp][1]);
+          double beta = sqrt(ar*ar+ai*ai+A*A);
           double f1 = cos(dt*beta);
           double f2 = sin(dt*beta)/beta;
-          double M00 = f1 + f2*d;
-          double M01 = f2*(pot-c);
-          double M10 = f2*(-pot-c);
-          double M11 = f1 - f2*d;
+          double M00 = f1 + f2*ai;
+          double M01 = f2*(A-ar);
+          double M10 = f2*(-A-ar);
+          double M11 = f1 - f2*ai;
           
           for (unsigned i=0; i<dofs_per_cell; i++ )
           {
@@ -130,7 +127,8 @@
             {
               cell_matrix(i,j) += JxW*(fe_values[rt].value(i,qp)*fe_values[rt].value(j,qp) + fe_values[it].value(i,qp)*fe_values[it].value(j,qp));                        
             }
-            cell_rhs(i) += JxW*((M00*a-M01*b)*fe_values[rt].value(i,qp) + (M01*a+M11*b)*fe_values[it].value(i,qp));
+            cell_rhs(i) += JxW*((M00*p[qp][0]+M01*p[qp][1])*fe_values[rt].value(i,qp) + 
+                                (M01*p[qp][0]+M11*p[qp][1])*fe_values[it].value(i,qp));
           }
         }
         cell->get_dof_indices (local_dof_indices);
