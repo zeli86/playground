@@ -293,16 +293,10 @@ namespace realtime_propagation
                                      + tmp1b*fe_values[it].value(i,qp)*fe_values[rt].value(j,qp) + fak2*(fe_values[it].gradient(i,qp)*fe_values[rt].gradient(j,qp) + pot*fe_values[it].value(i,qp)*fe_values[rt].value(j,qp)));
           }
         }
-      }
-      
+      }      
       cell->get_dof_indices (local_dof_indices);
-      for( unsigned i=0; i<dofs_per_cell; i++ )
-      {
-        for( unsigned j=0; j<dofs_per_cell; j++ ) 
-          system_matrix.add (local_dof_indices[i],local_dof_indices[j], cell_matrix(i,j));
-      }
+      constraints.distribute_local_to_global(cell_matrix, local_dof_indices, system_matrix);
     }
-    constraints.condense(system_matrix);
   }
   
   void MySolver::assemble_rhs ()
@@ -321,21 +315,20 @@ namespace realtime_propagation
     const unsigned dofs_per_cell = fe.dofs_per_cell;
     const unsigned n_q_points = quadrature_formula.size();
 
+    Vector<double> cell_rhs (dofs_per_cell);
     vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
     vector<Vector<double>> Psi(n_q_points,Vector<double>(2));
     vector<vector<Tensor<1,1>>> Psi_grad(n_q_points, vector<Tensor<1,1>>(2));
     vector<Vector<double>> Psi_t(n_q_points,Vector<double>(2));
     vector<vector<Tensor<1,1>>> Psi_t_grad(n_q_points, vector<Tensor<1,1>>(2));
  
-    double JxW, pot=0, tmp1, tmp2, sum_re, sum_im;
-
     const double fak2 = 0.5*m_dt;
     const double fak8 = 0.125*m_gs*m_dt;
 
     DoFHandler<1>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
     for (; cell!=endc; ++cell)
     {
-
+      cell_rhs = 0;
       fe_values.reinit (cell);
       fe_values.get_function_values(m_Psi, Psi);
       fe_values.get_function_gradients(m_Psi, Psi_grad);
@@ -345,22 +338,22 @@ namespace realtime_propagation
       cell->get_dof_indices (local_dof_indices);
       for( unsigned qp=0; qp<n_q_points; qp++ )
       {
-        JxW = fe_values.JxW(qp);
-        pot = Potential.value(fe_values.quadrature_point(qp)); 
-        sum_re = Psi[qp][0]+Psi_t[qp][0];
-        sum_im = Psi[qp][1]+Psi_t[qp][1];
-        tmp1 = fak8*(sum_re*sum_re + sum_im*sum_im);
+        double JxW = fe_values.JxW(qp);
+        double pot = Potential.value(fe_values.quadrature_point(qp)); 
+        double sum_re = Psi[qp][0]+Psi_t[qp][0];
+        double sum_im = Psi[qp][1]+Psi_t[qp][1];
+        double tmp1 = fak8*(sum_re*sum_re + sum_im*sum_im);
 
         for( unsigned i=0; i<dofs_per_cell; i++ )
         {
-          system_rhs(local_dof_indices[i]) += JxW*(-fak2*((Psi_grad[qp][1]+Psi_t_grad[qp][1])*fe_values[rt].gradient(i,qp) + pot*sum_im*fe_values[rt].value(i,qp))
-                                                   +fak2*((Psi_grad[qp][0]+Psi_t_grad[qp][0])*fe_values[it].gradient(i,qp) + pot*sum_re*fe_values[it].value(i,qp))
-                                                   +(Psi_t[qp][0]-Psi[qp][0])*fe_values[rt].value(i,qp) - tmp1*sum_im*fe_values[rt].value(i,qp)  
-                                                   +(Psi_t[qp][1]-Psi[qp][1])*fe_values[it].value(i,qp) + tmp1*sum_re*fe_values[it].value(i,qp));
+          cell_rhs(i) += JxW*(-fak2*((Psi_grad[qp][1]+Psi_t_grad[qp][1])*fe_values[rt].gradient(i,qp) + pot*sum_im*fe_values[rt].value(i,qp))
+                              +fak2*((Psi_grad[qp][0]+Psi_t_grad[qp][0])*fe_values[it].gradient(i,qp) + pot*sum_re*fe_values[it].value(i,qp))
+                              +(Psi_t[qp][0]-Psi[qp][0])*fe_values[rt].value(i,qp) - tmp1*sum_im*fe_values[rt].value(i,qp)  
+                              +(Psi_t[qp][1]-Psi[qp][1])*fe_values[it].value(i,qp) + tmp1*sum_re*fe_values[it].value(i,qp));
         }
       }
+      constraints.distribute_local_to_global(cell_rhs, local_dof_indices, system_rhs);
     }
-    constraints.condense(system_rhs);
     m_res = system_rhs.l2_norm(); 
   }
   
@@ -384,7 +377,7 @@ namespace realtime_propagation
       solve();
 
       m_Psi_t.add( -1, newton_update );
-      constraints.condense(m_Psi_t);
+      constraints.distribute(m_Psi_t);
       
       assemble_rhs();
       //cout << "m_res = " << m_res << endl;       

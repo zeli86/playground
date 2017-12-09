@@ -57,7 +57,6 @@
 #include <deal.II/fe/fe_q.h>
 
 #include <deal.II/numerics/vector_tools.h>
-//#include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/numerics/data_out.h>
 
 #include <fstream>
@@ -297,7 +296,7 @@ namespace BreedSolver_1
     CPotential<dim> Potential(m_omega);
     const QGauss<dim> quadrature_formula(fe.degree + 1);
 
-    constraints.condense(m_Psi_ref);
+    constraints.distribute(m_Psi_ref);
 
     m_system_matrix = 0;
 
@@ -331,18 +330,14 @@ namespace BreedSolver_1
           for ( unsigned j = 0; j < dofs_per_cell; j++ )
             cell_matrix(i, j) += (fe_values.shape_grad(i, qp) * fe_values.shape_grad(j, qp) + Q2 * fe_values.shape_value(i, qp) * fe_values.shape_value(j, qp)) * JxW;
       }
-
-      for ( unsigned i = 0; i < dofs_per_cell; i++ )
-        for ( unsigned j = 0; j < dofs_per_cell; j++ )
-          m_system_matrix.add (local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));
+      constraints.distribute_local_to_global(cell_matrix, local_dof_indices, m_system_matrix);
     }
-    constraints.condense(m_system_matrix);
   }
 
   template <int dim>
   void MySolver<dim>::assemble_rhs ()
   {
-    constraints.condense(m_Psi_ref);
+    constraints.distribute(m_Psi_ref);
 
     CPotential<dim> Potential(m_omega);
     const QGauss<dim> quadrature_formula(fe.degree + 1);
@@ -354,6 +349,7 @@ namespace BreedSolver_1
     const unsigned dofs_per_cell = fe.dofs_per_cell;
     const unsigned n_q_points = quadrature_formula.size();
 
+    Vector<double> cell_rhs (dofs_per_cell);
     vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
     vector<Tensor<1, dim>> Psi_ref_grad(n_q_points);
     vector<double> Psi_ref(n_q_points);
@@ -361,6 +357,7 @@ namespace BreedSolver_1
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
     for (; cell != endc; cell++)
     {
+      cell_rhs=0;
       fe_values.reinit (cell);
       fe_values.get_function_values(m_Psi_ref, Psi_ref);
       fe_values.get_function_gradients(m_Psi_ref, Psi_ref_grad);
@@ -373,10 +370,10 @@ namespace BreedSolver_1
         double Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs * u2;
 
         for ( unsigned i = 0; i < dofs_per_cell; i++ )
-          m_system_rhs(local_dof_indices[i]) += JxW * (Psi_ref_grad[qp] * fe_values.shape_grad(i, qp) + Q1 * Psi_ref[qp] * fe_values.shape_value(i, qp));
+          cell_rhs(i) += JxW * (Psi_ref_grad[qp] * fe_values.shape_grad(i, qp) + Q1 * Psi_ref[qp] * fe_values.shape_value(i, qp));
       }
+      constraints.distribute_local_to_global(cell_rhs, local_dof_indices, m_system_rhs);
     }
-    constraints.condense(m_system_rhs);
     m_res = m_system_rhs.l2_norm();
   }
 
@@ -386,7 +383,7 @@ namespace BreedSolver_1
     SparseDirectUMFPACK A_direct;
     A_direct.initialize(m_system_matrix);
     A_direct.vmult (m_newton_update, m_system_rhs);
-    constraints.condense(m_newton_update);
+    constraints.distribute(m_newton_update);
   }
 
   template <int dim>
@@ -414,7 +411,7 @@ namespace BreedSolver_1
       solve();
 
       m_Psi_1.add( -m_t[1] / fabs(m_t[1]), m_newton_update );
-      constraints.condense(m_Psi_1);
+      constraints.distribute(m_Psi_1);
 
       if ( m_counter % m_NA == 0 ) output_results(path);
 
@@ -548,18 +545,9 @@ namespace BreedSolver_1
             cell_matrix(i, j) += JxW * (fe_values.shape_value(i, qp) * fe_values.shape_value(j, qp));
         }
       }
-
-      for ( unsigned i = 0; i < dofs_per_cell; i++ )
-      {
-        m_system_rhs(local_dof_indices[i]) += cell_rhs(i);
-        for ( unsigned j = 0; j < dofs_per_cell; j++ )
-          m_system_matrix.add (local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));
-      }
+      constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, m_system_matrix, m_system_rhs);
     }
-    constraints.condense (m_system_matrix, m_system_rhs);
-
     solve();
-
     VectorTools::integrate_difference ( dof_handler, m_newton_update, ZeroFunction<1>(), m_error_per_cell, QGauss<1>(fe.degree + 2), VectorTools::L2_norm);
     err = m_error_per_cell.l2_norm();
   }
@@ -609,21 +597,14 @@ namespace BreedSolver_1
           for ( unsigned j = 0; j < dofs_per_cell; j++ )
             cell_matrix(i, j) += JxW * (fe_values_2[rt].value(i, qp) * fe_values_2[rt].value(j, qp) + fe_values_2[it].value(i, qp) * fe_values_2[it].value(j, qp));
         }
-
-        for ( unsigned i = 0; i < dofs_per_cell; i++ )
-        {
-          m_system_rhs_2(local_dof_indices[i]) += cell_rhs(i);
-          for ( unsigned j = 0; j < dofs_per_cell; j++ )
-            m_system_matrix_2.add (local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));
-        }
+        constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, m_system_matrix_2, m_system_rhs_2);
       }
     }
-    constraints_2.condense(m_system_matrix_2,m_system_rhs_2);
 
     SparseDirectUMFPACK  A_direct;
     A_direct.initialize(m_system_matrix_2);
     A_direct.vmult (m_Psi_C, m_system_rhs_2);
-    constraints_2.condense(m_Psi_C);
+    constraints_2.distribute(m_Psi_C);
   }
 
   template <int dim>
