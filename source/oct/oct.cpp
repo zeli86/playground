@@ -57,17 +57,13 @@
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/numerics/data_out.h>
-#include <deal.II/numerics/error_estimator.h>
-#include <deal.II/numerics/fe_field_function.h>
 
 #include <deal.II/base/utilities.h>
-#include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/index_set.h>
 #include <deal.II/base/function_parser.h>
 #include <deal.II/lac/sparsity_tools.h>
 #include <deal.II/distributed/tria.h>
 #include <deal.II/distributed/grid_refinement.h>
-#include <deal.II/distributed/solution_transfer.h>
 
 #include <fstream>
 #include <iostream>
@@ -88,7 +84,7 @@ namespace realtime_propagation
   using namespace std;
   using namespace dealii;
   
-  #include "potential.h"    
+  #include "potential.hpp"    
 
   template <int dim, int no_time_steps>
   class MySolver
@@ -108,7 +104,7 @@ namespace realtime_propagation
 
     void make_grid();
     void setup_system();
-     void assemble_system( const int ); // required by DoIter
+    void assemble_system( const int ); // required by DoIter
     
     void solve();
     void solve_eq1();
@@ -183,9 +179,9 @@ namespace realtime_propagation
     dof_handler.clear ();
   }
   
-  #include "eq1.h"
-  #include "eq2.h"
-  #include "eq3.h"
+  #include "eq1.hpp"
+  #include "eq2.hpp"
+  #include "eq3.hpp"
   
   template <int dim, int no_time_steps>
   void MySolver<dim,no_time_steps>::make_grid ()
@@ -239,7 +235,6 @@ namespace realtime_propagation
 
     DynamicSparsityPattern dsp(dof_handler.n_dofs());
     DoFTools::make_sparsity_pattern (dof_handler, dsp);
-
     sparsity_pattern.copy_from(dsp);
     system_matrix.reinit (sparsity_pattern);
   }  

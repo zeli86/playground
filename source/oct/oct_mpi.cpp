@@ -95,7 +95,7 @@ namespace realtime_propagation
   using namespace std;
   using namespace dealii;
   
-  #include "potential.h"    
+  #include "potential.hpp"    
 
   template <int dim, int no_time_steps>
   class MySolver
@@ -236,9 +236,9 @@ namespace realtime_propagation
     dof_handler.clear ();
   }
   
-  #include "eq1_mpi.h"
-  #include "eq2_mpi.h"
-  #include "eq3_mpi.h"
+  #include "eq1_mpi.hpp"
+  #include "eq2_mpi.hpp"
+  #include "eq3_mpi.hpp"
 
   template <int dim, int no_time_steps>
   void MySolver<dim,no_time_steps>::make_grid ()
