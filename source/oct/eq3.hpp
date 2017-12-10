@@ -70,8 +70,6 @@
      {
        double tmp1=0;
  
-       constraints.distribute(m_all_Psi[ti]); // eventuell nicht notwendig
-       constraints.distribute(m_all_p[ti]); // eventuell nicht notwendig
        m_workspace = m_all_Psi[ti];
        m_workspace_2 = m_all_p[ti];
  

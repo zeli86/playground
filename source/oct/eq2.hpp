@@ -23,15 +23,15 @@
     m_workspace = m_Psi_d;
     m_workspace -= m_all_Psi[no_time_steps-1];
 
-    constraints.distribute(m_workspace);
-
-    MyComplexTools::AssembleSystem_mulvz( dof_handler, fe, constraints, m_workspace, std::complex<double>(0,-1), system_matrix, system_rhs );
+    MyComplexTools::AssembleSystem_mulvz( dof_handler, fe, m_workspace, std::complex<double>(0,-1), system_matrix, system_rhs );
     solve();
     m_all_p[no_time_steps-1] = sol;
     //output_vec( "p_" +  to_string(ex) + "_" + to_string(no_time_steps-1) + ".vtu", m_all_p[no_time_steps-1] );
 
     for( int i=no_time_steps-2; i>0; i-- )
     {
+
+      // LINSTEP
       assemble_system(i);
       solve();
       m_all_p[i] = sol;
@@ -47,7 +47,6 @@
   template <int dim, int no_time_steps>
   void MySolver<dim,no_time_steps>::assemble_system ( const int idx )
   {
-    constraints.distribute(m_all_Psi[idx]);
     m_workspace = m_all_Psi[idx];
 
     const QGauss<dim> quadrature_formula(fe.degree+1);
@@ -113,6 +112,11 @@
         }
       }
       cell->get_dof_indices (local_dof_indices);
-      constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, system_matrix, system_rhs);        
+      for ( unsigned i = 0; i < dofs_per_cell; i++ )
+      {
+        system_rhs(local_dof_indices[i]) += cell_rhs(i);
+        for ( unsigned j = 0; j < dofs_per_cell; j++ )
+          system_matrix.add (local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));    
+      } 
     }
   }    

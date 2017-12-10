@@ -117,7 +117,6 @@ namespace realtime_propagation
     Triangulation<dim> triangulation;
     FESystem<dim> fe;
     DoFHandler<dim> dof_handler;
-    ConstraintMatrix constraints;
     SparsityPattern sparsity_pattern;
     SparseMatrix<double> system_matrix;
  
@@ -234,11 +233,6 @@ namespace realtime_propagation
     m_Psi.reinit (dof_handler.n_dofs());
     m_Psi_d.reinit (dof_handler.n_dofs());
     m_error_per_cell.reinit(triangulation.n_active_cells());
-
-    constraints.clear ();
-    DoFTools::make_hanging_node_constraints (dof_handler, constraints);
-    VectorTools::interpolate_boundary_values (dof_handler, 0,ZeroFunction<dim>(2), constraints);
-    constraints.close ();
 
     DynamicSparsityPattern dsp(dof_handler.n_dofs());
     DoFTools::make_sparsity_pattern (dof_handler, dsp);

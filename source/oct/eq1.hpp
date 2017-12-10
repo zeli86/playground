@@ -22,11 +22,11 @@
   {
     for( int i=1; i<no_time_steps; i++ )
     {
-      MyComplexTools::AssembleSystem_LIN_Step( dof_handler, fe, constraints, m_Psi, m_dt, system_matrix, system_rhs );
+      MyComplexTools::AssembleSystem_LIN_Step( dof_handler, fe, m_Psi, m_dt, system_matrix, system_rhs );
       solve_eq1();
       m_Psi = sol;
       m_potential.set_time( double(i)*m_dt );
-      MyComplexTools::AssembleSystem_NL_Step( dof_handler, fe, constraints, m_Psi, m_potential, m_dt, m_gs,  system_matrix, system_rhs );
+      MyComplexTools::AssembleSystem_NL_Step( dof_handler, fe, m_Psi, m_potential, m_dt, m_gs,  system_matrix, system_rhs );
       solve_eq1();
       m_Psi = sol;
 
@@ -42,6 +42,10 @@
   template <int dim, int no_time_steps>
   void MySolver<dim,no_time_steps>::solve_eq1 ()
   {
+    map<types::global_dof_index, double> boundary_values;
+    VectorTools::interpolate_boundary_values (dof_handler, 0, ZeroFunction<dim>(), boundary_values);
+    MatrixTools::apply_boundary_values (boundary_values, system_matrix, sol, system_rhs);    
+
     SparseDirectUMFPACK A_direct;
     A_direct.initialize(system_matrix);
     A_direct.vmult (sol, system_rhs);
