@@ -182,7 +182,7 @@ int main( int argc, char *argv[] )
 
     // MESH childs
     node = mesh_node.append_child("DIM");
-    node.append_child(pugi::node_pcdata).set_value("3");
+    node.append_child(pugi::node_pcdata).set_value(to_string(dim).c_str());
 #if POTENTIAL==1
     node = mesh_node.append_child("xrange");
     node.append_child(pugi::node_pcdata).set_value("-10,10");
