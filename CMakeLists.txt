@@ -112,6 +112,11 @@ ADD_SUBDIRECTORY( source/trash )
 ADD_SUBDIRECTORY( source/edu )
 #ADD_SUBDIRECTORY( source/cont )
 
+enable_testing()
+
+add_test( CASEGENTEST batch_case_generation_xml )
+
+
 FILE(GLOB bash_sh "${PROJECT_SOURCE_DIR}/bash/*")
 
 FOREACH( file_i ${bash_sh})
