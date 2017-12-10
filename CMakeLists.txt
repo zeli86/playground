@@ -1,5 +1,5 @@
 PROJECT (atus-playground)
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.9)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -112,10 +112,16 @@ ADD_SUBDIRECTORY( source/trash )
 ADD_SUBDIRECTORY( source/edu )
 #ADD_SUBDIRECTORY( source/cont )
 
+
 enable_testing()
 
-add_test( CASEGENTEST batch_case_generation_xml )
+add_test( CASEGENTEST1 batch_case_generation_xml --dim 1 --p test1d --N 2 --Ndmu 2)
+add_test( CASEGENTEST2 batch_case_generation_xml --dim 2 --p test2d --N 1 --Ndmu 2)
+add_test( NAME BREED1_0 COMMAND breed_1 WORKING_DIRECTORY ${CMAKE_CACHEFILE_DIR}/test1d/0/)
+add_test( NAME BREED1_1 COMMAND breed_1 WORKING_DIRECTORY ${CMAKE_CACHEFILE_DIR}/test1d/1/)
 
+#set (test_parameters -np ${no_mpi_proc} "./${name}")
+#add_test(NAME ${name} COMMAND "mpirun" ${test_parameters})
 
 FILE(GLOB bash_sh "${PROJECT_SOURCE_DIR}/bash/*")
 
