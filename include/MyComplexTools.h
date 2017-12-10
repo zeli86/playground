@@ -21,10 +21,10 @@ namespace MyComplexTools
   template <int dim>
   void AssembleSystem_mulvz(const DoFHandler<dim> &dof_handler,
                             const FESystem<dim> &fe,
-                            const ConstraintMatrix &constraints,
                             const Vector<double> &vec,
                             const std::complex<double> z,
-                            SparseMatrix<double> &matrix, Vector<double> &rhs)
+                            SparseMatrix<double> &matrix, 
+                            Vector<double> &rhs)
   {
     matrix = 0;
     rhs = 0;
@@ -78,14 +78,18 @@ namespace MyComplexTools
         }
       }
       cell->get_dof_indices(local_dof_indices);
-      constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, matrix, rhs);
+      for ( unsigned i = 0; i < dofs_per_cell; i++ )
+      {
+        rhs(local_dof_indices[i]) += cell_rhs(i);
+        for ( unsigned j = 0; j < dofs_per_cell; j++ )
+          matrix.add (local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));    
+      } 
     }
   }
 
   template <int dim>
   void AssembleSystem_LIN_Step(const DoFHandler<dim> &dof_handler,
                                const FESystem<dim> &fe,
-                               const ConstraintMatrix &constraints,
                                const Vector<double> &vec,
                                const Function<dim> &Potential, const double dt,
                                SparseMatrix<double> &matrix,
@@ -139,14 +143,18 @@ namespace MyComplexTools
         }
       }
       cell->get_dof_indices(local_dof_indices);
-      constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, matrix, rhs);
+      for ( unsigned i = 0; i < dofs_per_cell; i++ )
+      {
+        rhs(local_dof_indices[i]) += cell_rhs(i);
+        for ( unsigned j = 0; j < dofs_per_cell; j++ )
+          matrix.add (local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));    
+      }     
     }
   }
 
   template <int dim>
   void AssembleSystem_LIN_Step(const DoFHandler<dim> &dof_handler,
                                const FESystem<dim> &fe,
-                               const ConstraintMatrix &constraints,
                                const Vector<double> &vec, const double dt,
                                SparseMatrix<double> &matrix,
                                Vector<double> &rhs)
@@ -200,14 +208,18 @@ namespace MyComplexTools
         }
       }
       cell->get_dof_indices(local_dof_indices);
-      constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, matrix, rhs);
+      for ( unsigned i = 0; i < dofs_per_cell; i++ )
+      {
+        rhs(local_dof_indices[i]) += cell_rhs(i);
+        for ( unsigned j = 0; j < dofs_per_cell; j++ )
+          matrix.add (local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));    
+      } 
     }
   }
 
   template <int dim>
   void AssembleSystem_NL_Step(const DoFHandler<dim> &dof_handler,
                               const FESystem<dim> &fe,
-                              const ConstraintMatrix &constraints,
                               const Vector<double> &vec,
                               const Function<dim> &Potential, const double dt,
                               const double gam, SparseMatrix<double> &matrix,
@@ -266,7 +278,12 @@ namespace MyComplexTools
         }
       }
       cell->get_dof_indices(local_dof_indices);
-      constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, matrix, rhs);
+      for ( unsigned i = 0; i < dofs_per_cell; i++ )
+      {
+        rhs(local_dof_indices[i]) += cell_rhs(i);
+        for ( unsigned j = 0; j < dofs_per_cell; j++ )
+          matrix.add (local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));    
+      } 
     }
   }
 
