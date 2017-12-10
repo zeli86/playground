@@ -92,7 +92,6 @@
     vector<double> vals(n_q_points);
     vector<Tensor<1,dim>> grads(n_q_points);
 
-    double JxW, Q1, pq, tmp;
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
     for ( ; cell!=endc; ++cell )
     {
@@ -107,8 +106,8 @@
 
         for ( unsigned qp=0; qp<n_q_points; qp++ )
         {
-          JxW = fe_values.JxW(qp);
-          Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu[0] + m_gs[0]*(vals[qp]*vals[qp]);
+          double JxW = fe_values.JxW(qp);
+          double Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs*(vals[qp]*vals[qp]);
 
           for ( unsigned i=0; i<dofs_per_cell; i++ )
           {
@@ -148,7 +147,7 @@
 */    
 
     m_newton_update = 0;
-    SolverControl solver_control (m_newton_update.size(), m_res[0]*1e-3);
+    SolverControl solver_control (m_newton_update.size(), m_res*1e-4);
     //PETScWrappers::SolverGMRES solver (solver_control, mpi_communicator);
     PETScWrappers::SolverBicgstab solver (solver_control, mpi_communicator);
     

@@ -41,41 +41,38 @@ double myfunc(unsigned n, const double * t, double * grad, void * my_func_data)
 
 enum Status { SUCCESS, FAILED, ZERO_SOL, SLOW_CONV, CONTINUE };
 
-template <int dim> 
+template <int dim, int N> 
 class CBase
 {
   public:
     CBase( const std::string& );
     virtual ~CBase() {};
     
-    void find_ortho_min( bool=true );
+    void find_ortho_min();
 
-    const double l2norm_t() const;
+    double l2norm_t();
 
     virtual void compute_contributions()=0;
   protected:
     void screening();
 
-    double m_t[dim];
-    double m_t_guess[dim];
+    double m_t[N];
+    double m_t_guess[N];
 
     double m_xmin, m_xmax;
     double m_ymin, m_ymax;
 
     double m_res;
-    double m_res_inf;
     double m_res_old;
     double m_resp;
-    double m_res_over_resp;
     double m_ti;
     double m_final_error;
     double m_mu;
     double m_dmu;
     double m_gs;
+    double m_N;
     vector<double> m_epsilon;
     vector<double> m_omega;
-
-    double m_N;
 
     unsigned m_counter;
     unsigned m_global_refinement;
@@ -88,12 +85,12 @@ class CBase
 
     MyParameterHandler m_ph;
 
-    MyUtils::ref_pt_list<dim> m_ref_pt_list;
-    MyUtils::ref_pt_list<dim> m_ref_pt_list_tmp;
+    MyUtils::ref_pt_list<N> m_ref_pt_list;
+    MyUtils::ref_pt_list<N> m_ref_pt_list_tmp;
 };
 
-template <int dim>
-CBase<dim>::CBase( const std::string& xmlfilename ) 
+template <int dim, int N>
+CBase<dim,N>::CBase( const std::string& xmlfilename ) 
   : 
   m_ph(xmlfilename)
 {
@@ -127,32 +124,32 @@ CBase<dim>::CBase( const std::string& xmlfilename )
   m_counter=0;
 }
 
-template <int dim>
-const double CBase<dim>::l2norm_t() const
+template <int dim, int N>
+double CBase<dim,N>::l2norm_t()
 {
   double retval=0;
-  for( int i=0; i<dim; i++ )
+  for( int i=0; i<N; i++ )
     retval += m_t[i]*m_t[i];
 return sqrt(retval);
 }
 
-template <int dim>
-void CBase<dim>::screening()
+template <int dim, int N>
+void CBase<dim,N>::screening()
 {
-  m_ref_pt_list_tmp.reset( 5, 20 );
+  m_ref_pt_list_tmp.reset( 5, 10 );
 
   for( auto& it : m_ref_pt_list_tmp.m_list )
   {
     nlopt_opt opt;
-    opt = nlopt_create(NLOPT_LD_MMA, dim);
+    opt = nlopt_create(NLOPT_LD_MMA, N);
     nlopt_set_xtol_rel(opt, 1e-10);
     nlopt_set_min_objective(opt, myfunc<dim>, this);
 
-    double * x = new double[dim];  
+    double * x = new double[N];  
     double minf; /* the minimum objective value, upon return */
    
     /* some initial guess */
-    for( int i=0; i<dim; i++ )
+    for( int i=0; i<N; i++ )
       x[i] = it.ti[i]; 
     
     int status = nlopt_optimize(opt, x, &minf);
@@ -168,7 +165,7 @@ void CBase<dim>::screening()
     it.failed = (status < 0);
     if( !isfinite(minf) ) continue;
     it.f = minf;
-    for( int i=0; i<dim; i++ )
+    for( int i=0; i<N; i++ )
     {
       it.t[i] = x[i];
       //it.df[i] = 
@@ -178,34 +175,32 @@ void CBase<dim>::screening()
     delete [] x;
     nlopt_destroy(opt);
   }
-
   m_ref_pt_list_tmp.remove_zero_ref_points();  
 }
 
-template <int dim>
-void CBase<dim>::find_ortho_min( bool bdel_f_non_zero )
+template <int dim, int N>
+void CBase<dim,N>::find_ortho_min()
 {
   compute_contributions();
 
   double l2_norm_t_old = 0;
   double min = std::numeric_limits<double>::max();
-  for( int i=0; i<dim; i++ )
+  for( int i=0; i<N; i++ )
     l2_norm_t_old += m_t[i]*m_t[i];
 
   l2_norm_t_old = sqrt(l2_norm_t_old);
 
-  CBase<dim>::screening();
+  CBase<dim,N>::screening();
 
   m_ref_pt_list_tmp.remove_zero_ref_points();
   m_ref_pt_list_tmp.remove_duplicates();
-  if(bdel_f_non_zero) m_ref_pt_list_tmp.remove_f_non_zero();
   
   for( auto it : m_ref_pt_list_tmp.m_list )
   {
     if( fabs(it.l2norm_t() - l2_norm_t_old) < min )
     {
       min = fabs(it.l2norm_t() - l2_norm_t_old);
-      for( int i=0; i<dim; i++ )
+      for( int i=0; i<N; i++ )
           m_t[i] = it.t[i];
     }
   }

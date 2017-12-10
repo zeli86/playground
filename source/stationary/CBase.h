@@ -26,6 +26,7 @@
 
 #include "ref_pt_list.h"
 #include "nlopt.h"
+#include "pugixml.hpp"
 
 template <int dim>
 class MySolver;
@@ -44,17 +45,17 @@ double myfunc(unsigned n, const double * t, double * grad, void * my_func_data)
 
 enum Status { SUCCESS, FAILED, ZERO_SOL, SLOW_CONV, MAXITER, SINGULAR };
 
-template <int dim> 
+template <int dim, int N> 
 class CBase
 {
   public:
     CBase( const std::string );
     virtual ~CBase() {};
     
-    int find_ortho_min( bool=true );
+    int find_ortho_min();
     void dump_info_xml( const string="" );
 
-    const double l2norm_t() const;
+    double l2norm_t();
     
     virtual void compute_contributions()=0;
  
@@ -62,31 +63,25 @@ class CBase
   protected:
     void screening();
 
-    double m_t[dim];
-    double m_t_guess[dim];
+    double m_t[N];
+    double m_t_guess[N];
 
     double m_xmin, m_xmax;
     double m_ymin, m_ymax;
     double m_zmin, m_zmax;
 
-    double m_res[2];
-    double m_res_inf[2];
-    double m_res_old[2];
-    double m_resp[2];
-    double m_res_over_resp[2];
+    double m_res;
+    double m_res_old;
+    double m_resp;
     double m_ti;    
     double m_final_error;
-    
-    double m_mu[2];
+    double m_N;
+    double m_mu;
     double m_dmu;
-    vector<double> m_epsilon;
-    vector<double> m_gs;
-    vector<double> m_gs2;
+    double m_gs;
     vector<double> m_omega;
+    vector<double> m_epsilon;
 
-    double m_N[2];
-
-    bool m_root;
     int m_rank;
 
     unsigned m_counter;
@@ -95,37 +90,33 @@ class CBase
     unsigned m_total_no_cells;
     unsigned m_total_no_active_cells;    
     unsigned m_NA;
-    unsigned m_Ndmu;
-    
+    unsigned m_Ndmu;    
     unsigned m_QN1[3];
-    unsigned m_QN2[3];
-    unsigned m_QN3[3];
-    unsigned m_QN4[3];
     
     ofstream m_computing_timer_log;
     TimerOutput m_computing_timer;    
     MyParameterHandler m_ph;
+    bool m_root;
     ConditionalOStream pcout;
 
-    MyUtils::ref_pt_list<dim> m_ref_pt_list;
-    MyUtils::ref_pt_list<dim> m_ref_pt_list_tmp;
-    string m_guess_str;
+    MyUtils::ref_pt_list<N> m_ref_pt_list;
+    MyUtils::ref_pt_list<N> m_ref_pt_list_tmp;
 };
 
-template <int dim>
-CBase<dim>::CBase( const std::string xmlfilename  ) 
+template <int dim, int N>
+CBase<dim,N>::CBase( const std::string xmlfilename  ) 
   : 
   mpi_communicator(MPI_COMM_WORLD), 
   m_computing_timer_log("benchmark.txt"),
   m_computing_timer(mpi_communicator, m_computing_timer_log, TimerOutput::summary, TimerOutput:: cpu_and_wall_times ), 
   m_ph(xmlfilename),
-  pcout (cout, (Utilities::MPI::this_mpi_process(mpi_communicator) == 0))
+  m_root(Utilities::MPI::this_mpi_process(mpi_communicator) == 0),
+  pcout (cout, m_root)
 {
   try 
   {
     m_omega = m_ph.Get_Physics("omega");
-    m_gs = m_ph.Get_Physics("gs_1");
-    m_gs2 = m_ph.Get_Physics("gs_1");
+    m_gs = m_ph.Get_Physics("gs_1",0);
     m_QN1[0] = int(m_ph.Get_Physics("QN1",0));
     m_QN1[1] = int(m_ph.Get_Physics("QN1",1));
     m_QN1[2] = int(m_ph.Get_Physics("QN1",2));
@@ -148,7 +139,6 @@ CBase<dim>::CBase( const std::string xmlfilename  )
     m_NA = int(m_ph.Get_Algorithm("NA",0));
     m_Ndmu = m_ph.Get_Algorithm("Ndmu",0); 
     m_dmu = m_ph.Get_Algorithm("dmu",0);
-    m_maxiter = 1000;
   }
   catch( const std::string info )
   {
@@ -156,45 +146,39 @@ CBase<dim>::CBase( const std::string xmlfilename  )
     MPI_Abort( mpi_communicator, 0 );
   }
 
-  /*
-  m_mu[0] = m_ph.get_double("mu");
-  m_mu[1] = m_ph.get_double("mu2");
-  m_guess_str = m_ph.get( "guess_fct" );
-  */
-  
-  m_root = (Utilities::MPI::this_mpi_process(mpi_communicator) == 0);
   MPI_Comm_rank(mpi_communicator, &m_rank);
   
   m_counter=0;
+  m_maxiter = 500;
   m_final_error=0;
 }
 
-template <int dim>
-const double CBase<dim>::l2norm_t() const
+template <int dim, int N>
+double CBase<dim,N>::l2norm_t()
 {
   double retval=0;
-  for( int i=0; i<dim; i++ )
+  for( int i=0; i<N; i++ )
     retval += m_t[i]*m_t[i];
 return sqrt(retval);
 }
 
-template <int dim>
-void CBase<dim>::screening()
+template <int dim, int N>
+void CBase<dim,N>::screening()
 {
   m_ref_pt_list_tmp.reset( 5, 20 );
 
   for( auto& it : m_ref_pt_list_tmp.m_list )
   {
     nlopt_opt opt;
-    opt = nlopt_create(NLOPT_LD_MMA, dim);
+    opt = nlopt_create(NLOPT_LD_MMA, N);
     nlopt_set_xtol_rel(opt, 1e-10);
     nlopt_set_min_objective(opt, myfunc<dim>, this);
 
-    double * x = new double[dim];  
+    double * x = new double[N];  
     double minf; /* the minimum objective value, upon return */
    
     /* some initial guess */
-    for( int i=0; i<dim; i++ )
+    for( int i=0; i<N; i++ )
       x[i] = it.ti[i]; 
     
     int status = nlopt_optimize(opt, x, &minf);
@@ -210,10 +194,9 @@ void CBase<dim>::screening()
     it.failed = (status < 0);
     if( !isfinite(minf) ) continue;
     it.f = minf;
-    for( int i=0; i<dim; i++ )
+    for( int i=0; i<N; i++ )
     {
       it.t[i] = x[i];
-      //it.df[i] = 
     }
     //it.DumpItem( std::cout );
 
@@ -224,8 +207,8 @@ void CBase<dim>::screening()
   m_ref_pt_list_tmp.remove_zero_ref_points();  
 }
 
-template <int dim>
-int CBase<dim>::find_ortho_min( bool bdel_f_non_zero )
+template <int dim, int N>
+int CBase<dim,N>::find_ortho_min()
 {
   compute_contributions();
 
@@ -235,19 +218,17 @@ int CBase<dim>::find_ortho_min( bool bdel_f_non_zero )
   {
     double l2_norm_t_old = 0;
     double min = std::numeric_limits<double>::max();
-    for( int i=0; i<dim; i++ )
+    for( int i=0; i<N; i++ )
       l2_norm_t_old += m_t[i]*m_t[i];
 
     l2_norm_t_old = sqrt(l2_norm_t_old);
 
-    CBase<dim>::screening();
+    CBase<dim,N>::screening();
 
     m_ref_pt_list_tmp.remove_zero_ref_points();
     m_ref_pt_list_tmp.remove_duplicates();
-    //if(bdel_f_non_zero) m_ref_pt_list_tmp.remove_f_non_zero();
     ///m_ref_pt_list_tmp.Dump( std::cout );
     //m_ref_pt_list_tmp.Dump( std::cout );
-
     
     for( auto it : m_ref_pt_list_tmp.m_list )
     {
@@ -255,46 +236,42 @@ int CBase<dim>::find_ortho_min( bool bdel_f_non_zero )
       if( tmp1 < min )
       {
         min = tmp1;
-        for( int i=0; i<dim; i++ )
+        for( int i=0; i<N; i++ )
             m_t[i] = it.t[i];
       }
     }
   }
   int retval = m_ref_pt_list_tmp.m_list.empty();
-  MPI_Bcast( m_t, dim, MPI_DOUBLE, 0, mpi_communicator );
-  MPI_Bcast( &retval, dim, MPI_INT, 0, mpi_communicator );
+  MPI_Bcast( m_t, N, MPI_DOUBLE, 0, mpi_communicator );
+  MPI_Bcast( &retval, N, MPI_INT, 0, mpi_communicator );
   m_computing_timer.exit_section();
 return retval;
 }
 
-template <int dim>
-void CBase<dim>::dump_info_xml ( const string path )
+template <int dim, int N>
+void CBase<dim,N>::dump_info_xml ( const string path )
 {
-  //TODO: change to pugixml
   string filename = path + "info.xml";
 
-  wofstream fs2;
-  fs2.open(filename);
+  pugi::xml_document doc;
+  pugi::xml_node parameter_node = doc.append_child("INFO");
 
-  locale utf8_locale("en_US.UTF8");
-  fs2.imbue(utf8_locale); 
-  fs2 << L"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<INFO>\n";
-  fs2 << L"<MU>" << m_mu[0] << L"</MU>\n";
-  fs2 << L"<MU2>" << m_mu[1] << L"</MU2>\n";
-  fs2 << L"<GS>" << m_gs[0] << L"</GS>\n";
-  fs2 << L"<GS2>" << m_gs[1] << L"</GS2>\n";
-  fs2 << L"<N>" << m_N[0] << "L</N>\n";
-  fs2 << L"<N2>" << m_N[1] << "L</N2>\n";
-  fs2 << L"<XMIN>" << m_xmin << L"</XMIN>\n";
-  fs2 << L"<XMAX>" << m_xmax << L"</XMAX>\n";
-  fs2 << L"<YMIN>" << m_ymin << L"</YMIN>\n";
-  fs2 << L"<YMAX>" << m_ymax << L"</YMAX>\n";
-  fs2 << L"<ZMIN>" << m_zmin << L"</ZMIN>\n";
-  fs2 << L"<ZMAX>" << m_zmax << L"</ZMAX>\n";
-  fs2 << L"<FINAL_ERROR>" << m_final_error << L"</FINAL_ERROR>\n";
-  fs2 << L"<REVISION>" << STR2(GIT_SHA1) << L"</REVISION>\n";
-  fs2 << L"</INFO>\n";
-  fs2.close();
+  pugi::xml_node node = parameter_node.append_child("MU");
+  node.append_child(pugi::node_pcdata).set_value( to_string(m_mu).c_str() );
+
+  node = parameter_node.append_child("GS");
+  node.append_child(pugi::node_pcdata).set_value( to_string(m_gs).c_str() );
+
+  node = parameter_node.append_child("N");
+  node.append_child(pugi::node_pcdata).set_value( to_string(m_N).c_str() );
+
+  node = parameter_node.append_child("FINAL_ERROR");
+  node.append_child(pugi::node_pcdata).set_value( to_string(m_final_error).c_str() );
+
+  node = parameter_node.append_child("REVISION");
+  node.append_child(pugi::node_pcdata).set_value( STR2(GIT_SHA1) );
+  
+  doc.save_file(filename.c_str());
 }
 
 #endif

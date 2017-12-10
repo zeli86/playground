@@ -80,7 +80,7 @@ namespace BreedSolver_1
   #include "CBase_no_mpi.h"
 
   template <int dim>
-  class MySolver : public CBase<2>
+  class MySolver : public CBase<dim,2>
   {
   public:
     MySolver( const std::string & );
@@ -127,12 +127,37 @@ namespace BreedSolver_1
 
     MyTable m_table;
     MyTable m_results;
+
+    using CBase<dim,2>::m_xmin;
+    using CBase<dim,2>::m_xmax;
+    using CBase<dim,2>::m_ymin;
+    using CBase<dim,2>::m_ymax;
+    using CBase<dim,2>::m_t;
+    using CBase<dim,2>::m_ti;
+    using CBase<dim,2>::m_N;
+    using CBase<dim,2>::m_omega;
+    using CBase<dim,2>::m_mu;
+    using CBase<dim,2>::m_gs;
+    using CBase<dim,2>::m_counter;
+    using CBase<dim,2>::m_ph;
+    using CBase<dim,2>::m_final_error;
+    using CBase<dim,2>::m_NA;
+    using CBase<dim,2>::m_Ndmu;
+    using CBase<dim,2>::m_dmu;
+    using CBase<dim,2>::m_QN1;
+    using CBase<dim,2>::m_res;
+    using CBase<dim,2>::m_resp;
+    using CBase<dim,2>::m_res_old;
+    using CBase<dim,2>::m_epsilon;
+    using CBase<dim,2>::m_global_refinement;
+    using CBase<dim,2>::m_total_no_cells;
+    using CBase<dim,2>::m_total_no_active_cells;
   };
 
   template <int dim>
   MySolver<dim>::MySolver ( const std::string &xml_filename )
     :
-    CBase<2>(xml_filename),
+    CBase<dim,2>(xml_filename),
     triangulation(),
     dof_handler (triangulation),
     fe (gl_degree_fe),
@@ -408,32 +433,30 @@ namespace BreedSolver_1
 
       if ( m_counter % m_NA == 0 ) output_results(path);
 
-      find_ortho_min();
+      this->find_ortho_min();
 
       m_Psi_ref = 0;
       m_Psi_ref.add(m_t[0], m_Psi_0, m_t[1], m_Psi_1);
       assemble_rhs();
 
       m_resp = m_res_old - m_res;
-      m_res_over_resp = fabs( m_res / m_resp );
       m_res_old = m_res;
 
       columns &cols = m_table.new_line();
       m_table.insert( cols, MyTable::COUNTER, double(m_counter) );
       m_table.insert( cols, MyTable::RES, m_res );
       m_table.insert( cols, MyTable::RESP, m_resp );
-      m_table.insert( cols, MyTable::RES_OVER_RESP, m_res_over_resp );
       m_table.insert( cols, MyTable::MU, m_mu );
       m_table.insert( cols, MyTable::GS, m_gs );
       m_table.insert( cols, MyTable::t1, m_t[0] );
       m_table.insert( cols, MyTable::t2, m_t[1] );
-      m_table.insert( cols, MyTable::l2norm_t, l2norm_t() );
+      m_table.insert( cols, MyTable::l2norm_t, this->l2norm_t() );
 
       cout << m_table;
 
       m_counter++;
 
-      if ( l2norm_t() < 1e-4 ) retval = Status::ZERO_SOL;
+      if ( this->l2norm_t() < 1e-4 ) retval = Status::ZERO_SOL;
       if ( m_res < m_epsilon[0] ) retval = Status::SUCCESS;
     }
     while ( retval == Status::CONTINUE );
@@ -466,7 +489,7 @@ namespace BreedSolver_1
       m_table.insert( cols, MyTable::GS, m_gs );
       m_table.insert( cols, MyTable::t1, m_t[0] );
       m_table.insert( cols, MyTable::t2, m_t[1] );
-      m_table.insert( cols, MyTable::l2norm_t, l2norm_t() );
+      m_table.insert( cols, MyTable::l2norm_t, this->l2norm_t() );
       m_table.insert( cols, MyTable::PARTICLE_NUMBER, m_N );
 
       cout << m_table;
