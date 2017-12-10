@@ -21,8 +21,12 @@
 #ifndef __CBASE_NO_MPI_H__
 #define __CBASE_NO_MPI_H__
 
+#define STR1(x) #x
+#define STR2(x) STR1(x)
+
 #include "ref_pt_list.h"
 #include "nlopt.h"
+#include "pugixml.hpp"
 
 template <int dim>
 class MySolver;
@@ -49,6 +53,7 @@ class CBase
     virtual ~CBase() {};
     
     void find_ortho_min();
+    void dump_info_xml( const string="" );
 
     double l2norm_t();
 
@@ -136,7 +141,7 @@ return sqrt(retval);
 template <int dim, int N>
 void CBase<dim,N>::screening()
 {
-  m_ref_pt_list_tmp.reset( 5, 10 );
+  m_ref_pt_list_tmp.reset( 10, 20 );
 
   for( auto& it : m_ref_pt_list_tmp.m_list )
   {
@@ -204,6 +209,32 @@ void CBase<dim,N>::find_ortho_min()
           m_t[i] = it.t[i];
     }
   }
+}
+
+template <int dim, int N>
+void CBase<dim,N>::dump_info_xml ( const string path )
+{
+  string filename = path + "info.xml";
+
+  pugi::xml_document doc;
+  pugi::xml_node parameter_node = doc.append_child("INFO");
+
+  pugi::xml_node node = parameter_node.append_child("MU");
+  node.append_child(pugi::node_pcdata).set_value( to_string(m_mu).c_str() );
+
+  node = parameter_node.append_child("GS");
+  node.append_child(pugi::node_pcdata).set_value( to_string(m_gs).c_str() );
+
+  node = parameter_node.append_child("N");
+  node.append_child(pugi::node_pcdata).set_value( to_string(m_N).c_str() );
+
+  node = parameter_node.append_child("FINAL_ERROR");
+  node.append_child(pugi::node_pcdata).set_value( to_string(m_final_error).c_str() );
+
+  node = parameter_node.append_child("REVISION");
+  node.append_child(pugi::node_pcdata).set_value( STR2(GIT_SHA1) );
+  
+  doc.save_file(filename.c_str());
 }
 
 #endif
