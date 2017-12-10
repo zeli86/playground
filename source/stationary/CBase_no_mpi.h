@@ -97,24 +97,32 @@ CBase<dim>::CBase( const std::string& xmlfilename )
   : 
   m_ph(xmlfilename)
 {
-  m_QN1[0] = unsigned(m_ph.Get_Physics("QN1",0));
-  m_omega = m_ph.Get_Physics("omega");
-  m_gs = m_ph.Get_Physics("gs_1",0);
-  
-  m_global_refinement = unsigned(m_ph.Get_Mesh("global_refinements",0));
-  m_xmin = m_ph.Get_Mesh("xMin",0);
-  m_xmax = m_ph.Get_Mesh("xMax",1);
+  try 
+  {
+    m_QN1[0] = unsigned(m_ph.Get_Physics("QN1",0));
+    m_omega = m_ph.Get_Physics("omega");
+    m_gs = m_ph.Get_Physics("gs_1",0);
+    
+    m_global_refinement = unsigned(m_ph.Get_Mesh("global_refinements",0));
+    m_xmin = m_ph.Get_Mesh("xrange",0);
+    m_xmax = m_ph.Get_Mesh("xrange",1);
 
-  m_ti = m_ph.Get_Algorithm("ti",0);
-  m_epsilon = m_ph.Get_Algorithm("epsilon");
-  m_t[0] = m_ti;
-  m_t[1] = m_ti;
-  m_t_guess[0] = m_ti;
-  m_t_guess[1] = m_ti;
+    m_ti = m_ph.Get_Algorithm("ti",0);
+    m_epsilon = m_ph.Get_Algorithm("epsilon");
+    m_t[0] = m_ti;
+    m_t[1] = m_ti;
+    m_t_guess[0] = m_ti;
+    m_t_guess[1] = m_ti;
 
-  m_NA = int(m_ph.Get_Algorithm("NA",0));
-  m_Ndmu = m_ph.Get_Algorithm("Ndmu",0); 
-  m_dmu = m_ph.Get_Algorithm("dmu",0);
+    m_NA = int(m_ph.Get_Algorithm("NA",0));
+    m_Ndmu = m_ph.Get_Algorithm("Ndmu",0); 
+    m_dmu = m_ph.Get_Algorithm("dmu",0);
+  }
+  catch( const std::string info )
+  {
+    std::cerr << info << endl;
+    throw;
+  }
 
   m_counter=0;
 }
