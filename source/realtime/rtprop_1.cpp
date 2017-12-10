@@ -30,7 +30,6 @@
 
 #include <deal.II/lac/vector.h>
 #include <deal.II/lac/full_matrix.h>
-#include <deal.II/lac/constraint_matrix.h>
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/sparse_direct.h>
 #include <deal.II/lac/sparsity_tools.h>
@@ -50,6 +49,7 @@
 #include <deal.II/fe/fe_q.h>
 
 #include <deal.II/numerics/vector_tools.h>
+#include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/base/utilities.h>
 //#include <deal.II/base/function_parser.h>
@@ -94,7 +94,6 @@ namespace realtime_propagation
     Triangulation<1> triangulation;
     FESystem<1> fe;
     DoFHandler<1> dof_handler;
-    ConstraintMatrix constraints;
 
     SparsityPattern sparsity_pattern;
     SparseMatrix<double> system_matrix;
@@ -185,11 +184,6 @@ namespace realtime_propagation
     system_rhs.reinit(dof_handler.n_dofs());
     newton_update.reinit(dof_handler.n_dofs());
     m_error_per_cell.reinit(dof_handler.n_dofs());
-
-    constraints.clear();
-    DoFTools::make_hanging_node_constraints(dof_handler, constraints);
-    VectorTools::interpolate_boundary_values(dof_handler, 0, ZeroFunction<1>(2), constraints);
-    constraints.close();
 
     DynamicSparsityPattern dsp(dof_handler.n_dofs());
     DoFTools::make_sparsity_pattern (dof_handler, dsp);
@@ -295,7 +289,9 @@ namespace realtime_propagation
         }
       }      
       cell->get_dof_indices (local_dof_indices);
-      constraints.distribute_local_to_global(cell_matrix, local_dof_indices, system_matrix);
+      for ( unsigned i = 0; i < dofs_per_cell; i++ )
+        for ( unsigned j = 0; j < dofs_per_cell; j++ )
+          system_matrix.add (local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));
     }
   }
   
@@ -352,17 +348,21 @@ namespace realtime_propagation
                               +(Psi_t[qp][1]-Psi[qp][1])*fe_values[it].value(i,qp) + tmp1*sum_re*fe_values[it].value(i,qp));
         }
       }
-      constraints.distribute_local_to_global(cell_rhs, local_dof_indices, system_rhs);
+      for ( unsigned i = 0; i < dofs_per_cell; i++ )
+        system_rhs(local_dof_indices[i]) += cell_rhs(i);
     }
     m_res = system_rhs.l2_norm(); 
   }
   
   void MySolver::solve ()
   {
+    map<types::global_dof_index, double> boundary_values;
+    VectorTools::interpolate_boundary_values (dof_handler, 0, ZeroFunction<1>(), boundary_values);
+    MatrixTools::apply_boundary_values (boundary_values, system_matrix, newton_update, system_rhs);    
+
     SparseDirectUMFPACK  A_direct;
     A_direct.initialize(system_matrix);
     A_direct.vmult (newton_update, system_rhs);
-    constraints.distribute(newton_update);
   }
 
   void MySolver::DoIter()
@@ -377,7 +377,6 @@ namespace realtime_propagation
       solve();
 
       m_Psi_t.add( -1, newton_update );
-      constraints.distribute(m_Psi_t);
       
       assemble_rhs();
       //cout << "m_res = " << m_res << endl;       
