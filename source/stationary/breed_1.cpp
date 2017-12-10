@@ -429,7 +429,7 @@ namespace BreedSolver_1
       assemble_system();
       solve();
 
-      m_Psi_1.add( -m_t[1] / fabs(m_t[1]), m_newton_update );
+      m_Psi_1.add( -0.001*m_t[1] / fabs(m_t[1]), m_newton_update );
 
       if ( m_counter % m_NA == 0 ) output_results(path);
 
@@ -809,7 +809,6 @@ namespace BreedSolver_1
 
 int main ( int argc, char *argv[] )
 {
-  using namespace dealii;
   deallog.depth_console (0);
 
   BreedSolver_1::MySolver<1> solver("params.xml");
