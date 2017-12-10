@@ -35,8 +35,7 @@
 using namespace std;
 
 const long N1[] = {4,4,4};
-const long NA = 10000;
-const long Ndmu = 40;
+//const long NA = 10000;
 const double dmu = .02;
 double omega[] = {0.5, 0.5, 0.5};
 
@@ -83,7 +82,8 @@ std::string qn_to_path_3D( const int l, const int maxN )
 int main( int argc, char *argv[] )
 {
   AnyOption * opt = new AnyOption();
-  int dim=1, N=4, r=9;
+  int dim=1, N=4, r=9, Ndmu=40;
+  std::string custom_folder;
 
   opt->addUsage( "" );
   opt->addUsage( "Usage: batch_case_generation [options]" );
@@ -91,12 +91,16 @@ int main( int argc, char *argv[] )
   opt->addUsage( " --help  Prints this help " );
   opt->addUsage( " --dim   1 or 2 or 3" );
   opt->addUsage( " --N     integer" );
+  opt->addUsage( " --Ndmu  number of delta mu steps" );
   opt->addUsage( " --r     global refinement" );
+  opt->addUsage( " --p     folder name" );
   opt->addUsage( "" );
   opt->setFlag(  "help" );   
   opt->setOption( "dim" );   
   opt->setOption( "N" );   
   opt->setOption( "r" );   
+  opt->setOption( "p" );   
+  opt->setOption( "Ndmu" );   
   
   opt->processCommandArgs( argc, argv );
 
@@ -110,10 +114,16 @@ int main( int argc, char *argv[] )
 
   if( opt->getValue("r") != nullptr ) 
     r = atof(opt->getValue("r"));
+  
+  if( opt->getValue("Ndmu") != nullptr ) 
+    Ndmu = atof(opt->getValue("Ndmu"));
+
+  if( opt->getValue("p") != nullptr ) 
+    custom_folder = opt->getValue("p");    
 
   delete opt; 
 
-  const string HomePath = getenv ("HOME");
+  //const string HomePath = getenv ("HOME");
 
   string tmpstr;
 
@@ -145,6 +155,11 @@ int main( int argc, char *argv[] )
   sprintf( base_folder, "GOST_%s", datetime );
   omega[0] = 0.5039287608;
 #endif
+
+  if( custom_folder != "" )
+  {
+    sprintf( base_folder, "%s", custom_folder.c_str() );
+  }
 
   const int maxN = int(pow(N,dim));
   for( int s=0; s<maxN; s++ )
@@ -221,8 +236,7 @@ int main( int argc, char *argv[] )
     node.append_child(pugi::node_pcdata).set_value(tmpstr.c_str());
 
     node = algorithm_node.append_child("Ndmu");
-    tmpstr = to_string(Ndmu);
-    node.append_child(pugi::node_pcdata).set_value(tmpstr.c_str());
+    node.append_child(pugi::node_pcdata).set_value(to_string(Ndmu).c_str());
 
     // add param node before the description
     //pugi::xml_node param = node.insert_child_before("param", descr);
