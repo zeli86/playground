@@ -18,9 +18,3 @@ TARGET_LINK_LIBRARIES( breed_1 ${MPI_CXX_LIBRARIES} myatus ${GSL_LIBRARY_1} ${GS
 
 ADD_EXECUTABLE( breed_sob_1 breed_sob_1.cpp )
 TARGET_LINK_LIBRARIES( breed_sob_1 ${MPI_CXX_LIBRARIES} myatus ${GSL_LIBRARY_1} ${GSL_LIBRARY_2} m ${DEAL_II_LIBRARY} ${PETSC_LIBRARY} ${NLOPT_LIBRARY} )
-
-#ADD_EXECUTABLE( my_schroedinger_newton_v0_mpi my_schroedinger_newton_v0_mpi.cpp )
-#TARGET_LINK_LIBRARIES( my_schroedinger_newton_v0_mpi ${MPI_CXX_LIBRARIES} myatus ${GSL_LIBRARY_1} ${GSL_LIBRARY_2} m ${DEAL_II_LIBRARY} ${PETSC_LIBRARY} )
-
-#ADD_EXECUTABLE( my_schroedinger_newton_cs_mpi my_schroedinger_newton_cs_mpi.cpp )
-#TARGET_LINK_LIBRARIES( my_schroedinger_newton_cs_mpi ${MPI_CXX_LIBRARIES} myatus ${GSL_LIBRARY_1} ${GSL_LIBRARY_2} m ${DEAL_II_LIBRARY} ${PETSC_LIBRARY} )
