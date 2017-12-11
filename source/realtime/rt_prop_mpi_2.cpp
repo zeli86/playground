@@ -84,6 +84,7 @@ namespace LA
 #include "my_table.h"
 #include "functions.h"
 #include "MyComplexTools.h"
+#include "muParser.h"
 
 namespace realtime_propagation
 {
@@ -198,17 +199,20 @@ namespace realtime_propagation
   void MySolver<dim>::make_grid ()
   {
     m_computing_timer.enter_section(__func__);
-#if DIMENSION==2
-    Point<dim,double> pt1( m_xmin, m_ymin );
-    Point<dim,double> pt2( m_xmax, m_ymax );
-#endif
-#if DIMENSION==3
-    Point<dim,double> pt1( m_xmin, m_ymin, m_zmin );
-    Point<dim,double> pt2( m_xmax, m_ymax, m_zmax );
-#endif
+    Point<dim,double> pt1;
+    Point<dim,double> pt2;
+    
+    double min[] = {m_xmin, m_ymin, m_zmin};
+    double max[] = {m_xmax, m_ymax, m_zmax};
+
+    for( int i=0; i<dim; i++ )
+    {
+      pt1(i) = min[i];
+      pt2(i) = max[i];
+    }
 
     GridGenerator::hyper_rectangle(triangulation, pt2, pt1);
-    triangulation.refine_global(1);
+   
     m_computing_timer.exit_section();
   }
   
@@ -398,12 +402,36 @@ namespace realtime_propagation
 int main ( int argc, char *argv[] )
 {
   using namespace dealii;
+
   deallog.depth_console (0);
+  MyParameterHandler params("params.xml");
+  int dim=0;
+
+  try
+  {
+    dim = int(params.Get_Mesh("DIM",0));
+  }
+  catch (mu::Parser::exception_type &e)
+  {
+    cout << "Message:  " << e.GetMsg() << "\n";
+    cout << "Formula:  " << e.GetExpr() << "\n";
+    cout << "Token:    " << e.GetToken() << "\n";
+    cout << "Position: " << e.GetPos() << "\n";
+    cout << "Errc:     " << e.GetCode() << "\n";
+  }
 
   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv );
   {
-    realtime_propagation::MySolver<DIMENSION> solver("params.xml");
-    solver.run();
+    switch(dim)
+    {
+      case 2: { realtime_propagation::MySolver<2> solver("params.xml");
+                solver.run();
+                break; }
+      case 3: { realtime_propagation::MySolver<3> solver("params.xml");
+                solver.run();
+                break; }
+      default: cout << "You have found a new dimension!" << endl;
+    }    
   }  
 return EXIT_SUCCESS;
 }
