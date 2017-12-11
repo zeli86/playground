@@ -49,7 +49,7 @@ Then select 'a' for all packages and press enter. This will take a while dependi
 * Create a build folder below playground: *mkdir Build*
 * Change to Build folder: *cd Build*
 * Run: *cmake ..*
-* Run: *ccmake .* or *cmake-gui .* (Check the CACHE. The base paths of the libraries files should point to /home/yourname/local/opt/. )
+* Run: *ccmake .* or *cmake-gui .* (Check the CACHE. The base paths of the library files should point to /home/yourname/local/opt/. )
 * Build: *make -j 4*
 * Test: *make test* or *ctest -V* (verbose output)
 
