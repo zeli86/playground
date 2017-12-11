@@ -82,9 +82,9 @@ namespace LA
 #include "mpi.h"
 #include "my_table.h"
 #include "functions.h"
-#include "MyParameterHandler.cpp"
+#include "MyParameterHandler.h"
 #include "MyComplexTools.h"
-
+#include "muParser.h"
 
 namespace realtime_propagation
 {
@@ -447,10 +447,34 @@ int main ( int argc, char *argv[] )
   using namespace dealii;
   deallog.depth_console (0);
 
+  MyParameterHandler params("params.xml");
+  int dim=0;
+
+  try
+  {
+    dim = int(params.Get_Mesh("DIM",0));
+  }
+  catch (mu::Parser::exception_type &e)
+  {
+    cout << "Message:  " << e.GetMsg() << "\n";
+    cout << "Formula:  " << e.GetExpr() << "\n";
+    cout << "Token:    " << e.GetToken() << "\n";
+    cout << "Position: " << e.GetPos() << "\n";
+    cout << "Errc:     " << e.GetCode() << "\n";
+  }
+
   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv );
   {
-    realtime_propagation::MySolver<DIMENSION> solver("params.xml");
-    solver.run();
+    switch(dim)
+    {
+      case 2: { realtime_propagation::MySolver<2> solver("params.xml");
+                solver.run();
+                break; }
+      case 3: { realtime_propagation::MySolver<3> solver("params.xml");
+                solver.run();
+                break; }
+      default: cout << "You have found a new dimension!" << endl;
+    }    
   }
 return EXIT_SUCCESS;
 }
