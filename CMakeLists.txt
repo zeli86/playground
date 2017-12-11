@@ -1,5 +1,5 @@
 PROJECT (atus-playground)
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.3)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -11,6 +11,7 @@ find_package(MPI REQUIRED)
 find_package(GSL REQUIRED)
 find_package(NLOPT REQUIRED)
 find_package(MUPARSER REQUIRED)
+find_package(Doxygen)
 #find_package(Boost REQUIRED)
 message("**********************************************************************")
 
@@ -19,9 +20,10 @@ include(GetGitRevisionDescription)
 get_git_head_revision(GIT_REFSPEC GIT_SHA1)
 add_definitions("-DGIT_SHA1=${GIT_SHA1}")
 
-option( BUILD_3D "3D" OFF )
+option( BUILD_3D "3D - in the future this is going to be removed" OFF )
 option( BUILD_HTRAP "3D" OFF )
 option( BUILD_NEHARI "Disables the initial point in function space being set to the Nehari value" ON )
+option( BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" ${DOXYGEN_FOUND})
 
 set(CMAKE_CXX_FLAGS_RELEASE "-std=gnu++11 -march=native -O3 -fopenmp -mieee-fp -funroll-loops -ftree-vectorize -w -s")
 set(CMAKE_CXX_FLAGS_DEBUG "-std=gnu++11 -g -march=native -fopenmp -mieee-fp -fsanitize=address")
@@ -112,19 +114,42 @@ ADD_SUBDIRECTORY( source/trash )
 ADD_SUBDIRECTORY( source/edu )
 #ADD_SUBDIRECTORY( source/cont )
 
+#set(cpuinfo_file "/proc/cpuinfo")
+#if(EXISTS "${cpuinfo_file}")
+#  file(STRINGS "${cpuinfo_file}" procs REGEX "^processor.: [0-9]+$")
+#  list(LENGTH procs PROCESSOR_COUNT)
+#endif()
+
+if(BUILD_DOCUMENTATION)
+if(NOT DOXYGEN_FOUND)
+    message(FATAL_ERROR "Doxygen is needed to build the documentation.")
+endif()
+
+set(doxyfile ${PROJECT_SOURCE_DIR}/Doxyfile)
+
+add_custom_target(doc
+    COMMAND ${DOXYGEN_EXECUTABLE} ${doxyfile}
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+    COMMENT "Generating API documentation with Doxygen"
+    VERBATIM)
+endif()
+
+message(STATUS "number of cores: ${MPIEXEC_MAX_NUMPROCS}\n")
 
 enable_testing()
+# serial progs
+add_test( NAME CASEGENTEST1 COMMAND ${EXECUTABLE_OUTPUT_PATH}/batch_case_generation_xml --dim 1 --p test1d --N 2 --Ndmu 2)
+add_test( NAME CASEGENTEST2 COMMAND ${EXECUTABLE_OUTPUT_PATH}/batch_case_generation_xml --dim 2 --p test2d --N 1 --Ndmu 2)
+add_test( NAME BREED1_0 COMMAND ${EXECUTABLE_OUTPUT_PATH}/breed_1 WORKING_DIRECTORY ${CMAKE_CACHEFILE_DIR}/test1d/0/)
+add_test( NAME BREED1_1 COMMAND ${EXECUTABLE_OUTPUT_PATH}/breed_1 WORKING_DIRECTORY ${CMAKE_CACHEFILE_DIR}/test1d/1/)
+add_test( NAME BREEDSOB1_0 COMMAND ${EXECUTABLE_OUTPUT_PATH}/breed_sob_1 WORKING_DIRECTORY ${CMAKE_CACHEFILE_DIR}/test1d/0/0001)
 
-add_test( CASEGENTEST1 batch_case_generation_xml --dim 1 --p test1d --N 2 --Ndmu 2)
-add_test( CASEGENTEST2 batch_case_generation_xml --dim 2 --p test2d --N 1 --Ndmu 2)
-add_test( NAME BREED1_0 COMMAND breed_1 WORKING_DIRECTORY ${CMAKE_CACHEFILE_DIR}/test1d/0/)
-add_test( NAME BREED1_1 COMMAND breed_1 WORKING_DIRECTORY ${CMAKE_CACHEFILE_DIR}/test1d/1/)
-
-#set (test_parameters -np ${no_mpi_proc} "./${name}")
-#add_test(NAME ${name} COMMAND "mpirun" ${test_parameters})
+# mpi progs
+set (test_parameters -np ${MPIEXEC_MAX_NUMPROCS} ${EXECUTABLE_OUTPUT_PATH}/breed_mpi)
+add_test( NAME BREEDMPI_0 COMMAND ${MPIEXEC} ${test_parameters} WORKING_DIRECTORY ${CMAKE_CACHEFILE_DIR}/test2d/0_0/)
+add_test( NAME BREEDMPI_1 COMMAND ${MPIEXEC} ${test_parameters} WORKING_DIRECTORY ${CMAKE_CACHEFILE_DIR}/test2d/1_0/)
 
 FILE(GLOB bash_sh "${PROJECT_SOURCE_DIR}/bash/*")
-
 FOREACH( file_i ${bash_sh})
     MESSAGE(STATUS ${file_i} )
     INSTALL(FILES ${file_i} PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ DESTINATION "${HOME}/bin" )

@@ -1,0 +1,31 @@
+
+.one table {
+	border-collapse: collapse;
+	font-family:Roboto, sans-serif;
+	font-size:12px;
+	margin-left: auto;
+	margin-right: auto;	
+	border:#1D701D 1px solid;
+	align:center;
+}
+.one table th {
+	padding:4px 4px 4px 4px;
+	border:1px solid #1D701D;
+	color:white;
+	background: #1D701D;
+}
+.one table tr {
+	text-align: left;
+	padding-left: 8px;
+	border:#00cc00 1px solid;
+}
+.one table td {
+	padding:4px 4px 4px 4px;
+	color:black;
+	border:#1D701D 1px solid;
+}
+
+.mynote 
+{
+  border-left:#FF8800 5px solid;
+} 
