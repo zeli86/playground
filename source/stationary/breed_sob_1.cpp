@@ -50,14 +50,18 @@
 #include <deal.II/dofs/dof_accessor.h>
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_tools.h>
+
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_values.h>
+
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/tria_accessor.h>
 #include <deal.II/grid/tria_boundary_lib.h>
 #include <deal.II/grid/tria_iterator.h>
+
 #include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/numerics/vector_tools.h>
+#include <deal.II/numerics/data_out.h>
 
 #include <cstdlib>
 #include <fstream>
@@ -117,15 +121,13 @@ namespace BreedSolver_1
     void compute_Psi_sob();
     void compute_mu();
     void save(string);
-    void dump_info_xml(const string);
     void Project_gradient();
 
     void solve();
     void compute_E_lin(Vector<double> &, double &, double &, double &);
     void estimate_error(double &);
 
-    void output_results(string, string = "step");
-    void output_guess();
+    void output_results(string);
 
     MyParameterHandler m_ph;
     Triangulation<dim> triangulation;
@@ -355,7 +357,6 @@ namespace BreedSolver_1
   template <int dim> 
   void MySolver<dim>::assemble_system()
   {
-    CPotential<dim> Potential(m_omega);
     const QGauss<dim> quadrature_formula(fe.degree + 1);
 
     m_system_matrix = 0;
@@ -377,10 +378,9 @@ namespace BreedSolver_1
       for (unsigned qp = 0; qp < n_q_points; qp++)
       {
         double JxW = fe_values.JxW(qp);
-        // double Q1 = Potential.value(fe_values.quadrature_point(qp));
 
-        for (unsigned i = 0; i < dofs_per_cell; ++i)
-          for (unsigned j = 0; j < dofs_per_cell; ++j)
+        for (unsigned i = 0; i < dofs_per_cell; i++)
+          for (unsigned j = 0; j < dofs_per_cell; j++)
             cell_matrix(i, j) += JxW * (fe_values.shape_grad(i, qp) * fe_values.shape_grad(j, qp) + fe_values.shape_value(i, qp) * fe_values.shape_value(j, qp));
       }
       cell->get_dof_indices (local_dof_indices);
@@ -398,7 +398,7 @@ namespace BreedSolver_1
     CPotential<dim> Potential(m_omega);
     const QGauss<dim> quadrature_formula(fe.degree + 1);
 
-    FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_JxW_values | update_quadrature_points);
+    FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_gradients | update_JxW_values );
 
     const unsigned dofs_per_cell = fe.dofs_per_cell;
     const unsigned n_q_points = quadrature_formula.size();
@@ -505,6 +505,7 @@ namespace BreedSolver_1
     m_Psi.reinit(dof_handler.n_dofs());
     m_Psi_sob.reinit(dof_handler.n_dofs());
     m_system_rhs.reinit(dof_handler.n_dofs());
+    m_solution.reinit(dof_handler.n_dofs());
     m_sob_grad.reinit(dof_handler.n_dofs());
     m_error_per_cell.reinit(triangulation.n_active_cells());
 
@@ -516,11 +517,18 @@ namespace BreedSolver_1
     m_system_matrix.reinit(m_sparsity_pattern);
   }
 
-  template <int dim> 
-  void MySolver<dim>::output_guess() {}
-
   template <int dim>
-  void MySolver<dim>::output_results(string path, string prefix) {}
+  void MySolver<dim>::output_results( string filename ) 
+  {
+    DataOut<dim> data_out;
+    data_out.attach_dof_handler (dof_handler);
+    data_out.add_data_vector (m_Psi, "Psi");
+    data_out.add_data_vector (m_error_per_cell, "error_per_cell");
+    data_out.build_patches ();
+    
+    ofstream output (filename.c_str());
+    data_out.write_gnuplot (output);
+  }
 
   template <int dim> 
   int MySolver<dim>::DoIter(string path)
@@ -543,26 +551,23 @@ namespace BreedSolver_1
       assemble_system();
       solve();
       m_sob_grad = m_solution;
-
+      
       compute_Psi_sob();
       Project_gradient();
       m_res = m_sob_grad.l2_norm();
-
-      m_Psi.add(-1e-3, m_sob_grad);
-
+      
+      m_Psi.add( -0.1, m_sob_grad);
+      
       // compute_mu(m_mu);
       m_N = MyRealTools::Particle_Number(dof_handler, fe, m_Psi);
-
+      
       if (fabs(m_N - 1) > 1e-5)
         m_Psi *= 1 / sqrt(m_N);
 
       assemble_rhs();
-
+        
       m_resp = m_res_old - m_res;
       m_res_old = m_res;
-
-      if (m_counter % m_NA == 0)
-        output_results(path);
 
       columns &cols = m_table.new_line();
       m_table.insert(cols, MyTable::COUNTER, double(m_counter));
@@ -610,8 +615,6 @@ namespace BreedSolver_1
     compute_E_lin(m_Psi, T, N, W);
     m_Psi *= sqrt(1 / N);
 
-    output_guess();
-
     cout << setprecision(9);
     cout << "T = " << T << endl;
     cout << "N = " << N << endl;
@@ -621,10 +624,8 @@ namespace BreedSolver_1
 
     if (status == Status::SUCCESS)
     {
-      // output_results("","final");
-      // output_results("","final");
-      save("final.bin");
-      // dump_info_xml("");
+      output_results("final_gs_one.gnuplot");
+      save("final_gs_one.bin");
     }
 
     ofstream ofs("log.txt");
@@ -637,34 +638,6 @@ namespace BreedSolver_1
     ofstream ofs(filename);
     m_Psi.block_write(ofs);
   }
-
-  template <int dim> 
-  void MySolver<dim>::dump_info_xml(const string path)
-  {
-    /*
-    string filename = path + "info.xml";
-
-    wofstream fs2;
-    fs2.open(filename);
-
-    locale utf8_locale("en_US.UTF8");
-    fs2.imbue(utf8_locale);
-    fs2 << L"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<INFO>\n";
-    fs2 << L"<MU>" << m_mu << L"</MU>\n";
-    fs2 << L"<GS>" << m_gs << L"</GS>\n";
-    fs2 << L"<N>" << m_N << "L</N>\n";
-    fs2 << L"<XMIN>" << m_xmin << L"</XMIN>\n";
-    fs2 << L"<XMAX>" << m_xmax << L"</XMAX>\n";
-    fs2 << L"<YMIN>" << m_ymin << L"</YMIN>\n";
-    fs2 << L"<YMAX>" << m_ymax << L"</YMAX>\n";
-    fs2 << L"<ZMIN>" << m_zmin << L"</ZMIN>\n";
-    fs2 << L"<ZMAX>" << m_zmax << L"</ZMAX>\n";
-    fs2 << L"<FINAL_ERROR>" << m_final_error << L"</FINAL_ERROR>\n";
-    fs2 << L"<REVISION>" << STR2(GIT_SHA1) << L"</REVISION>\n";
-    fs2 << L"</INFO>\n";
-    fs2.close();
-    */
-  }
 } // end of namespace
 
 int main(int argc, char *argv[])
@@ -672,7 +645,7 @@ int main(int argc, char *argv[])
   using namespace dealii;
   deallog.depth_console(0);
 
-  BreedSolver_1::MySolver<1> solver("params.xml");
+  BreedSolver_1::MySolver<1> solver("params_one.xml");
   solver.run();
   return EXIT_SUCCESS;
 }
