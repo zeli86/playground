@@ -87,7 +87,6 @@ namespace BreedSolver_1
     ~MySolver();
 
     void run ();
-    void run2b ();
 
     double m_I[8];
   private:
@@ -103,6 +102,7 @@ namespace BreedSolver_1
     void output_results ( string, string = "step" );
     void output_guess();
     void save( string );
+    void save_one( string );
     void Interpolate_R_to_C( string );
     void estimate_error( double & );
 
@@ -408,6 +408,8 @@ namespace BreedSolver_1
   template <int dim>
   int MySolver<dim>::DoIter ( string path )
   {
+    CPotential<dim> Potential( m_omega );
+
     int retval = Status::CONTINUE;
 
     m_table.clear();
@@ -429,7 +431,9 @@ namespace BreedSolver_1
       assemble_system();
       solve();
 
-      m_Psi_1.add( -0.001*m_t[1] / fabs(m_t[1]), m_newton_update );
+      double tau;
+      MyRealTools::compute_stepsize( dof_handler, fe, Potential, m_Psi_ref, m_newton_update, m_mu, m_gs, tau );
+      m_Psi_1.add( tau*m_t[1] / fabs(m_t[1]), m_newton_update );
 
       if ( m_counter % m_NA == 0 ) output_results(path);
 
@@ -636,62 +640,10 @@ namespace BreedSolver_1
     A_direct.vmult (m_Psi_C, m_system_rhs_2);
   }
 
-  template <int dim>
-  void MySolver<dim>::run()
-  {
-    int status;
-    double T, N, W;
-
-    make_grid();
-    setup_system();
-
-    CEigenfunctions<dim> Ef1( m_QN1, m_omega );
-    VectorTools::interpolate (dof_handler, Ef1, m_Psi_0 );
-    m_Psi_0 *= 1.0 / sqrt(MyRealTools::Particle_Number<dim>(dof_handler,fe,m_Psi_0)); // This operation destroys the content of the ghost cells. This is fixed in compute_E_lin.
-    m_Psi_1 = 0;
-
-    compute_E_lin( m_Psi_0, T, N, W );
-    output_guess();
-
-    m_mu = T / N + m_gs / fabs(m_gs) * m_dmu;
-
-#ifdef NEHARI
-    m_ti = sqrt((m_mu * N - T) / (m_gs * W));
-#endif
-
-    cout << "T = " << T << endl;
-    cout << "N = " << N << endl;
-    cout << "W = " << W << endl;
-    cout << "m_mu = " << m_mu << endl;
-    cout << "m_gs = " << m_gs << endl;
-    cout << "m_ti = " << m_ti << endl;
-
-    status = DoIter();
-    estimate_error(m_final_error);
-
-    m_results.clear();
-    columns &cols = m_results.new_line();
-    m_results.insert( cols, MyTable::MU, m_mu );
-    m_results.insert( cols, MyTable::GS, m_gs );
-    m_results.insert( cols, MyTable::PARTICLE_NUMBER, m_N );
-    m_results.insert( cols, MyTable::COUNTER, double(m_counter) );
-    m_results.insert( cols, MyTable::RES, m_final_error );
-    m_results.insert( cols, MyTable::STATUS, double(status) );
-    m_results.dump_2_file( "results.csv" );
-
-    cout << "Particle number: " << m_N << endl;
-
-    if ( status == Status::SUCCESS )
-    {
-      output_results("", "final");
-      save("final.bin");
-    }
-  }
-
    /** @brief computes multiple solution
    */
   template <int dim>
-  void MySolver<dim>::run2b ()
+  void MySolver<dim>::run ()
   {
     string path;
     char shellcmd[255];
@@ -746,9 +698,16 @@ namespace BreedSolver_1
 
       if ( status == Status::SUCCESS )
       {
-        m_ph.SaveXMLFile( path + "params_one.xml" );
         output_results(path, "final");
         save( path + "final.bin");
+        save_one( path + "final_one.bin");
+        
+        vector<double> newgs = {m_gs*m_N}; 
+        m_ph.Set_Physics( "gs_1", newgs );
+        m_ph.SaveXMLFile( path + "params_one.xml" );
+        newgs[0] = m_gs;
+        m_ph.Set_Physics( "gs_1", newgs );
+
         m_Psi_0 = m_Psi_ref;
         m_Psi_1 = 0;
       }
@@ -803,7 +762,17 @@ namespace BreedSolver_1
   void MySolver<dim>::save( string filename )
   {
     ofstream out(filename);
-    m_Psi_C.block_write(out);
+    m_Psi_ref.block_write(out);
+  }
+
+  template <int dim>
+  void MySolver<dim>::save_one( string filename )
+  {
+    ofstream out(filename);
+  
+    m_workspace = m_Psi_ref;
+    m_workspace *= 1.0/sqrt(MyRealTools::Particle_Number<dim>(dof_handler,fe,m_Psi_ref));
+    m_workspace.block_write(out);
   }
 } // end of namespace
 
@@ -812,8 +781,6 @@ int main ( int argc, char *argv[] )
   deallog.depth_console (0);
 
   BreedSolver_1::MySolver<1> solver("params.xml");
-  solver.run2b();
-  //solver.run();
-  //solver.run2();
-  return EXIT_SUCCESS;
+  solver.run();
+return EXIT_SUCCESS;
 }

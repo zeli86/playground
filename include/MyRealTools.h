@@ -41,6 +41,80 @@ namespace MyRealTools
     }                  
   return retval;
   }
+
+  template <int dim>
+  void compute_stepsize( const DoFHandler<dim>& dof_handler,
+                         const FE_Q<dim>& fe,
+                         const Function<dim>& Potential, 
+                         const Vector<double>& psi,
+                         const Vector<double>& direction,
+                         const double mu,
+                         const double gs,
+                         double& retval )
+  {
+    retval=0;
+    
+    const QGauss<dim> quadrature_formula(fe.degree+1);
+    FEValues<dim> fe_values (fe, quadrature_formula, update_gradients|update_values|update_JxW_values|update_quadrature_points);
+
+    const unsigned dofs_per_cell = fe.dofs_per_cell;
+    const unsigned n_q_points = quadrature_formula.size();
+
+    vector<double> u(n_q_points);
+    vector<double> d(n_q_points);
+    vector<Tensor<1,dim>> u_grad(n_q_points);
+    vector<Tensor<1,dim>> d_grad(n_q_points);
+    vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
+
+    double total_int[4] = {};
+    
+    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), 
+                                                   endc = dof_handler.end();
+    for (; cell!=endc; ++cell)
+    {
+      if( cell->is_locally_owned() )
+      {
+        fe_values.reinit (cell);
+        fe_values.get_function_values( psi, u );
+        fe_values.get_function_values( direction, d );
+        fe_values.get_function_gradients( psi, u_grad);
+        fe_values.get_function_gradients( direction, d_grad);
+
+        for ( unsigned qp=0; qp<n_q_points; qp++ )
+        {
+          double JxW = fe_values.JxW(qp);
+          double Q = Potential.value(fe_values.quadrature_point(qp)) - mu;
+
+          total_int[0] += JxW*(u_grad[qp]*d_grad[qp] + Q*u[qp]*d[qp] + gs*u[qp]*u[qp]*u[qp]*d[qp]); // tau^0
+          total_int[1] += JxW*(d_grad[qp]*d_grad[qp] + Q*d[qp]*d[qp] + 3*gs*u[qp]*u[qp]*d[qp]*d[qp]); // tau^1
+          total_int[2] += JxW*d[qp]*d[qp]*d[qp]*u[qp]; // tau^2
+          //local_int[3] += JxW*d[qp]*d[qp]*d[qp]*d[qp]; // tau^3
+        }  
+      }
+    }
+
+    //total_int[1] = local_int[0];
+    total_int[2] *= (3*gs);
+    //total_int[3] *= (gs);
+    
+    //printf( "%e, %e, %e, %e\n", total_int[0], total_int[1], total_int[2], total_int[2] );
+
+    double xm = -0.5*(total_int[1]-sqrt(total_int[1]*total_int[1]-4*total_int[2]*total_int[0])) / total_int[2];
+    double xp = -0.5*(total_int[1]+sqrt(total_int[1]*total_int[1]-4*total_int[2]*total_int[0])) / total_int[2];
+
+    //retval=std::min(fabs(std::min( fabs(xp),fabs(xm))), 1.0);
+
+    if(  fabs(xp) < fabs(xm) )
+    {
+      retval = xp;
+    }
+    else
+    {
+      retval = xm;
+    }
+    if( fabs(retval) > 1 ) retval=retval/fabs(retval);
+    if( isnan(retval) ) retval=1;
+  }
 }
 
 namespace MyRealTools { namespace MPI
