@@ -35,8 +35,6 @@
 using namespace std;
 
 const long N1[] = {4,4,4};
-//const long NA = 10000;
-const double dmu = .02;
 double omega[] = {0.5, 0.5, 0.5};
 
 std::string qn_to_str_1D( const int l, const int /*maxN*/ )
@@ -82,7 +80,7 @@ std::string qn_to_path_3D( const int l, const int maxN )
 int main( int argc, char *argv[] )
 {
   AnyOption * opt = new AnyOption();
-  int dim=1, N=4, r=9, Ndmu=40;
+  int dim=1, N=4, r=9, Ndmu=40, dmu=.05;
   std::string custom_folder;
 
   opt->addUsage( "" );
@@ -90,7 +88,8 @@ int main( int argc, char *argv[] )
   opt->addUsage( "" );
   opt->addUsage( " --help  Prints this help " );
   opt->addUsage( " --dim   1 or 2 or 3" );
-  opt->addUsage( " --N     integer" );
+  opt->addUsage( " --N     max quantum number" );
+  opt->addUsage( " --dmu   delta mu" );
   opt->addUsage( " --Ndmu  number of delta mu steps" );
   opt->addUsage( " --r     global refinement" );
   opt->addUsage( " --p     folder name" );
@@ -100,6 +99,7 @@ int main( int argc, char *argv[] )
   opt->setOption( "N" );   
   opt->setOption( "r" );   
   opt->setOption( "p" );   
+  opt->setOption( "dmu" );   
   opt->setOption( "Ndmu" );   
   
   opt->processCommandArgs( argc, argv );
@@ -114,7 +114,10 @@ int main( int argc, char *argv[] )
 
   if( opt->getValue("r") != nullptr ) 
     r = atof(opt->getValue("r"));
-  
+
+  if( opt->getValue("dmu") != nullptr ) 
+    dmu = atof(opt->getValue("dmu"));
+
   if( opt->getValue("Ndmu") != nullptr ) 
     Ndmu = atof(opt->getValue("Ndmu"));
 
@@ -232,8 +235,7 @@ int main( int argc, char *argv[] )
     node.append_child(pugi::node_pcdata).set_value("1e-5,1e-10");
 
     node = algorithm_node.append_child("dmu");
-    tmpstr = to_string(dmu);
-    node.append_child(pugi::node_pcdata).set_value(tmpstr.c_str());
+    node.append_child(pugi::node_pcdata).set_value(to_string(dmu).c_str());
 
     node = algorithm_node.append_child("Ndmu");
     node.append_child(pugi::node_pcdata).set_value(to_string(Ndmu).c_str());
