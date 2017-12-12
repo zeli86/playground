@@ -20,6 +20,28 @@ include(GetGitRevisionDescription)
 get_git_head_revision(GIT_REFSPEC GIT_SHA1)
 add_definitions("-DGIT_SHA1=${GIT_SHA1}")
 
+#include(ExternalProject)
+
+#ExternalProject_add( CXXOPT
+#                     PREFIX ${CMAKE_CACHEFILE_DIR}/ThirdParty
+#                     GIT_REPOSITORY https://github.com/jarro2783/cxxopts
+#                     INSTALL_COMMAND ""
+#)
+
+#file(SHA256 ${PROJECT_SOURCE_DIR}/include/cxxopts.hpp CXXOPTSHA)
+#file(SHA256 ${CMAKE_CACHEFILE_DIR}/ThirdParty/src/CXXOPT/include/cxxopts.hpp CXXOPTGITSHA)
+
+#if(NOT CXXOPTSHA EQUAL CXXOPTGITSHA )
+#  file( COPY ${CMAKE_CACHEFILE_DIR}/ThirdParty/src/CXXOPT/include/cxxopts.hpp DESTINATION ${PROJECT_SOURCE_DIR}/include/)
+#endif()
+
+#ExternalProject_add( PUGIXML
+#                     PREFIX ${CMAKE_CACHEFILE_DIR}/ThirdParty
+#                     GIT_REPOSITORY https://github.com/zeux/pugixml
+#                     INSTALL_COMMAND ""
+#)
+
+
 option( BUILD_3D "3D - in the future this is going to be removed" OFF )
 option( BUILD_HTRAP "3D" OFF )
 option( BUILD_NEHARI "Disables the initial point in function space being set to the Nehari value" ON )
