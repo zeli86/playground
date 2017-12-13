@@ -42,13 +42,12 @@
 
 #include <fstream>
 #include <iostream>
-//#include <cmath>
 
 #include "global.h"
 #include "MyParameterHandler.h"
 #include "MyComplexTools.h"
+#include "cxxopts.hpp"
 #include "muParser.h"
-#include "anyoption.h"
 
 namespace HelperPrograms
 {
@@ -190,31 +189,34 @@ namespace HelperPrograms
 
 int main ( int argc, char *argv[] )
 {
-  std::string bin_filename, params_filename = "params.xml";
+  cxxopts::Options options("binR_to_binC_1", "Converts real 1D deal.ii binary format to complex deal.ii binary format.");
+  
+  options.add_options()
+  ("p,params",  "parameter xml file" , cxxopts::value<std::string>()->default_value("params.xml") )
+  ;
+  
+  options.parse_positional({"positional"});
+  auto result = options.parse(argc, argv);
 
-  AnyOption *opt = new AnyOption();
-
-  opt->addUsage( "" );
-  opt->addUsage( "Usage: binC_to_atus2 [options] filename" );
-  opt->addUsage( "" );
-  opt->addUsage( " -h --help  		Prints this help " );
-  opt->addUsage( " -p --params    xml_filename" );
-  opt->setFlag(  "help", 'h' );
-  opt->setOption( "params", 'p' );
-
-  opt->processCommandArgs( argc, argv );
-
-  if ( opt->getFlag( "help" ) || opt->getFlag( 'h' ) ) opt->printUsage();
-
-  if ( opt->getValue('p') != nullptr && opt->getValue("params") != nullptr )
+  std::string bin_filename, params_filename;
+  try
   {
-    params_filename = opt->getValue('p');
+    if( result["positional"].as<std::vector<std::string>>().size() > 0 )
+    {
+      bin_filename = result["positional"].as<std::vector<std::string>>()[0]; 
+    }
+    else
+    {        
+      std::cout << "error parsing options: missing file name" << std::endl;
+      return EXIT_FAILURE;
+    }
+    params_filename = result["p"].as<std::string>();
   }
-
-  if ( opt->getArgc() > 0 )
-    bin_filename = opt->getArgv(0);
-  else opt->printUsage();
-  delete opt;
+  catch (const cxxopts::OptionException& e)
+  {
+    std::cout << "error parsing options: " << e.what() << std::endl;
+    return EXIT_FAILURE;
+  }
 
   MyParameterHandler params(params_filename);
   int dim = 0;

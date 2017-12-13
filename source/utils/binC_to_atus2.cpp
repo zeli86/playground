@@ -78,7 +78,8 @@ namespace LA
 #include "MyParameterHandler.h"
 #include "my_table.h"
 #include "atus2.h"
-#include "anyoption.h"
+#include "cxxopts.hpp"
+#include "muParser.h"
 
 namespace HelperPrograms
 {
@@ -381,73 +382,79 @@ int main ( int argc, char *argv[] )
   using namespace dealii;
   deallog.depth_console (0);
 
-  std::string filename;
+  cxxopts::Options options("binC_to_atus2", "Converts complex deal.ii binary format to atus2 binary format.");
 
-  AnyOption * opt = new AnyOption();
-  int dim=2, wf=0, nowf=1;
+  options.add_options()
+  ("p,params",  "parameter xml file", cxxopts::value<std::string>()->default_value("params.xml") )
+  ;
 
-  //opt->noPOSIX(); 
-  //opt->setVerbose();
-  //opt->autoUsagePrint(true); 
+  options.add_options("wave function index")
+  ("i,iwf",  "select the i-th wave function for export (1,2,..)", cxxopts::value<int>()->default_value("1")  )
+  ("N,nowf",  "total number of wave functions stored in the binary file (1,..)", cxxopts::value<int>()->default_value("1")  )
+  ;
+  
+  options.parse_positional({"positional"});
+  auto result = options.parse(argc, argv);
 
-  opt->addUsage( "" );
-  opt->addUsage( "Usage: binC_to_atus2 [options] filename" );
-  opt->addUsage( "" );
-  opt->addUsage( " --help -h  Prints this help " );
-  opt->addUsage( " --dim      2 or 3" );
-  opt->addUsage( " --nowf     1,2,..." );
-  opt->addUsage( " --wf       1,2,..." );
-  opt->addUsage( "" );
-  opt->setFlag(  "help", 'h' );   
-  opt->setOption( "dim" );   
-  opt->setOption( "wf" );   
-  opt->setOption( "nowf" );   
-
-  opt->processCommandArgs( argc, argv );
-
-  if( opt->getFlag( "help" ) || opt->getFlag( 'h' ) ) opt->printUsage();
-
-  if( opt->getValue("dim") == nullptr ) 
+  std::string bin_filename, params_filename;
+  try
   {
-    opt->printUsage();
-    delete opt;     
+    if( result["positional"].as<std::vector<std::string>>().size() > 0 )
+    {
+      bin_filename = result["positional"].as<std::vector<std::string>>()[0]; 
+    }
+    else
+    {        
+      std::cout << "error parsing options: missing file name" << std::endl;
+      return EXIT_FAILURE;
+    }
+    params_filename = result["p"].as<std::string>();
+  }
+  catch (const cxxopts::OptionException& e)
+  {
+    std::cout << "error parsing options: " << e.what() << std::endl;
     return EXIT_FAILURE;
   }
 
-  if( opt->getValue("wf") != nullptr && opt->getValue("nowf") != nullptr ) 
+  MyParameterHandler params(params_filename);
+  int dim=0;
+
+  try
   {
-    wf = atof(opt->getValue("wf"));
-    nowf = atof(opt->getValue("nowf"));
+    dim = int(params.Get_Mesh("DIM",0));
+  }
+  catch (mu::Parser::exception_type &e)
+  {
+    std::cout << "Message:  " << e.GetMsg() << "\n";
+    std::cout << "Formula:  " << e.GetExpr() << "\n";
+    std::cout << "Token:    " << e.GetToken() << "\n";
+    std::cout << "Position: " << e.GetPos() << "\n";
+    std::cout << "Errc:     " << e.GetCode() << "\n";
   }
 
-  dim = atof(opt->getValue("dim"));  
-
-  if( opt->getArgc() > 0 ) 
-    filename = opt->getArgv(0);
-  else opt->printUsage();
-  delete opt; 
-
+  int nowf = result["nowf"].as<int>();
+  int wf =  result["iwf"].as<int>();
   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv );
   {
     if( dim == 2 && nowf == 1 )
     {
-      HelperPrograms::MySolver<2,1> solver("params.xml");
-      solver.run(filename);
+      HelperPrograms::MySolver<2,1> solver(params_filename);
+      solver.run(bin_filename);
     }
     if( dim == 3 && nowf == 1 )
     {
-      HelperPrograms::MySolver<3,1> solver("params.xml");
-      solver.run(filename);
+      HelperPrograms::MySolver<3,1> solver(params_filename);
+      solver.run(bin_filename);
     }
     if( dim == 2 && nowf == 2 )
     {
-      HelperPrograms::MySolver<2,2> solver("params.xml");
-      solver.run(filename,wf);
+      HelperPrograms::MySolver<2,2> solver(params_filename);
+      solver.run(bin_filename,wf);
     }
     if( dim == 3 && nowf == 2 )
     {
-      HelperPrograms::MySolver<3,2> solver("params.xml");
-      solver.run(filename,wf);
+      HelperPrograms::MySolver<3,2> solver(params_filename);
+      solver.run(bin_filename,wf);
     }
   }  
 return EXIT_SUCCESS;

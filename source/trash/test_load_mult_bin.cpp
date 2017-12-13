@@ -79,7 +79,7 @@ namespace LA
 #include "MyParameterHandler.h"
 #include "my_table.h"
 #include "atus2.h"
-#include "anyoption.h"
+#include "cxxopts.hpp"
 
 namespace TestPrograms
 {
@@ -270,56 +270,50 @@ int main ( int argc, char *argv[] )
   using namespace dealii;
   deallog.depth_console (0);
 
-  std::string filename, filename2;
+  int dim;
+  std::string filename, filename2, params_filename;
 
-  AnyOption * opt = new AnyOption();
-  int dim=0;
-
-  opt->addUsage( "" );
-  opt->addUsage( "Usage: binR_to_atus2 [options] filename" );
-  opt->addUsage( "" );
-  opt->addUsage( " --help -h   Prints this help " );
-  opt->addUsage( " --dim       2 or 3" );
-  opt->addUsage( "" );
-  opt->setFlag(  "help", 'h' );   
-  opt->setOption( "dim" );   
-
-  opt->processCommandArgs( argc, argv );
-
-  if( opt->getFlag( "help" ) || opt->getFlag( 'h' ) ) opt->printUsage();
-
-  if( opt->getValue("dim") == nullptr ) 
-  {
-    opt->printUsage();
-    delete opt;     
-    return EXIT_FAILURE;
-  }
-
-  dim = atoi(opt->getValue("dim"));
+  cxxopts::Options options("test_load_multi_bin", "testing: loads 2D or 3D binary data from two different files");
   
-  if( !(dim == 2 || dim == 3) ) 
+  options.add_options()
+  ("d,dim",  "spatial dimension (2 or 3)" , cxxopts::value<int>() )
+  ("p,params",  "parameter xml file" , cxxopts::value<std::string>()->default_value("params.xml") )
+  ;
+  
+  options.parse_positional({"positional"});
+  auto result = options.parse(argc, argv);
+
+  try
   {
-    opt->printUsage();
-    delete opt;     
+    if( result["positional"].as<std::vector<std::string>>().size() > 0 )
+    {
+      filename = result["positional"].as<std::vector<std::string>>()[0]; 
+      filename2 = result["positional"].as<std::vector<std::string>>()[1]; 
+    }
+    else
+    {        
+      std::cout << "error parsing options: missing file name" << std::endl;
+      return EXIT_FAILURE;
+    }
+    params_filename = result["p"].as<std::string>();
+    dim = result["dim"].as<int>();
+  }
+  catch (const cxxopts::OptionException& e)
+  {
+    std::cout << "error parsing options: " << e.what() << std::endl;
     return EXIT_FAILURE;
   }
- 
-  if( opt->getArgc() > 0 ) {
-    filename = opt->getArgv(0);
-    filename2 = opt->getArgv(1);}
-  else opt->printUsage();
-  delete opt; 
 
   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv);
   {
     if( dim == 2 )
     {
-      TestPrograms::MySolver<2> solver("params.xml");
+      TestPrograms::MySolver<2> solver(params_filename);
       solver.run(filename,filename2);
     }
     if( dim == 3 )
     {
-      TestPrograms::MySolver<3> solver("params.xml");
+      TestPrograms::MySolver<3> solver(params_filename);
       solver.run(filename,filename2);
     }
   }  

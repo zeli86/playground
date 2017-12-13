@@ -30,7 +30,7 @@
 #include <functional>
 
 #include "pugixml.hpp"
-#include "anyoption.h"
+#include "cxxopts.hpp"
 
 using namespace std;
 
@@ -79,54 +79,16 @@ std::string qn_to_path_3D( const int l, const int maxN )
 
 int main( int argc, char *argv[] )
 {
-  AnyOption * opt = new AnyOption();
-  int dim=1, N=4, r=9, Ndmu=40, dmu=.05;
-  std::string custom_folder;
-
-  opt->addUsage( "" );
-  opt->addUsage( "Usage: batch_case_generation [options]" );
-  opt->addUsage( "" );
-  opt->addUsage( " --help  Prints this help " );
-  opt->addUsage( " --dim   1 or 2 or 3" );
-  opt->addUsage( " --N     max quantum number" );
-  opt->addUsage( " --dmu   delta mu" );
-  opt->addUsage( " --Ndmu  number of delta mu steps" );
-  opt->addUsage( " --r     global refinement" );
-  opt->addUsage( " --p     folder name" );
-  opt->addUsage( "" );
-  opt->setFlag(  "help" );   
-  opt->setOption( "dim" );   
-  opt->setOption( "N" );   
-  opt->setOption( "r" );   
-  opt->setOption( "p" );   
-  opt->setOption( "dmu" );   
-  opt->setOption( "Ndmu" );   
-  
-  opt->processCommandArgs( argc, argv );
-
-  if( opt->getFlag( "help" ) || opt->getFlag( 'h' ) ) opt->printUsage();
-
-  if( opt->getValue("dim") != nullptr ) 
-    dim = atof(opt->getValue("dim"));
-
-  if( opt->getValue("N") != nullptr ) 
-    N = atof(opt->getValue("N"));
-
-  if( opt->getValue("r") != nullptr ) 
-    r = atof(opt->getValue("r"));
-
-  if( opt->getValue("dmu") != nullptr ) 
-    dmu = atof(opt->getValue("dmu"));
-
-  if( opt->getValue("Ndmu") != nullptr ) 
-    Ndmu = atof(opt->getValue("Ndmu"));
-
-  if( opt->getValue("p") != nullptr ) 
-    custom_folder = opt->getValue("p");    
-
-  delete opt; 
-
   //const string HomePath = getenv ("HOME");
+
+  std::map<int,std::function<std::string(const int,const int)>> qn_map;
+  qn_map[1] = qn_to_str_1D; 
+  qn_map[2] = qn_to_str_2D; 
+  qn_map[3] = qn_to_str_3D;
+  std::map<int,std::function<std::string(const int,const int)>> path_map;
+  path_map[1] = qn_to_path_1D; 
+  path_map[2] = qn_to_path_2D; 
+  path_map[3] = qn_to_path_3D;
 
   string tmpstr;
 
@@ -141,15 +103,6 @@ int main( int argc, char *argv[] )
   time(&rawtime);
   timeinfo = localtime(&rawtime);
   strftime(datetime,255,"%F_%R",timeinfo);
-
-  std::map<int,std::function<std::string(const int,const int)>> qn_map;
-  qn_map[1] = qn_to_str_1D; 
-  qn_map[2] = qn_to_str_2D; 
-  qn_map[3] = qn_to_str_3D;
-  std::map<int,std::function<std::string(const int,const int)>> path_map;
-  path_map[1] = qn_to_path_1D; 
-  path_map[2] = qn_to_path_2D; 
-  path_map[3] = qn_to_path_3D;
   
 #if POTENTIAL==1
   sprintf( base_folder, "HTRAP_%s", datetime );
@@ -159,17 +112,32 @@ int main( int argc, char *argv[] )
   omega[0] = 0.5039287608;
 #endif
 
-  if( custom_folder != "" )
-  {
-    sprintf( base_folder, "%s", custom_folder.c_str() );
-  }
+  cxxopts::Options options("batch_case_generation_xml", "Creates a set parameter files for the stationary solvers.");
+  
+  options.add_options()
+  ("d,dim",  "spatial dimension (1,2,3)", cxxopts::value<int>()->default_value("2") )
+  ("N,NQN",  "max quantum number" , cxxopts::value<int>()->default_value("4") )
+  ("s,dmu", "delta mu", cxxopts::value<string>()->default_value("0.1"))
+  ("k,Ndmu", "number of delta mu steps", cxxopts::value<string>()->default_value("10"))
+  ("g,gr", "global refinement", cxxopts::value<string>()->default_value("8"))
+  ("f,fn", "folder name", cxxopts::value<string>()->default_value(string(base_folder)))
+  ("positional", "Positional arguments: these are the arguments that are entered without an option", cxxopts::value<std::vector<std::string>>())
+  ;
+  
+  options.parse_positional({"positional"});
+  auto result = options.parse(argc, argv);
+
+  int N = result["N"].as<int>();
+  int dim = result["dim"].as<int>();
+
+  //cout << result["positional"].as<std::vector<std::string>>()[0] << endl;
 
   const int maxN = int(pow(N,dim));
   for( int s=0; s<maxN; s++ )
   {
-    sprintf( shellcmd, "mkdir -p %s/%s", base_folder, path_map[dim](s,N).c_str() );
+    sprintf( shellcmd, "mkdir -p %s/%s", result["fn"].as<string>().c_str(), path_map[dim](s,N).c_str() );
     system( shellcmd );
-    sprintf( filename, "%s/%s/params.xml", base_folder, path_map[dim](s,N).c_str() );
+    sprintf( filename, "%s/%s/params.xml", result["fn"].as<string>().c_str(), path_map[dim](s,N).c_str() );
 
     pugi::xml_document doc;
     pugi::xml_node parameter_node = doc.append_child("PARAMETER");
@@ -216,7 +184,7 @@ int main( int argc, char *argv[] )
     node.append_child(pugi::node_pcdata).set_value("-10,10");
 
     node = mesh_node.append_child("global_refinements");
-    node.append_child(pugi::node_pcdata).set_value(to_string(r).c_str());
+    node.append_child(pugi::node_pcdata).set_value(result["gr"].as<string>().c_str());
 
     // ALGORTHM childs
     node = algorithm_node.append_child("ti");
@@ -235,10 +203,10 @@ int main( int argc, char *argv[] )
     node.append_child(pugi::node_pcdata).set_value("1e-5,1e-10");
 
     node = algorithm_node.append_child("dmu");
-    node.append_child(pugi::node_pcdata).set_value(to_string(dmu).c_str());
+    node.append_child(pugi::node_pcdata).set_value(result["dmu"].as<string>().c_str());
 
     node = algorithm_node.append_child("Ndmu");
-    node.append_child(pugi::node_pcdata).set_value(to_string(Ndmu).c_str());
+    node.append_child(pugi::node_pcdata).set_value(result["Ndmu"].as<string>().c_str());
 
     // add param node before the description
     //pugi::xml_node param = node.insert_child_before("param", descr);
