@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<PARAMETER>
+	<PHYSICS>
+		<gs_1>1,1</gs_1>
+	</PHYSICS>
+	<MESH>
+    <xrange>-10,10</xrange>
+		<global_refinements>8</global_refinements>
+	</MESH>
+	<ALGORITHM>	 
+		<NA>10</NA>
+		<NK>10</NK>
+		<dt>0.001</dt>
+	</ALGORITHM>
+	<CONSTANTS>
+		<pi>3.14159265359</pi>
+		<sigma>1</sigma>
+		<shift>5</shift>
+		<p0>-5</p0>
+	</CONSTANTS>
+	<STRINGLISTS>
+		<WAVEFUNCTION_1D>exp(-0.5*(x-shift)^2/sigma^2)/pi^(0.25)/sqrt(sigma)*cos(p0*x),
+		                 exp(-0.5*(x-shift)^2/sigma^2)/pi^(0.25)/sqrt(sigma)*sin(p0*x)</WAVEFUNCTION_1D>	
+		<POTENTIAL>0,0</POTENTIAL>	
+	</STRINGLISTS>
+</PARAMETER>
+
+
