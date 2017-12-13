@@ -52,7 +52,7 @@
 #include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/base/utilities.h>
-//#include <deal.II/base/function_parser.h>
+#include <deal.II/base/function_parser.h>
 
 #include <fstream>
 #include <iostream>
@@ -62,7 +62,7 @@
 #include "MyParameterHandler.h"
 #include "MyComplexTools.h"
 #include "my_table.h"
-#include "functions.h"
+#include "cxxopts.hpp"
 
 ///namespace realtime_propagation
 namespace realtime_propagation
@@ -76,7 +76,7 @@ namespace realtime_propagation
     MySolver( const std::string& );
     ~MySolver();
 
-    void run ();
+    void run ( const std::string& );
 
   protected:
     void make_grid();
@@ -111,7 +111,6 @@ namespace realtime_propagation
     double m_res;
     double m_xmin;
     double m_xmax;
-    vector<double> m_omega;
 
     /// total number of outputs
     unsigned m_NA;
@@ -135,9 +134,6 @@ namespace realtime_propagation
   {
     try
     {
-      m_filename = m_ph.Get_Parameter( "filename" );
-
-      m_omega = m_ph.Get_Physics("omega");
       m_gs = m_ph.Get_Physics("gs_1",0);
       
       m_xmin = m_ph.Get_Mesh("xrange",0);
@@ -153,6 +149,7 @@ namespace realtime_propagation
       std::cerr << info << endl;
       exit(0);
     }    
+    m_t = 0;
   }
 
   /** Default destructor
@@ -228,7 +225,8 @@ namespace realtime_propagation
   {
     const QGauss<1> quadrature_formula(fe.degree+1);
 
-    CPotential<1> Potential ( m_omega );
+    FunctionParser<1> Potential;
+    Potential.initialize( FunctionParser<1>::default_variable_names(), m_ph.Get_String( "POTENTIAL", 0 ), m_ph.Get_Constants_Map());
 
     const FEValuesExtractors::Scalar rt (0);
     const FEValuesExtractors::Scalar it (1);
@@ -299,7 +297,8 @@ namespace realtime_propagation
   {
     const QGauss<1> quadrature_formula(fe.degree+1);
 
-    CPotential<1> Potential (m_omega);
+    FunctionParser<1> Potential;
+    Potential.initialize( FunctionParser<1>::default_variable_names(), m_ph.Get_String( "POTENTIAL", 0 ), m_ph.Get_Constants_Map());
 
     const FEValuesExtractors::Scalar rt (0);
     const FEValuesExtractors::Scalar it (1);
@@ -387,14 +386,14 @@ namespace realtime_propagation
     m_Psi = m_Psi_t;
   }
 
-  void MySolver::run()
+  void MySolver::run( const std::string& filename )
   {
     double T, N, W;
 
     make_grid();
     setup_system();
 
-    load( "final.bin" );
+    load( filename );
 
     double min_cell_diameter = GridTools::minimal_cell_diameter(triangulation);
     double max_cell_diameter = GridTools::maximal_cell_diameter(triangulation);
@@ -444,7 +443,28 @@ int main ( int argc, char *argv[] )
   using namespace dealii;
   deallog.depth_console (0);
 
-  realtime_propagation::MySolver solver("params.xml");
-  solver.run();
+  cxxopts::Options options("rt_prop_1", "real time propagation 1D");
+  
+  options.add_options()
+  ("i,input", "input initial wave function" , cxxopts::value<std::string>()->default_value("Cfinal.bin") )
+  ("p,params", "input parameter xml file" , cxxopts::value<std::string>()->default_value("params.xml") )
+  ;
+  
+  auto result = options.parse(argc, argv);
+
+  std::string bin_filename, params_filename;
+  try
+  {
+    bin_filename = result["i"].as<std::string>(); 
+    params_filename = result["p"].as<std::string>();
+  }
+  catch (const cxxopts::OptionException& e)
+  {
+    std::cout << "error parsing options: " << e.what() << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  realtime_propagation::MySolver solver(params_filename);
+  solver.run(bin_filename);
 return EXIT_SUCCESS;
 }
