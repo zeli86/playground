@@ -11,6 +11,7 @@
 #include <deal.II/lac/generic_linear_algebra.h>
 #include <deal.II/lac/sparse_direct.h>
 #include <deal.II/lac/vector.h>
+#include <deal.II/lac/sparsity_tools.h>
 #include <vector>
 
 namespace MyComplexTools
