@@ -5,8 +5,12 @@
 	</PHYSICS>
 	<MESH>
 		<DIM>2</DIM>
+    <xrange>-10,10</xrange>
+    <yrange>-10,10</yrange>
+    <zrange>-10,10</zrange>		
+		<Global_Refinement>9</Global_Refinement>
 	</MESH>
-	<ALGORITHM>
+	<ALGORITHM>	 
 		<NA>1000</NA>
 		<NK>10</NK>
 		<dt>0.001</dt>
@@ -21,8 +25,8 @@
 		<FILENAME_MESH>double_slit_2d.msh,double_slit_3d.msh</FILENAME_MESH>
 		<WAVEFUNCTION_2D>exp(-0.5*(x^2+(y-shift)^2)/sigma^2)/sqrt(pi)/sigma*cos(p0*y),
 		                 exp(-0.5*(x^2+(y-shift)^2)/sigma^2)/sqrt(pi)/sigma*sin(p0*y)</WAVEFUNCTION_2D>
-		<WAVEFUNCTION_3D>exp(-0.5*(x^2+z^2+(z-shift)^2)/sigma^2)/pow(pi,0.75)/pow(sigma,1.5)*cos(p0*z),
-		                 exp(-0.5*(x^2+z^2+(z-shift)^2)/sigma^2)/pow(pi,0.75)/pow(sigma,1.5)*sin(p0*z)</WAVEFUNCTION_3D>
+		<WAVEFUNCTION_3D>exp(-0.5*(x^2+z^2+(z-shift)^2)/sigma^2)/pi^(0.75)/sigma^(1.5)*cos(p0*z),
+		                 exp(-0.5*(x^2+z^2+(z-shift)^2)/sigma^2)/pi^(0.75)/sigma^(1.5)*sin(p0*z)</WAVEFUNCTION_3D>
 		<POTENTIAL>0,0</POTENTIAL>
 	</STRINGLISTS>
 </PARAMETER>
