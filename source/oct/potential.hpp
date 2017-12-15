@@ -3,7 +3,7 @@
 
 using namespace std;
 
-  template <int dim, int N>
+  template <int dim>
   class CPotential : public dealii::Function<dim> 
   {
     public:
@@ -21,16 +21,16 @@ using namespace std;
         Function<dim>(),
         m_pos_val(3)
       { 
-        init( rhs.m_all_lambdas, rhs.m_all_potential, rhs.m_constants, rhs.m_T );
+        init( rhs.m_all_lambdas, rhs.m_all_potential, rhs.m_constants, rhs.m_T, rhs.m_N );
       }
-      
+/*      
       CPotential& operator=( const CPotential& rhs )
       {
         m_lambdas = rhs.m_lambdas;
         return *this;
       }
-
-      void init(  const vector<string>& all_lambdas, const vector<string>& all_potential, const map<string,double>& constants, const double T )
+*/
+      void init(  const vector<string>& all_lambdas, const vector<string>& all_potential, const map<string,double>& constants, const double T, const int N )
       {
         assert( all_lambdas.size() != 0 );
         assert( all_potential.size() != 0 );
@@ -40,12 +40,13 @@ using namespace std;
         m_all_potential = all_potential; 
         m_constants = constants;
 
+        m_N = N;
         m_no_lam = all_lambdas.size();
-        m_dt = T/double(N-1);
+        m_dt = T/double(m_N-1);
         m_T = T;
         m_fak = 1/(m_dt*m_dt);
 
-        m_lambdas.reinit(N,m_no_lam);
+        m_lambdas.reinit(m_N,m_no_lam);
 
         try
         {
@@ -122,20 +123,19 @@ using namespace std;
 
         if( !out.is_open() ) return false;
 
-        int Nt = N;
         out.write(reinterpret_cast<char*>(&m_no_lam), sizeof(int));
-        out.write(reinterpret_cast<char*>(&Nt), sizeof(int));
+        out.write(reinterpret_cast<char*>(&m_N), sizeof(int));
         
-        std::vector<double> tmp(N*m_no_lam);
+        std::vector<double> tmp(m_N*m_no_lam);
 
         for( int s=0; s<m_no_lam; s++ )
         {
-          for( int i=0; i<N; i++ )
+          for( int i=0; i<m_N; i++ )
           {
-            tmp[i+N*s] = m_lambdas(i,s);
+            tmp[i+m_N*s] = m_lambdas(i,s);
           }
         }
-        out.write(reinterpret_cast<char*>(tmp.data()),sizeof(double)*N*m_no_lam);
+        out.write(reinterpret_cast<char*>(tmp.data()),sizeof(double)*m_N*m_no_lam);
         return true;
       }
 
@@ -149,17 +149,16 @@ using namespace std;
         in.read( reinterpret_cast<char*>(&no_lam), sizeof(int));
         in.read( reinterpret_cast<char*>(&Nt), sizeof(int));
 
-        assert( Nt == N );        
         assert( no_lam == m_no_lam );
         
-        std::vector<double> tmp(N*m_no_lam);
+        std::vector<double> tmp(m_N*m_no_lam);
        
-        in.read( reinterpret_cast<char*>(tmp.data()), sizeof(double)*m_no_lam*N);
+        in.read( reinterpret_cast<char*>(tmp.data()), sizeof(double)*m_no_lam*m_N);
 
-        for( int i=0; i<N*m_no_lam; i++ )
+        for( int i=0; i<m_N*m_no_lam; i++ )
         {
-          int s = i / N;
-          int ti = i - s*N;
+          int s = i / m_N;
+          int ti = i - s*m_N;
           m_lambdas(ti,s) = tmp[i];
         }
         return true;
@@ -169,7 +168,7 @@ using namespace std;
       {
         ofstream out( filename );
 
-        for( int i=0; i<N; i++ )
+        for( int i=0; i<m_N; i++ )
         {
           Point<1> pt(double(i)*m_dt);
           out << pt[0] << "\t";
@@ -182,10 +181,10 @@ using namespace std;
 
       void add( const double tau, const LAPACKFullMatrix<double>& direction )
       {
-        vector<vector<double>> new_lambdas(m_no_lam,vector<double>(N,1));
+        vector<vector<double>> new_lambdas(m_no_lam,vector<double>(m_N,1));
 
         for( int s=0; s<m_no_lam; s++ )
-          for( int ti=0; ti<N; ti++ )
+          for( int ti=0; ti<m_N; ti++ )
           {
             m_lambdas(ti,s) += tau*direction(ti,s);
           }
@@ -194,7 +193,8 @@ using namespace std;
       double get_no_lambdas() { return m_no_lam; };
 
     protected:
-      int m_no_lam;
+      int m_no_lam; // number of lambdas
+      int m_N; // total number of time steps
       double m_dt;
       double m_T;
       double m_fak;

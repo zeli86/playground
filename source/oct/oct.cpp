@@ -76,6 +76,7 @@
 #include "my_table.h"
 #include "MyComplexTools.h"
 #include "muParser.h"
+#include "cxxopts.hpp"
 
 namespace realtime_propagation
 {
@@ -93,23 +94,22 @@ namespace realtime_propagation
     MySolver( const std::string&, const double );
     ~MySolver();
 
-    void run ();
+    void run ( const std::string&, const std::string& );
     
   protected:
-    CPotential<dim,no_time_steps> m_potential;
+    CPotential<dim> m_potential;
 
     void rt_propagtion_forward ( const int ); 
     void rt_propagtion_backward ( const int ); 
+    void assemble_system( const int );
     void compute_correction ( const int ); 
     void compute_cost( double& );
     double compute_dot_product( const LAPACKFullMatrix<double>&, const LAPACKFullMatrix<double>& );
 
     void make_grid();
     void setup_system();
-    void assemble_system( const int ); // required by DoIter
-    
+    void one_loop( const int );
     void solve();
-    void solve_eq1();
     void output_results ( string );
     void output_vec ( string, Vector<double>& );
     void compute_beta();
@@ -121,7 +121,6 @@ namespace realtime_propagation
     SparseMatrix<double> system_matrix;
  
     Vector<double> system_rhs;
-    Vector<double> sol;
     Vector<double> m_Psi; // Psi(t)
     Vector<double> m_Psi_d; // desired state
     Vector<double> m_workspace;
@@ -226,7 +225,6 @@ namespace realtime_propagation
     for( int i=0; i<no_time_steps; i++ )
       m_all_p[i].reinit(dof_handler.n_dofs());
 
-    sol.reinit(dof_handler.n_dofs());
     system_rhs.reinit(dof_handler.n_dofs());
     m_workspace.reinit (dof_handler.n_dofs());
     m_workspace_2.reinit (dof_handler.n_dofs());
@@ -278,21 +276,33 @@ namespace realtime_propagation
   template <int dim, int no_time_steps>
   void MySolver<dim,no_time_steps>::solve ()
   {
+    map<types::global_dof_index, double> boundary_values;
+    VectorTools::interpolate_boundary_values (dof_handler, 0, ZeroFunction<dim>(), boundary_values);
+    MatrixTools::apply_boundary_values (boundary_values, system_matrix, m_Psi, system_rhs);    
+
     SparseDirectUMFPACK A_direct;
     A_direct.initialize(system_matrix);
     A_direct.vmult (m_Psi, system_rhs);
   }
 
   template <int dim, int no_time_steps>
-  void MySolver<dim,no_time_steps>::run ()
+  void MySolver<dim,no_time_steps>::one_loop( const int ti )
+  {
+    rt_propagtion_forward(ti);
+    rt_propagtion_backward(ti);
+    compute_correction(ti);
+  }
+
+  template <int dim, int no_time_steps>
+  void MySolver<dim,no_time_steps>::run ( const std::string& fn_i, const std::string& fn_d )
   {
     make_grid();
     setup_system();
     
-    ifstream in("Psi_0.bin");
+    ifstream in(fn_i);
     m_Psi.block_read(in);
     
-    ifstream in2("Psi_d.bin");
+    ifstream in2(fn_d);
     m_Psi_d.block_read(in2);
     
     output_vec( "Psi_0.gnuplot", m_Psi );
@@ -300,22 +310,12 @@ namespace realtime_propagation
 
     map<string,double> con_map;
     con_map["omq_x"] = m_omega[0];
-    con_map["omq_y"] = m_omega[1];
-    con_map["omq_z"] = m_omega[2];
 
     // V(x,y;lambda,..) 
     vector<string> pot_str;
-//    pot_str.push_back("omq_x*x^2 + omq_y*y^2 + lam_0*sin(lam_1*x) + lam_2*sin(lam_3*y)" );
-//    pot_str.push_back("sin(lam_1*x)" );
-//    pot_str.push_back("lam_0*cos(lam_1*x)" );
-//    pot_str.push_back("sin(lam_3*y)" );
-//    pot_str.push_back("lam_2*cos(lam_3*y)" );
-
-    pot_str.push_back("(1+lam_0)*omq_x*x^2 + (1+lam_1)*y^2 + lam_2*x^3 + lam_3*y^3" );
-    pot_str.push_back("x^2" );
-    pot_str.push_back("y^2" );
-    pot_str.push_back("x^3" );
-    pot_str.push_back("y^3" );
+    pot_str.push_back("(1+lam_0)*omq_x*x^2 + lam_1*x^3");
+    pot_str.push_back("x^2");
+    pot_str.push_back("x^3");
 
     double domega = M_PI/m_T;
 
@@ -324,19 +324,17 @@ namespace realtime_propagation
     string str;
     str = "sin(lam*" + to_string(domega) + ")";
     lam_str.push_back(str);
-    lam_str.push_back(str);
     str = "0";
     lam_str.push_back(str);
-    lam_str.push_back(str);
 
-    m_potential.init( lam_str, pot_str, con_map, m_T );
+    m_potential.init( lam_str, pot_str, con_map, m_T, no_time_steps );
     m_potential.output( "lambda_guess.txt" );
 
     m_norm_grad.resize(m_potential.get_no_lambdas());
 
-    double p[] = {0,0,0};
-    double pos[] = {0,0,0};
-    double var[] = {0,0,0};
+    double p[3] = {};
+    double pos[3] = {};
+    double var[3] = {};
 
     m_workspace = m_all_Psi[0];
     m_N = MyComplexTools::Particle_Number( dof_handler, fe, m_workspace );
@@ -351,18 +349,8 @@ namespace realtime_propagation
     
     for( int i=1; i<=10; i++ )
     {
-      cout << "Step 1" << endl;
-      rt_propagtion_forward(i);
-      m_N = MyComplexTools::Particle_Number( dof_handler, fe, m_workspace );      
-      cout << "N == " << m_N << endl;
-//      Expectation_value_momentum( m_Psi, p );
-//      Expectation_value_position( m_Psi, pos );
-//      cout << "p == " << p[0]/m_N << ", " << p[1]/m_N << ", " << p[2]/m_N << endl;
-//      cout << "pos == " << pos[0]/m_N << ", " << pos[1]/m_N << ", " << pos[2]/m_N << endl;      
-      cout << "Step 2" << endl;
-      rt_propagtion_backward(i);
-      cout << "Step 3" << endl;
-      compute_correction(i);
+      one_loop(i);
+
       m_potential.output( "lambda_" + to_string(i) + ".txt" );
     }
 
@@ -374,8 +362,31 @@ int main ( int argc, char *argv[] )
 {
   dealii::deallog.depth_console (0);
 
+  cxxopts::Options options("binR_to_atus2", "Converts real deal.ii binary format to atus2 binary format.");
+  
+  options.add_options()
+  ("p,params", "input parameter xml file" , cxxopts::value<std::string>()->default_value("params.xml") )
+  ("i,input", "input initial wave function" , cxxopts::value<std::string>() )
+  ("d,desired", "input desired wave function" , cxxopts::value<std::string>() )
+  ;
+  
+  auto result = options.parse(argc, argv);
+
+  std::string bin_filename_i, bin_filename_d, params_filename;
+  try
+  {
+    bin_filename_i = result["i"].as<std::string>(); 
+    bin_filename_d = result["d"].as<std::string>(); 
+    params_filename = result["p"].as<std::string>();
+  }
+  catch (const cxxopts::OptionException& e)
+  {
+    std::cout << "error parsing options: " << e.what() << std::endl;
+    return EXIT_FAILURE;
+  }
+
   realtime_propagation::MySolver<1,101> solver("params.xml",1);
-  solver.run();
+  solver.run(bin_filename_i,bin_filename_d);
 
 return EXIT_SUCCESS;
 }

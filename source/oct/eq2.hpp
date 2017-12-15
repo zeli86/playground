@@ -25,17 +25,16 @@
 
     MyComplexTools::AssembleSystem_mulvz( dof_handler, fe, m_workspace, std::complex<double>(0,-1), system_matrix, system_rhs );
     solve();
-    m_all_p[no_time_steps-1] = sol;
+    m_all_p[no_time_steps-1] = m_Psi;
     //output_vec( "p_" +  to_string(ex) + "_" + to_string(no_time_steps-1) + ".vtu", m_all_p[no_time_steps-1] );
 
     for( int i=no_time_steps-2; i>0; i-- )
     {
-
-      // LINSTEP
+      MyComplexTools::AssembleSystem_LIN_Step( dof_handler, fe, m_Psi, m_dt, system_matrix, system_rhs );
+      solve();
       assemble_system(i);
       solve();
-      m_all_p[i] = sol;
-      m_Psi = sol;
+      m_all_p[i] = m_Psi;
 
       //output_vec( "p_" + to_string(i) + ".vtu", m_all_p[i] );
       
