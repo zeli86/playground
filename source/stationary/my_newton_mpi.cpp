@@ -641,6 +641,8 @@ namespace BreedSolver
         m_ph.SaveXMLFile( path + "params_one.xml" );
         newgs[0] = m_gs;
         m_ph.Set_Physics( "gs_1", newgs );
+        m_ph.SaveXMLFile( path + "params.xml" );       
+        
         output_results(path,"final");
         this->dump_info_xml(path);
         m_Psi_1 = m_Psi_ref;
