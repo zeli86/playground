@@ -167,10 +167,15 @@ add_test( NAME BREED1_1 COMMAND ${EXECUTABLE_OUTPUT_PATH}/breed_1 WORKING_DIRECT
 add_test( NAME BREEDSOB1_0 COMMAND ${EXECUTABLE_OUTPUT_PATH}/breed_sob_1 WORKING_DIRECTORY ${CMAKE_CACHEFILE_DIR}/test1d/0/0001)
 
 execute_process(COMMAND sh -c "mkdir -p rt_prop_1_demo")
-execute_process(COMMAND sh -c "cp ${CMAKE_CURRENT_SOURCE_DIR}/xml/rt_prop_1_demo.xml ${CMAKE_CACHEFILE_DIR}/rt_prop_1_demo")
+execute_process(COMMAND sh -c "cp ${CMAKE_CURRENT_SOURCE_DIR}/xml/rt_prop_1_demo.xml ${CMAKE_CACHEFILE_DIR}/rt_prop_1_demo/")
 add_test( NAME RTPROP0 COMMAND ${EXECUTABLE_OUTPUT_PATH}/gen_Psi_1 -p rt_prop_1_demo.xml WORKING_DIRECTORY ${CMAKE_CACHEFILE_DIR}/rt_prop_1_demo)
 add_test( NAME RTPROP1 COMMAND ${EXECUTABLE_OUTPUT_PATH}/rt_prop -p rt_prop_1_demo.xml -i Psi0.1d.bin WORKING_DIRECTORY ${CMAKE_CACHEFILE_DIR}/rt_prop_1_demo)
- 
+
+execute_process(COMMAND sh -c "mkdir -p rt_prop_2_demo")
+execute_process(COMMAND sh -c "cp ${CMAKE_CURRENT_SOURCE_DIR}/xml/rt_prop_1_demo.xml ${CMAKE_CACHEFILE_DIR}/rt_prop_2_demo/")
+add_test( NAME RTPROP2 COMMAND ${EXECUTABLE_OUTPUT_PATH}/gen_Psi_1 -p rt_prop_1_demo.xml WORKING_DIRECTORY ${CMAKE_CACHEFILE_DIR}/rt_prop_2_demo)
+add_test( NAME RTPROP3 COMMAND ${EXECUTABLE_OUTPUT_PATH}/rt_prop_2 -p rt_prop_1_demo.xml -i Psi0.1d.bin WORKING_DIRECTORY ${CMAKE_CACHEFILE_DIR}/rt_prop_2_demo)
+
 # mpi progs
 set (test_parameters -np ${MPIEXEC_MAX_NUMPROCS} ${EXECUTABLE_OUTPUT_PATH}/breed_mpi)
 add_test( NAME BREEDMPI_0 COMMAND ${MPIEXEC} ${test_parameters} WORKING_DIRECTORY ${CMAKE_CACHEFILE_DIR}/test2d/0_0/)
