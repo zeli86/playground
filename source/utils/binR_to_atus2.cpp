@@ -365,6 +365,7 @@ int main ( int argc, char *argv[] )
   
   options.add_options()
   ("p,params",  "parameter xml file" , cxxopts::value<std::string>()->default_value("params.xml") )
+  ("positional", "Positional arguments: these are the arguments that are entered without an option", cxxopts::value<std::vector<std::string>>())
   ;
   
   options.parse_positional({"positional"});

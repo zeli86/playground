@@ -391,6 +391,7 @@ int main ( int argc, char *argv[] )
   options.add_options("wave function index")
   ("i,iwf",  "select the i-th wave function for export (1,2,..)", cxxopts::value<int>()->default_value("1")  )
   ("N,nowf",  "total number of wave functions stored in the binary file (1,..)", cxxopts::value<int>()->default_value("1")  )
+  ("positional", "Positional arguments: these are the arguments that are entered without an option", cxxopts::value<std::vector<std::string>>())
   ;
   
   options.parse_positional({"positional"});
