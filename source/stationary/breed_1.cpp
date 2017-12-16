@@ -103,25 +103,20 @@ namespace BreedSolver_1
     void output_guess();
     void save( string );
     void save_one( string );
-    void Interpolate_R_to_C( string );
     void estimate_error( double & );
 
     Triangulation<dim> triangulation;
     DoFHandler<dim> dof_handler;
     FE_Q<dim> fe;
-    DoFHandler<dim> dof_handler_2;
-    FESystem<dim> fe_2;
 
-    SparsityPattern m_sparsity_pattern, m_sparsity_pattern_2;
-    SparseMatrix<double> m_system_matrix, m_system_matrix_2;
+    SparsityPattern m_sparsity_pattern;
+    SparseMatrix<double> m_system_matrix;
 
     Vector<double> m_newton_update;
     Vector<double> m_system_rhs;
-    Vector<double> m_system_rhs_2;
     Vector<double> m_Psi_ref;
     Vector<double> m_Psi_0;
     Vector<double> m_Psi_1;
-    Vector<double> m_Psi_C;
     Vector<double> m_workspace;
     Vector<double> m_error_per_cell;
 
@@ -160,9 +155,7 @@ namespace BreedSolver_1
     CBase<dim,2>(xml_filename),
     triangulation(),
     dof_handler (triangulation),
-    fe (gl_degree_fe),
-    dof_handler_2 (triangulation),
-    fe_2 (FE_Q<dim>(gl_degree_fe), 2)
+    fe (gl_degree_fe)
   {
   }
 
@@ -170,7 +163,6 @@ namespace BreedSolver_1
   MySolver<dim>::~MySolver ()
   {
     dof_handler.clear ();
-    dof_handler_2.clear ();
   }
 
   template <int dim>
@@ -291,17 +283,6 @@ namespace BreedSolver_1
     DoFTools::make_sparsity_pattern (dof_handler, dsp);
     m_sparsity_pattern.copy_from(dsp);
     m_system_matrix.reinit (m_sparsity_pattern);
-
-    // complex
-    dof_handler_2.distribute_dofs (fe_2);
-
-    m_system_rhs_2.reinit (dof_handler_2.n_dofs());
-    m_Psi_C.reinit (dof_handler_2.n_dofs());
-
-    DynamicSparsityPattern dsp_2(dof_handler_2.n_dofs());
-    DoFTools::make_sparsity_pattern (dof_handler_2, dsp_2);
-    m_sparsity_pattern_2.copy_from(dsp_2);
-    m_system_matrix_2.reinit (m_sparsity_pattern_2);
   }
 
   template <int dim>
@@ -575,70 +556,7 @@ namespace BreedSolver_1
     solve();
     VectorTools::integrate_difference ( dof_handler, m_newton_update, ZeroFunction<dim>(), m_error_per_cell, QGauss<1>(fe.degree + 2), VectorTools::L2_norm);
     err = m_error_per_cell.l2_norm();
-  }
-
-  template <int dim>
-  void MySolver<dim>::Interpolate_R_to_C( string filename )
-  {
-    const QGauss<dim> quadrature_formula(fe.degree + 1);
-    const FEValuesExtractors::Scalar rt (0);
-    const FEValuesExtractors::Scalar it (1);
-
-    m_system_rhs_2 = 0;
-    m_system_matrix_2 = 0;
-
-    FEValues<dim> fe_values (fe, quadrature_formula, update_values | update_JxW_values);
-    FEValues<dim> fe_values_2 (fe_2, quadrature_formula, update_values | update_JxW_values);
-
-    const unsigned dofs_per_cell = fe_2.dofs_per_cell;
-    const unsigned n_q_points = quadrature_formula.size();
-
-    vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
-
-    vector<double> vals(n_q_points);
-    Vector<double> cell_rhs (dofs_per_cell);
-    FullMatrix<double> cell_matrix (dofs_per_cell, dofs_per_cell);
-
-    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    typename DoFHandler<dim>::active_cell_iterator cell_2 = dof_handler_2.begin_active();
-    for ( ; cell != endc; ++cell, ++cell_2 )
-    {
-      cell_rhs = 0;
-      cell_matrix = 0;
-
-      fe_values.reinit (cell);
-      fe_values_2.reinit (cell_2);
-      fe_values.get_function_values(m_Psi_ref, vals);
-
-      for ( unsigned qp = 0; qp < n_q_points; qp++ )
-      {
-        double JxW = fe_values_2.JxW(qp);
-        double tmp1 = vals[qp];
-        cell_2->get_dof_indices (local_dof_indices);
-
-        for ( unsigned i = 0; i < dofs_per_cell; i++ )
-        {
-          cell_rhs(i) += JxW * tmp1 * fe_values_2[rt].value(i, qp);
-          for ( unsigned j = 0; j < dofs_per_cell; j++ )
-            cell_matrix(i, j) += JxW * (fe_values_2[rt].value(i, qp) * fe_values_2[rt].value(j, qp) + fe_values_2[it].value(i, qp) * fe_values_2[it].value(j, qp));
-        }
-        for ( unsigned i = 0; i < dofs_per_cell; i++ )
-        {
-          m_system_rhs_2(local_dof_indices[i]) += cell_rhs(i);
-          for ( unsigned j = 0; j < dofs_per_cell; j++ )
-            m_system_matrix_2.add (local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));
-        }    
-      }
-    }
-
-    map<types::global_dof_index, double> boundary_values;
-    VectorTools::interpolate_boundary_values (dof_handler, 0, ZeroFunction<dim>(2), boundary_values);
-    MatrixTools::apply_boundary_values (boundary_values, m_system_matrix_2, m_Psi_C, m_system_rhs_2);     
-
-    SparseDirectUMFPACK  A_direct;
-    A_direct.initialize(m_system_matrix_2);
-    A_direct.vmult (m_Psi_C, m_system_rhs_2);
-  }
+  }  
 
    /** @brief computes multiple solution
    */
@@ -707,6 +625,7 @@ namespace BreedSolver_1
         m_ph.SaveXMLFile( path + "params_one.xml" );
         newgs[0] = m_gs;
         m_ph.Set_Physics( "gs_1", newgs );
+        m_ph.SaveXMLFile( path + "params.xml" );
 
         m_Psi_0 = m_Psi_ref;
         m_Psi_1 = 0;
