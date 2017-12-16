@@ -34,10 +34,11 @@
 #include <deal.II/fe/fe_system.h>
 #include <deal.II/fe/fe_values.h>
 #include <deal.II/fe/fe_q.h>
-#include <deal.II/numerics/vector_tools.h>
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/utilities.h>
 #include <deal.II/lac/sparsity_tools.h>
+#include <deal.II/numerics/data_out.h>
+#include <deal.II/numerics/vector_tools.h>
 //#include <deal.II/tria.h>
 
 #include <fstream>
@@ -66,8 +67,6 @@ namespace HelperPrograms
   protected:
     void make_grid();
     void setup_system();
-    void Interpolate_R_to_C( string );
-    void load( const string & );
 
     MyParameterHandler &m_ph;
     Triangulation<dim> triangulation;
@@ -162,28 +161,25 @@ namespace HelperPrograms
   template <int dim>
   void binR_to_binC<dim>::run()
   {
-    load(m_bin_filename);
-    setup_system();
-    Interpolate_R_to_C("C" + m_bin_filename);
-  }
-
-  template<int dim>
-  void binR_to_binC<dim>::Interpolate_R_to_C( string filename )
-  {
-    //MyComplexTools::Interpolate_R_to_C( dof_handler, fe, m_Psi_R, dof_handler_2, fe_2, constraints_2, m_Psi_C );
-
-    //parallel::distributed::SolutionTransfer<dim,LA::MPI::Vector> solution_transfer(dof_handler_2);
-    //solution_transfer.prepare_serialization(m_Psi_C_ghosted);
-    //triangulation.save( filename.c_str() );
-  }
-
-  template<int dim>
-  void binR_to_binC<dim>::load( const string &filename )
-  {
     make_grid();
     setup_system();
 
-    // m_Psi_R.block_read( );
+    ifstream in(m_bin_filename);
+    m_Psi_R.block_read(in);
+
+    MyComplexTools::Interpolate_R_to_C( dof_handler, fe, m_Psi_R, dof_handler_2, fe_2, constraints_2, m_Psi_C );
+
+    ofstream out("C" + m_bin_filename);
+    m_Psi_C.block_write(out);
+/*
+    DataOut<1> data_out;
+    data_out.attach_dof_handler (dof_handler_2);
+    data_out.add_data_vector (m_Psi_C, "Psi");
+    data_out.build_patches ();
+    
+    ofstream out2 ("C" + m_bin_filename + ".gnuplot");
+    data_out.write_gnuplot ( out2 );
+*/
   }
 } // end of namespace
 
@@ -193,6 +189,7 @@ int main ( int argc, char *argv[] )
   
   options.add_options()
   ("p,params",  "parameter xml file" , cxxopts::value<std::string>()->default_value("params.xml") )
+  ("positional", "Positional arguments: these are the arguments that are entered without an option", cxxopts::value<std::vector<std::string>>())
   ;
   
   options.parse_positional({"positional"});

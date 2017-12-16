@@ -12,6 +12,7 @@
 #include <deal.II/lac/sparse_direct.h>
 #include <deal.II/lac/vector.h>
 #include <deal.II/lac/sparsity_tools.h>
+#include <deal.II/numerics/matrix_tools.h>
 #include <vector>
 
 namespace MyComplexTools
@@ -104,9 +105,7 @@ namespace MyComplexTools
     const FEValuesExtractors::Scalar it(1);
     const double dth = 0.5 * dt;
 
-    FEValues<dim> fe_values(fe, quadrature_formula,
-                            update_values | update_gradients |
-                            update_quadrature_points | update_JxW_values);
+    FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_gradients | update_quadrature_points | update_JxW_values);
 
     const unsigned dofs_per_cell = fe.dofs_per_cell;
     const unsigned n_q_points = quadrature_formula.size();
@@ -459,22 +458,27 @@ namespace MyComplexTools
           cell_rhs(i) += JxW * tmp1 * fe_values_2[rt].value(i, qp);
           for (unsigned j = 0; j < dofs_per_cell; j++)
           {
-            cell_matrix(i, j) +=
-              JxW *
-              (fe_values_2[rt].value(i, qp) * fe_values_2[rt].value(j, qp) +
-               fe_values_2[it].value(i, qp) * fe_values_2[it].value(j, qp));
+            cell_matrix(i, j) += JxW * (fe_values_2[rt].value(i, qp) * fe_values_2[rt].value(j, qp) +
+                                        fe_values_2[it].value(i, qp) * fe_values_2[it].value(j, qp));
           }
         }
       }
       cell_2->get_dof_indices(local_dof_indices);
-      constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, matrix, rhs);
+      for ( unsigned i = 0; i < dofs_per_cell; i++ )
+      {
+        rhs(local_dof_indices[i]) += cell_rhs(i);
+        for ( unsigned j = 0; j < dofs_per_cell; j++ )
+          matrix.add (local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));    
+      } 
     }
+
+    map<types::global_dof_index, double> boundary_values;
+    VectorTools::interpolate_boundary_values (dof_handler, 0, ZeroFunction<dim>(), boundary_values);
+    MatrixTools::apply_boundary_values (boundary_values, matrix, sol, rhs);    
 
     SparseDirectUMFPACK A_direct;
     A_direct.initialize(matrix);
     A_direct.vmult(sol, rhs);
-
-    constraints.distribute(sol);
 
     ret = sol;
   }
