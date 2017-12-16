@@ -23,13 +23,13 @@ using namespace std;
       { 
         init( rhs.m_all_lambdas, rhs.m_all_potential, rhs.m_constants, rhs.m_T, rhs.m_N );
       }
-/*      
+      
       CPotential& operator=( const CPotential& rhs )
       {
-        m_lambdas = rhs.m_lambdas;
+        init( rhs.m_all_lambdas, rhs.m_all_potential, rhs.m_constants, rhs.m_T, rhs.m_N );
         return *this;
       }
-*/
+
       void init(  const vector<string>& all_lambdas, const vector<string>& all_potential, const map<string,double>& constants, const double T, const int N )
       {
         assert( all_lambdas.size() != 0 );
@@ -101,7 +101,7 @@ using namespace std;
         {
           m_pos_val[i] = p[i]; // setting the spatial coordinate
         }
-        for( int s ; s<m_no_lam; s++ )
+        for( int s=0 ; s<m_no_lam; s++ )
         {
           m_lam_val[s] = m_lambdas(ti,s);  // setting lam_i(t)
         }        
