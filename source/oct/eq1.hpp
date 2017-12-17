@@ -20,6 +20,7 @@
   template <int dim, int no_time_steps>
   void MySolver<dim,no_time_steps>::rt_propagtion_forward( const int ex )
   {
+    m_Psi = m_all_Psi[0];
     for( int i=1; i<no_time_steps; i++ )
     {
       MyComplexTools::AssembleSystem_LIN_Step( dof_handler, fe, m_Psi, m_dt, system_matrix, system_rhs );
@@ -32,8 +33,8 @@
 
       m_all_Psi[i] = m_Psi;
 
-      //double N = MPI::MyComplexTools::Particle_Number( mpi_communicator, dof_handler, fe, m_Psi );
-      printf( "f: %g\n", double(i)*m_dt );
+      //double N = MyComplexTools::Particle_Number( dof_handler, fe, m_Psi );
+      //printf( "f: %g %g\n", double(i)*m_dt, N );
     }
   }
   

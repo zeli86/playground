@@ -128,7 +128,7 @@
               cell_matrix(i,j) += JxW*(fe_values[rt].value(i,qp)*fe_values[rt].value(j,qp) + fe_values[it].value(i,qp)*fe_values[it].value(j,qp));                        
             }
             cell_rhs(i) += JxW*((M00*p[qp][0]+M01*p[qp][1])*fe_values[rt].value(i,qp) + 
-                                (M01*p[qp][0]+M11*p[qp][1])*fe_values[it].value(i,qp));
+                                (M10*p[qp][0]+M11*p[qp][1])*fe_values[it].value(i,qp));
           }
         }
         cell->get_dof_indices (local_dof_indices);

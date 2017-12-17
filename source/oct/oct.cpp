@@ -98,6 +98,7 @@ namespace realtime_propagation
     
   protected:
     CPotential<dim> m_potential;
+    CPotential<dim> m_potential_backup;
 
     void rt_propagtion_forward ( const int ); 
     void rt_propagtion_backward ( const int ); 
@@ -146,6 +147,8 @@ namespace realtime_propagation
 
     double m_xmin, m_xmax;
     double m_ymin, m_ymax;
+
+    unsigned m_global_refinement;
    
     MyTable m_table;    
   };
@@ -167,6 +170,7 @@ namespace realtime_propagation
       m_xmax = m_ph.Get_Mesh("xrange",1);
       m_ymin = m_ph.Get_Mesh("yrange",0);
       m_ymax = m_ph.Get_Mesh("yrange",1);
+      m_global_refinement = unsigned(m_ph.Get_Mesh("global_refinements",0));
     }
     catch( const std::string info )
     {
@@ -204,7 +208,7 @@ namespace realtime_propagation
     }
 
     GridGenerator::hyper_rectangle(triangulation, pt2, pt1);
-    triangulation.refine_global(7);
+    triangulation.refine_global(m_global_refinement);
     
     double min_cell_diameter = GridTools::minimal_cell_diameter(triangulation);
     double max_cell_diameter = GridTools::maximal_cell_diameter(triangulation);
@@ -322,22 +326,29 @@ namespace realtime_propagation
     // initial guess for lambda
     vector<string> lam_str;
     string str;
-    str = "sin(lam*" + to_string(domega) + ")";
+    str = "sin(t*" + to_string(domega) + ")";
     lam_str.push_back(str);
     str = "0";
     lam_str.push_back(str);
 
     m_potential.init( lam_str, pot_str, con_map, m_T, no_time_steps );
     m_potential.output( "lambda_guess.txt" );
+    m_potential_backup = m_potential;
+    m_potential_backup.output( "lambda_guess_backup.txt" );
 
     m_norm_grad.resize(m_potential.get_no_lambdas());
+    m_grad.reinit(no_time_steps,m_potential.get_no_lambdas());
+    m_old_grad.reinit(no_time_steps,m_potential.get_no_lambdas());
+    m_direction.reinit(no_time_steps,m_potential.get_no_lambdas());
+    m_old_direction.reinit(no_time_steps,m_potential.get_no_lambdas());
+    m_beta.resize(no_time_steps,0);
 
     double p[3] = {};
     double pos[3] = {};
     double var[3] = {};
 
-    m_workspace = m_all_Psi[0];
-    m_N = MyComplexTools::Particle_Number( dof_handler, fe, m_workspace );
+    m_all_Psi[0] = m_Psi;
+    m_N = MyComplexTools::Particle_Number( dof_handler, fe, m_Psi );
     
     cout << "N == " << m_N << endl;
     cout << "dt == " << m_dt << endl;
@@ -347,7 +358,7 @@ namespace realtime_propagation
     //cout << "p == " << p[0]/m_N << ", " << p[1]/m_N << ", " << p[2]/m_N << endl;
     //cout << "pos == " << pos[0]/m_N << ", " << pos[1]/m_N << ", " << pos[2]/m_N << endl;
     
-    for( int i=1; i<=10; i++ )
+    for( int i=1; i<40; i++ )
     {
       one_loop(i);
 
@@ -365,7 +376,7 @@ int main ( int argc, char *argv[] )
   cxxopts::Options options("binR_to_atus2", "Converts real deal.ii binary format to atus2 binary format.");
   
   options.add_options()
-  ("p,params", "input parameter xml file" , cxxopts::value<std::string>()->default_value("params.xml") )
+  ("p,params", "input parameter xml file" , cxxopts::value<std::string>()->default_value("params_one.xml") )
   ("i,input", "input initial wave function" , cxxopts::value<std::string>() )
   ("d,desired", "input desired wave function" , cxxopts::value<std::string>() )
   ;
@@ -385,7 +396,7 @@ int main ( int argc, char *argv[] )
     return EXIT_FAILURE;
   }
 
-  realtime_propagation::MySolver<1,101> solver("params.xml",1);
+  realtime_propagation::MySolver<1,101> solver(params_filename,1);
   solver.run(bin_filename_i,bin_filename_d);
 
 return EXIT_SUCCESS;

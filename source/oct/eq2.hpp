@@ -23,6 +23,9 @@
     m_workspace = m_Psi_d;
     m_workspace -= m_all_Psi[no_time_steps-1];
 
+    double cost = MyComplexTools::Particle_Number( dof_handler, fe, m_workspace );
+    printf( "cost = %g\n", cost );   
+
     MyComplexTools::AssembleSystem_mulvz( dof_handler, fe, m_workspace, std::complex<double>(0,-1), system_matrix, system_rhs );
     solve();
     m_all_p[no_time_steps-1] = m_Psi;
@@ -30,7 +33,7 @@
 
     for( int i=no_time_steps-2; i>0; i-- )
     {
-      MyComplexTools::AssembleSystem_LIN_Step( dof_handler, fe, m_Psi, m_dt, system_matrix, system_rhs );
+      MyComplexTools::AssembleSystem_LIN_Step( dof_handler, fe, m_Psi, -m_dt, system_matrix, system_rhs );
       solve();
       assemble_system(i);
       solve();
@@ -38,8 +41,8 @@
 
       //output_vec( "p_" + to_string(i) + ".vtu", m_all_p[i] );
       
-      double N = MyComplexTools::Particle_Number( dof_handler, fe, m_Psi );
-      printf( "b: %g %g\n", double(i)*m_dt, N );
+      //double N = MyComplexTools::Particle_Number( dof_handler, fe, m_Psi );
+      //printf( "b: %g %g\n", double(i)*m_dt, N );
     }    
   }
 
@@ -107,7 +110,7 @@
             cell_matrix(i,j) += JxW*(fe_values[rt].value(i,qp)*fe_values[rt].value(j,qp) + fe_values[it].value(i,qp)*fe_values[it].value(j,qp));                        
           }
           cell_rhs(i) += JxW*((M00*p[qp][0]+M01*p[qp][1])*fe_values[rt].value(i,qp) + 
-                              (M01*p[qp][0]+M11*p[qp][1])*fe_values[it].value(i,qp));
+                              (M10*p[qp][0]+M11*p[qp][1])*fe_values[it].value(i,qp));
         }
       }
       cell->get_dof_indices (local_dof_indices);

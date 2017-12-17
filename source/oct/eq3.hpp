@@ -119,6 +119,8 @@
      m_norm_grad[s] = sqrt(m_norm_grad[s]*m_dt);   
    }    
 
+   m_potential.add( 0.1, m_grad );
+
    /*
    ofstream out( "direction_" + to_string(ex) + ".txt" );
    for( int ti=1; ti<no_time_steps; ti++ )
