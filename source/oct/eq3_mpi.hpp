@@ -43,7 +43,7 @@
         retval += mat1(ti,s)*mat2(ti,s);
       }
     }
-    return retval*m_dt;
+    return retval*pow(m_dt,double(m_potential.get_no_lambdas()));
   }
 
   template <int dim, int no_time_steps>

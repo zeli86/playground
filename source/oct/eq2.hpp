@@ -20,11 +20,11 @@
   template <int dim, int no_time_steps>
   void MySolver<dim,no_time_steps>::rt_propagtion_backward( const int )
   {
-    m_workspace = m_Psi_d;
-    m_workspace -= m_all_Psi[no_time_steps-1];
+//    m_workspace = m_Psi_d;
+//    m_workspace -= m_all_Psi[no_time_steps-1];
 
-    double cost = MyComplexTools::Particle_Number( dof_handler, fe, m_workspace );
-    printf( "cost = %g\n", cost );   
+//    double cost = MyComplexTools::Particle_Number( dof_handler, fe, m_workspace );
+//    printf( "cost = %g\n", cost );   
 
     MyComplexTools::AssembleSystem_mulvz( dof_handler, fe, m_workspace, std::complex<double>(0,-1), system_matrix, system_rhs );
     solve();

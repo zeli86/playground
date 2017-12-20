@@ -25,25 +25,26 @@
      m_beta[s] = 0;
      for( int ti=1; ti<no_time_steps-1; ti++ )
      {
-       //m_beta[s] += m_grad(ti,s)*m_grad(ti,s)/(m_old_direction(ti,s)*(m_grad(ti,s)-m_old_grad(ti,s)));
-       m_beta[s] += m_grad(ti,s)*m_grad(ti,s)/(m_old_grad(ti,s)*m_old_grad(ti,s));
+       m_beta[s] += m_grad(ti,s)*m_grad(ti,s)/(m_old_direction(ti,s)*(m_grad(ti,s)-m_old_grad(ti,s)));
+       //m_beta[s] += m_grad(ti,s)*m_grad(ti,s)/(m_old_grad(ti,s)*m_old_grad(ti,s));
        //if( m_root ) printf( "%d\t%d\t%g\t%g\t%g\n", s, ti, m_grad(ti,s), m_old_direction(ti,s), m_old_grad(ti,s) );
      }      
    }    
  }
 
  template <int dim, int no_time_steps>
- double MySolver<dim,no_time_steps>::compute_dot_product( const LAPACKFullMatrix<double>& mat1, const LAPACKFullMatrix<double>& mat2 )
+ double MySolver<dim,no_time_steps>::compute_dot_product( const LAPACKFullMatrix<double>& mat1, 
+                                                          const LAPACKFullMatrix<double>& mat2 )
  {
    double retval=0;
-   for( int s=0; s<m_potential.get_no_lambdas(); s++ )
+   for( int s=0; s<mat1.n(); s++ )
    {
-     for( int ti=1; ti<no_time_steps-1; ti++ )
+     for( int ti=1; ti<mat1.m()-1; ti++ )
      {
        retval += mat1(ti,s)*mat2(ti,s);
      }
    }
-   return retval*m_dt;
+   return retval*pow(m_dt,double(m_potential.get_no_lambdas()));
  }
 
  template <int dim, int no_time_steps>
@@ -119,7 +120,7 @@
      m_norm_grad[s] = sqrt(m_norm_grad[s]*m_dt);   
    }    
 
-   m_potential.add( 0.1, m_grad );
+   //m_potential.add( 0.1, m_grad );
 
    /*
    ofstream out( "direction_" + to_string(ex) + ".txt" );

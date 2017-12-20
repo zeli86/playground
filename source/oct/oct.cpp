@@ -95,6 +95,7 @@ namespace realtime_propagation
     ~MySolver();
 
     void run ( const std::string&, const std::string& );
+    void run2 ( const std::string&, const std::string& );
     
   protected:
     CPotential<dim> m_potential;
@@ -105,6 +106,7 @@ namespace realtime_propagation
     void assemble_system( const int );
     void compute_correction ( const int ); 
     void compute_cost( double& );
+    void compute_difference( const LAPACKFullMatrix<double>&, const LAPACKFullMatrix<double>&, LAPACKFullMatrix<double>& );
     double compute_dot_product( const LAPACKFullMatrix<double>&, const LAPACKFullMatrix<double>& );
 
     void make_grid();
@@ -141,9 +143,12 @@ namespace realtime_propagation
     LAPACKFullMatrix<double> m_old_grad;
     LAPACKFullMatrix<double> m_direction;
     LAPACKFullMatrix<double> m_old_direction;
+    LAPACKFullMatrix<double> m_diff_grads;
 
     double m_N;
     double m_T;
+    double m_cost;
+    double m_old_cost;
 
     double m_xmin, m_xmax;
     double m_ymin, m_ymax;
@@ -341,6 +346,7 @@ namespace realtime_propagation
     m_old_grad.reinit(no_time_steps,m_potential.get_no_lambdas());
     m_direction.reinit(no_time_steps,m_potential.get_no_lambdas());
     m_old_direction.reinit(no_time_steps,m_potential.get_no_lambdas());
+    m_diff_grads.reinit(no_time_steps,m_potential.get_no_lambdas());
     m_beta.resize(no_time_steps,0);
 
     double p[3] = {};
@@ -361,6 +367,102 @@ namespace realtime_propagation
     for( int i=1; i<40; i++ )
     {
       one_loop(i);
+
+      m_potential.output( "lambda_" + to_string(i) + ".txt" );
+    }
+
+    //output_results( "oct_final.vtu");     
+  } 
+
+  template <int dim, int no_time_steps>
+  void MySolver<dim,no_time_steps>::run2 ( const std::string& fn_i, const std::string& fn_d )
+  {
+    make_grid();
+    setup_system();
+    
+    ifstream in(fn_i);
+    m_Psi.block_read(in);
+    
+    ifstream in2(fn_d);
+    m_Psi_d.block_read(in2);
+    
+    output_vec( "Psi_0.gnuplot", m_Psi );
+    output_vec( "Psi_d.gnuplot", m_Psi_d );
+
+    map<string,double> con_map;
+    con_map["omq_x"] = m_omega[0];
+
+    // V(x,y;lambda,..) 
+    vector<string> pot_str;
+    pot_str.push_back("(1+lam_0)*omq_x*x^2 + lam_1*x^3");
+    pot_str.push_back("x^2");
+    pot_str.push_back("x^3");
+
+    double domega = M_PI/m_T;
+
+    // initial guess for lambda
+    vector<string> lam_str;
+    string str;
+    str = "sin(t*" + to_string(domega) + ")";
+    lam_str.push_back(str);
+    str = "0";
+    lam_str.push_back(str);
+
+    m_potential.init( lam_str, pot_str, con_map, m_T, no_time_steps );
+    m_potential.output( "lambda_guess.txt" );
+    m_potential_backup = m_potential;
+    m_potential_backup.output( "lambda_guess_backup.txt" );
+
+    m_norm_grad.resize(m_potential.get_no_lambdas());
+    m_grad.reinit(no_time_steps,m_potential.get_no_lambdas());
+    m_old_grad.reinit(no_time_steps,m_potential.get_no_lambdas());
+    m_direction.reinit(no_time_steps,m_potential.get_no_lambdas());
+    m_old_direction.reinit(no_time_steps,m_potential.get_no_lambdas());
+    m_beta.resize(no_time_steps,0);
+
+    double p[3] = {};
+    double pos[3] = {};
+    double var[3] = {};
+
+    m_all_Psi[0] = m_Psi;
+    m_N = MyComplexTools::Particle_Number( dof_handler, fe, m_Psi );
+    
+    cout << "N == " << m_N << endl;
+    cout << "dt == " << m_dt << endl;
+//    Expectation_value_position( m_Psi, pos );
+//    Expectation_value_momentum( m_Psi, p );
+
+    //cout << "p == " << p[0]/m_N << ", " << p[1]/m_N << ", " << p[2]/m_N << endl;
+    //cout << "pos == " << pos[0]/m_N << ", " << pos[1]/m_N << ", " << pos[2]/m_N << endl;
+    
+    one_loop(0); // compute the first gradient
+    m_old_cost = m_cost;
+    m_direction = m_grad;
+    for( int i=1; i<40; i++ )
+    {
+      m_potential_backup = m_potential;
+
+      double tau=1;
+      for( int j=0; j<10; j++ )
+      {
+        m_potential.add( tau, m_direction );
+        rt_propagtion_forward(0);
+        if( m_cost - m_old_cost > tau*compute_dot_product(m_direction,m_grad) )
+        {
+          m_potential = m_potential_backup;
+          tau *= 0.5;
+        }
+      }
+
+      m_old_grad = m_grad;
+      m_old_direction = m_direction;
+      rt_propagtion_backward(0);
+      compute_correction(0);
+      compute_beta();
+
+      for( int s=0; s<m_direction.n(); s++ )
+        for( int ti=1; ti<m_direction.m()-1; ti++ )
+          m_direction(ti,s) = m_grad(ti,s) - m_beta[s]*m_old_direction(ti,s);
 
       m_potential.output( "lambda_" + to_string(i) + ".txt" );
     }
@@ -397,7 +499,7 @@ int main ( int argc, char *argv[] )
   }
 
   realtime_propagation::MySolver<1,101> solver(params_filename,1);
-  solver.run(bin_filename_i,bin_filename_d);
+  solver.run2(bin_filename_i,bin_filename_d);
 
 return EXIT_SUCCESS;
 }

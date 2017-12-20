@@ -36,6 +36,10 @@
       //double N = MyComplexTools::Particle_Number( dof_handler, fe, m_Psi );
       //printf( "f: %g %g\n", double(i)*m_dt, N );
     }
+
+    m_workspace = m_Psi_d;
+    m_workspace -= m_all_Psi[no_time_steps-1];
+    m_cost = MyComplexTools::Particle_Number( dof_handler, fe, m_workspace );
   }
   
     
