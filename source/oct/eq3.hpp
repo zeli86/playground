@@ -117,7 +117,7 @@
      {
        m_norm_grad[s] += m_grad(ti,s)*m_grad(ti,s);
      }
-     m_norm_grad[s] = sqrt(m_norm_grad[s]*m_dt);   
+     m_norm_grad[s] = sqrt(m_norm_grad[s]*m_dt);
    }    
 
    //m_potential.add( 0.1, m_grad );

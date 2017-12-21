@@ -38,7 +38,7 @@
     }
 
     m_workspace = m_Psi_d;
-    m_workspace -= m_all_Psi[no_time_steps-1];
+    m_workspace -= m_Psi;
     m_cost = MyComplexTools::Particle_Number( dof_handler, fe, m_workspace );
   }
   

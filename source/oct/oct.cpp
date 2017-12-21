@@ -317,14 +317,27 @@ namespace realtime_propagation
     output_vec( "Psi_0.gnuplot", m_Psi );
     output_vec( "Psi_d.gnuplot", m_Psi_d );
 
+    m_workspace = m_Psi_d;
+    m_workspace -= m_Psi;
+
+    double cost = MyComplexTools::Particle_Number( dof_handler, fe, m_workspace );
+    printf( "initial cost = %g\n", cost );   
+    printf( "N Psi_0 = %g\n", MyComplexTools::Particle_Number( dof_handler, fe, m_Psi ) );   
+    printf( "N Psi_d = %g\n", MyComplexTools::Particle_Number( dof_handler, fe, m_Psi_d ) );   
+    
+    output_vec( "Psi_0.gnuplot", m_Psi );
+    output_vec( "Psi_d.gnuplot", m_Psi_d );
+
     map<string,double> con_map;
     con_map["omq_x"] = m_omega[0];
 
     // V(x,y;lambda,..) 
     vector<string> pot_str;
-    pot_str.push_back("(1+lam_0)*omq_x*x^2 + lam_1*x^3");
-    pot_str.push_back("x^2");
-    pot_str.push_back("x^3");
+    pot_str.push_back("(1+lam_0)*omq_x*(x-lam_1)^2 + lam_2*(x-lam_3)^3");
+    pot_str.push_back("omq_x*lam_0*(x-lam_1)^2");
+    pot_str.push_back("-2*(1+lam_0)*omq_x*(x-lam_1)");
+    pot_str.push_back("(x-lam_3)^3");
+    pot_str.push_back("-3*lam_2*(x-lam_3)^2");
 
     double domega = M_PI/m_T;
 
@@ -335,7 +348,9 @@ namespace realtime_propagation
     lam_str.push_back(str);
     str = "0";
     lam_str.push_back(str);
-
+    lam_str.push_back(str);
+    lam_str.push_back(str);
+    
     m_potential.init( lam_str, pot_str, con_map, m_T, no_time_steps );
     m_potential.output( "lambda_guess.txt" );
     m_potential_backup = m_potential;
@@ -349,26 +364,19 @@ namespace realtime_propagation
     m_diff_grads.reinit(no_time_steps,m_potential.get_no_lambdas());
     m_beta.resize(no_time_steps,0);
 
-    double p[3] = {};
-    double pos[3] = {};
-    double var[3] = {};
-
     m_all_Psi[0] = m_Psi;
-    m_N = MyComplexTools::Particle_Number( dof_handler, fe, m_Psi );
-    
-    cout << "N == " << m_N << endl;
     cout << "dt == " << m_dt << endl;
-//    Expectation_value_position( m_Psi, pos );
-//    Expectation_value_momentum( m_Psi, p );
-
-    //cout << "p == " << p[0]/m_N << ", " << p[1]/m_N << ", " << p[2]/m_N << endl;
-    //cout << "pos == " << pos[0]/m_N << ", " << pos[1]/m_N << ", " << pos[2]/m_N << endl;
     
-    for( int i=1; i<40; i++ )
+    for( int i=1; i<400; i++ )
     {
       one_loop(i);
 
+      m_potential.add( 0.1, m_grad );
+
+      printf("(%d) cost = %g\n", i, m_cost );
+
       m_potential.output( "lambda_" + to_string(i) + ".txt" );
+      output_vec( "res_" + to_string(i) + ".gnuplot", m_all_Psi[no_time_steps-1] );
     }
 
     //output_results( "oct_final.vtu");     
@@ -499,7 +507,7 @@ int main ( int argc, char *argv[] )
   }
 
   realtime_propagation::MySolver<1,101> solver(params_filename,1);
-  solver.run2(bin_filename_i,bin_filename_d);
+  solver.run(bin_filename_i,bin_filename_d);
 
 return EXIT_SUCCESS;
 }
