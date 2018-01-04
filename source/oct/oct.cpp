@@ -402,9 +402,15 @@ namespace realtime_propagation
 
     // V(x,y;lambda,..) 
     vector<string> pot_str;
+/*
     pot_str.push_back("(1+lam_0)*omq_x*x^2 + lam_1*x^3");
     pot_str.push_back("x^2");
     pot_str.push_back("x^3");
+*/
+    pot_str.push_back("omq_x*x + lam_0*sin(lam_1*x+lam_2)");
+    pot_str.push_back("sin(lam_1*x+lam_2)");
+    pot_str.push_back("lam_0*cos(lam_1*x+lam_2)*x");
+    pot_str.push_back("lam_0*cos(lam_1*x+lam_2)");
 
     double domega = M_PI/m_T;
 
@@ -489,6 +495,7 @@ int main ( int argc, char *argv[] )
   ("p,params", "input parameter xml file" , cxxopts::value<std::string>()->default_value("params_one.xml") )
   ("i,input", "input initial wave function" , cxxopts::value<std::string>() )
   ("d,desired", "input desired wave function" , cxxopts::value<std::string>() )
+  ("help","Print help")
   ;
   
   auto result = options.parse(argc, argv);
@@ -496,9 +503,16 @@ int main ( int argc, char *argv[] )
   std::string bin_filename_i, bin_filename_d, params_filename;
   try
   {
-    bin_filename_i = result["i"].as<std::string>(); 
-    bin_filename_d = result["d"].as<std::string>(); 
-    params_filename = result["p"].as<std::string>();
+    if (result.count("i") > 0 && result.count("d") > 0 && result.count("p") > 0 )
+    {
+      bin_filename_i = result["i"].as<std::string>(); 
+      bin_filename_d = result["d"].as<std::string>(); 
+      params_filename = result["p"].as<std::string>();
+    }
+    else
+    {      std::cout << options.help({""}) << std::endl;
+      return EXIT_FAILURE;
+    }
   }
   catch (const cxxopts::OptionException& e)
   {

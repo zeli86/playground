@@ -231,6 +231,7 @@ int main ( int argc, char *argv[] )
   options.add_options()
   ("p,params",  "parameter xml file" , cxxopts::value<std::string>()->default_value("params.xml") )
   ("positional", "Positional arguments: these are the arguments that are entered without an option", cxxopts::value<std::vector<std::string>>())
+  ("help","Print help")
   ;
   
   options.parse_positional({"positional"});
@@ -239,13 +240,19 @@ int main ( int argc, char *argv[] )
   std::string bin_filename, params_filename;
   try
   {
-    if( result["positional"].as<std::vector<std::string>>().size() > 0 )
+   if (result.count("") == 0)
+    {
+      std::cout << options.help({""}) << std::endl;
+      return EXIT_FAILURE;
+    }
+
+    if( result.count("positional") > 0 )
     {
       bin_filename = result["positional"].as<std::vector<std::string>>()[0]; 
     }
     else
     {        
-      std::cout << "error parsing options: missing file name" << std::endl;
+      std::cout << options.help({""}) << std::endl;
       return EXIT_FAILURE;
     }
     params_filename = result["p"].as<std::string>();

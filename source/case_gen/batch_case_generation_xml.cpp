@@ -121,16 +121,19 @@ int main( int argc, char *argv[] )
   ("k,Ndmu", "number of delta mu steps", cxxopts::value<string>()->default_value("10"))
   ("g,gr", "global refinement", cxxopts::value<string>()->default_value("8"))
   ("f,fn", "folder name", cxxopts::value<string>()->default_value(string(base_folder)))
-  ("positional", "Positional arguments: these are the arguments that are entered without an option", cxxopts::value<std::vector<std::string>>())
+  ("help","Print help")
   ;
   
-  options.parse_positional({"positional"});
   auto result = options.parse(argc, argv);
+
+  if (result.count("") == 0)
+  {
+    std::cout << options.help({""}) << std::endl;
+    return EXIT_FAILURE;
+  }
 
   int N = result["N"].as<int>();
   int dim = result["dim"].as<int>();
-
-  //cout << result["positional"].as<std::vector<std::string>>()[0] << endl;
 
   const int maxN = int(pow(N,dim));
   for( int s=0; s<maxN; s++ )

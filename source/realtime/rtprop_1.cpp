@@ -448,9 +448,16 @@ int main ( int argc, char *argv[] )
   options.add_options()
   ("i,input", "input initial wave function" , cxxopts::value<std::string>()->default_value("Cfinal.bin") )
   ("p,params", "input parameter xml file" , cxxopts::value<std::string>()->default_value("params.xml") )
+  ("help","Print help")
   ;
   
   auto result = options.parse(argc, argv);
+
+  if (result.count("") == 0)
+  {
+    std::cout << options.help({""}) << std::endl;
+    return EXIT_FAILURE;
+  }
 
   std::string bin_filename, params_filename;
   try

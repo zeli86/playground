@@ -29,9 +29,6 @@ TARGET_LINK_LIBRARIES( binR_to_binC_1 ${MPI_CXX_LIBRARIES} myatus ${GSL_LIBRARY_
 #ADD_EXECUTABLE( intp_gamma_mu intp_gamma_mu.cpp )
 #TARGET_LINK_LIBRARIES( intp_gamma_mu m gsl gslcblas )
 
-#ADD_EXECUTABLE( bin_2_vtu bin_2_vtu.cpp )
-#TARGET_LINK_LIBRARIES( bin_2_vtu ${MPI_CXX_LIBRARIES} myatus ${GSL_LIBRARY_1} ${GSL_LIBRARY_2} m ${DEAL_II_LIBRARY} ${PETSC_LIBRARY} )
-
 #ADD_EXECUTABLE( virial virial.cpp )
 #TARGET_LINK_LIBRARIES( virial ${MPI_CXX_LIBRARIES} myatus ${GSL_LIBRARY_1} ${GSL_LIBRARY_2} m ${DEAL_II_LIBRARY} ${PETSC_LIBRARY} )
 

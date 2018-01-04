@@ -219,7 +219,7 @@ namespace HelperPrograms
     MySolver( const std::string& );
     ~MySolver();
 
-    void run ( string, const int=1 );
+    void run ( string, const bool, const int=1 );
 
   protected:
     void make_grid();
@@ -247,8 +247,6 @@ namespace HelperPrograms
     double m_ymin, m_ymax;
     double m_zmin, m_zmax;
     double m_mu;
-    double m_gs;
-    vector<double> m_omega;
     
     int m_rank;
     int m_sel; // the selected wave function
@@ -266,16 +264,21 @@ namespace HelperPrograms
     pcout (cout, m_root),
     m_sel(0)
   {
-    m_omega = m_ph.Get_Physics("omega");
-    m_gs = m_ph.Get_Physics("gs_1",0);
+    try
+    {
+      m_xmin = m_ph.Get_Mesh("xrange",0);
+      m_xmax = m_ph.Get_Mesh("xrange",1);
+      m_ymin = m_ph.Get_Mesh("yrange",0);
+      m_ymax = m_ph.Get_Mesh("yrange",1);
+      m_zmin = m_ph.Get_Mesh("zrange",0);
+      m_zmax = m_ph.Get_Mesh("zrange",1);
+    }
+    catch( const std::string info )
+    {
+      std::cerr << info << endl;
+      exit(0);
+    }    
 
-    m_xmin = m_ph.Get_Mesh("xrange",0);
-    m_xmax = m_ph.Get_Mesh("xrange",1);
-    m_ymin = m_ph.Get_Mesh("yrange",0);
-    m_ymax = m_ph.Get_Mesh("yrange",1);
-    m_zmin = m_ph.Get_Mesh("zrange",0);
-    m_zmax = m_ph.Get_Mesh("zrange",1);
-  
     MPI_Comm_rank(mpi_communicator, &m_rank);
   }
 
@@ -320,7 +323,7 @@ namespace HelperPrograms
   }
 
   template <int dim, int comp>
-  void MySolver<dim,comp>::run( string filename, const int wf )
+  void MySolver<dim,comp>::run( string filename, const bool bvtu, const int wf )
   {
     assert( wf > 0 && wf <= comp );
 
@@ -342,6 +345,32 @@ namespace HelperPrograms
     data_out.add_data_vector (m_Psi, "Psi");
     data_out.build_patches ();
     data_out.write_atus2 ( new_filename, mpi_communicator, add_data );
+
+
+    if( bvtu )
+    {
+      regex pat {"*.bin"};
+
+    }
+/*
+    vector<std::string> solution_names;
+
+    DataOut<dim> data_out;
+    data_out.attach_dof_handler (dof_handler);
+    solution_names.push_back ("Re Psi");
+    solution_names.push_back ("Im Psi");    
+    data_out.add_data_vector (m_Psi, solution_names);
+    data_out.add_data_vector (m_Psi, intensities);
+    
+    solution_names.clear();
+    solution_names.push_back ("Re Psi_0");
+    solution_names.push_back ("Im Psi_0");    
+    data_out.add_data_vector (m_Psi_0, solution_names);
+    data_out.add_data_vector (m_Psi_0, intensities2);
+    data_out.build_patches ();
+    data_out.write_vtu_in_parallel ( filename.c_str(), mpi_communicator );
+*/
+
   }
 
   template<int dim, int comp>
@@ -379,6 +408,21 @@ namespace HelperPrograms
 
 int main ( int argc, char *argv[] )
 {
+
+try
+{
+  string str { "Cfinal.bin" };
+  regex pat {"(.*)(bin)\b"};
+  string format {"$1\n"};
+  cout << regex_replace(str,pat,format,regex_constants::format_no_copy);
+}
+catch( const std::regex_error& e )
+{
+  cout << e.what() << endl;
+}
+
+  return EXIT_SUCCESS;
+
   using namespace dealii;
   deallog.depth_console (0);
 
@@ -391,7 +435,9 @@ int main ( int argc, char *argv[] )
   options.add_options("wave function index")
   ("i,iwf",  "select the i-th wave function for export (1,2,..)", cxxopts::value<int>()->default_value("1")  )
   ("N,nowf",  "total number of wave functions stored in the binary file (1,..)", cxxopts::value<int>()->default_value("1")  )
+  ("e,vtu", "output addionally a vtu file", cxxopts::value<bool>()->default_value("false") )
   ("positional", "Positional arguments: these are the arguments that are entered without an option", cxxopts::value<std::vector<std::string>>())
+  ("help","Print help")
   ;
   
   options.parse_positional({"positional"});
@@ -400,13 +446,19 @@ int main ( int argc, char *argv[] )
   std::string bin_filename, params_filename;
   try
   {
-    if( result["positional"].as<std::vector<std::string>>().size() > 0 )
+    if (result.count("") == 0)
+    {
+      std::cout << options.help({""}) << std::endl;
+      return EXIT_FAILURE;
+    }
+
+    if( result.count("positional") > 0 )
     {
       bin_filename = result["positional"].as<std::vector<std::string>>()[0]; 
     }
     else
     {        
-      std::cout << "error parsing options: missing file name" << std::endl;
+      std::cout << options.help({""}) << std::endl;
       return EXIT_FAILURE;
     }
     params_filename = result["p"].as<std::string>();
@@ -435,27 +487,29 @@ int main ( int argc, char *argv[] )
 
   int nowf = result["nowf"].as<int>();
   int wf =  result["iwf"].as<int>();
+  bool bvtu = result["vtu"].as<bool>();
+  
   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv );
   {
     if( dim == 2 && nowf == 1 )
     {
       HelperPrograms::MySolver<2,1> solver(params_filename);
-      solver.run(bin_filename);
+      solver.run(bin_filename, bvtu);
     }
     if( dim == 3 && nowf == 1 )
     {
       HelperPrograms::MySolver<3,1> solver(params_filename);
-      solver.run(bin_filename);
+      solver.run(bin_filename,bvtu);
     }
     if( dim == 2 && nowf == 2 )
     {
       HelperPrograms::MySolver<2,2> solver(params_filename);
-      solver.run(bin_filename,wf);
+      solver.run(bin_filename,bvtu,wf);
     }
     if( dim == 3 && nowf == 2 )
     {
       HelperPrograms::MySolver<3,2> solver(params_filename);
-      solver.run(bin_filename,wf);
+      solver.run(bin_filename,bvtu,wf);
     }
   }  
 return EXIT_SUCCESS;
