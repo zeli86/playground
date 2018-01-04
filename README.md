@@ -1,4 +1,7 @@
 
+
+[![Build Status](https://travis-ci.org/zeli86/playground.svg?branch=master)](https://travis-ci.org/zeli86/playground)
+
 # **ATUS-PRO PLAYGROUND**
 ## **Introduction**
 The PLAYGROUND package is a collection of C++ programs designed to solve the non linear Schrödinger equation, especially the Gross--Pitaevskii equation. This is the active development branch of ATUS-PRO.
