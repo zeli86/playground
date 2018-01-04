@@ -1,0 +1,11 @@
+sudo: required
+language: cpp
+services:
+  - docker
+before_install:
+  - docker pull zelim/playground:latest
+  - docker run -it -d --name build_playground zelim/playground /bin/bash 
+  - docker exec build_playground git clone https://github.com/zeli86/playground.git
+  - docker exec -t -i build_playground /bin/bash -c 'source /root/.bashrc && cmake -H/playground -B/_build'
+script:
+  - docker exec build_playground cmake --build /_build
