@@ -47,8 +47,8 @@ option( BUILD_HTRAP "3D" OFF )
 option( BUILD_NEHARI "Disables the initial point in function space being set to the Nehari value" ON )
 option( BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" ${DOXYGEN_FOUND})
 
-set(CMAKE_CXX_FLAGS_RELEASE "-std=gnu++11 -march=native -O3 -fopenmp -mieee-fp -funroll-loops -ftree-vectorize -w -s")
-set(CMAKE_CXX_FLAGS_DEBUG "-std=gnu++11 -g -march=native -fopenmp -mieee-fp -fsanitize=address")
+set(CMAKE_CXX_FLAGS_RELEASE "-std=gnu++14 -march=native -O3 -fopenmp -mieee-fp -funroll-loops -ftree-vectorize -w -s")
+set(CMAKE_CXX_FLAGS_DEBUG "-std=gnu++14 -g -march=native -fopenmp -mieee-fp -fsanitize=address")
 
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options are: Debug Release." FORCE)
