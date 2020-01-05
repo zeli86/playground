@@ -17,18 +17,19 @@ The PLAYGROUND package is a collection of C++ programs designed to solve the non
 
 The following packages are required and will be installed via the install script:
 
-* openmpi 3.0.0 (https://www.open-mpi.org/)
-* gnu gsl 2.4 (https://www.gnu.org/software/gsl/)
-* nlopt 2.4.2 (http://ab-initio.mit.edu/nlopt) 
-* muparser 2.2.5 (http://beltoforion.de/article.php?a=muparser)
+* openmpi 4.0.2 (https://www.open-mpi.org/)
+* boost 1.72.0 (https://www.boost.org/)
+* gnu gsl 2.6 (https://www.gnu.org/software/gsl/)
+* nlopt 2.6.1 (http://ab-initio.mit.edu/nlopt) 
+* muparser 2.2.6.1 (http://beltoforion.de/article.php?a=muparser)
 * lapack 3.8.0 (http://www.netlib.org/lapack/)
-* p4est 2.0 (http://p4est.org/)
-* petsc 3.8.2 (http://www.mcs.anl.gov/petsc/) 
-* deal.ii 8.5.1 (http://www.dealii.org/) 
+* p4est 2.2 (http://p4est.org/)
+* petsc 3.10.12 (http://www.mcs.anl.gov/petsc/) 
+* deal.ii 9.1.1 (http://www.dealii.org/) 
 
 The following third party packages are included in the source tree:
 
-* pugixml (https://pugixml.org/)
+* pugixml 1.10 (https://pugixml.org/)
 * String Toolkit (https://www.partow.net/programming/strtk/index.html)
 * CXXOPTS (https://github.com/jarro2783/cxxopts)
 
@@ -41,9 +42,9 @@ Further we recommended the use of environmental modules (http://modules.sourcefo
 The binaries are installed in $HOME/bin. Make sure that this folder is added to $PATH of your shell.
 
 ### **Install local dependencies**
-Make sure that the install script *install_8.5.1* is executable. This scripts requires an active internet connection. 
+Make sure that the install script *install_9.1.1* is executable. This scripts requires an active internet connection. 
 
-In the playground folder invoke on the command line the install script via: *./install_8.5.1 -j 4*
+In the playground folder invoke on the command line the install script via: *./install_9.1.1 -j 4*
 
 Then select 'a' for all packages and press enter. This will take a while depending on your computer speed. The -j option specifies the number of utilized cores. At the end of the installation confirm the the extension of the MODULEPATH environmental variable. This adds the local module files folder. 
 

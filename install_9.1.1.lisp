@@ -14,6 +14,8 @@
 (defvar *packages*
   '((:name openmpi :version "4.0.2"
      :url "https://download.open-mpi.org/release/open-mpi/v4.0/openmpi-4.0.2.tar.gz")
+    (:name boost :version "1.72.0"
+     :url "https://dl.bintray.com/boostorg/release/1.72.0/source/boost_1_72_0.tar.gz")
     (:name nlopt :version "2.6.1"
      :url "https://github.com/stevengj/nlopt/archive/v2.6.1.tar.gz"
      :path "nlopt-2.6.1")
@@ -155,6 +157,18 @@ Otherwise returns nil. Test is done via equal."
     (sb-posix:setenv "CXX" "mpic++" 1)
     (sb-posix:setenv "FC" "mpif90" 1)))
 
+;; boost
+(defmethod install ((sw-name (eql 'boost)) version)
+  "Install method for boost"
+  (let* ((name (string-downcase (symbol-name sw-name)))
+         (full-name (format nil "~a-~a" name version)))
+    (uiop:chdir (uiop:getcwd))
+    (defvar prefix-path (merge-pathnames full-name *install-dir*))
+    (run "./bootstrap.sh" )
+    (run (format nil "./b2 link=shared ~@[--prefix=~a~] --without-python ~@[-j ~a~] install" prefix-path *make-threads*))
+    (install-module name *install-dir* version *module-dir*)
+    (export-variables full-name)))
+
 ;; nlopt
 (defmethod install ((sw-name (eql 'nlopt)) version)
   "Install method for nlopt"
@@ -168,7 +182,7 @@ Otherwise returns nil. Test is done via equal."
     (run "make install")
     (install-module name *install-dir* version *module-dir*)
     (export-variables full-name)))
-
+    
 ;; lapack
 (defmethod install ((sw-name (eql 'lapack)) version)
   "Install method for lapack"
@@ -249,7 +263,8 @@ Otherwise returns nil. Test is done via equal."
          (full-name (format nil "~a-~a" name version)))
     (uiop:chdir (uiop:ensure-pathname (format nil "~abuild/" (uiop:getcwd)) :ensure-directory t :ensure-directories-exist t))
     (run (format nil "cmake ~@[-DCMAKE_C_COMPILER=~a~] ~@[-DCMAKE_CXX_COMPILER=~a~] -DCMAKE_BUILD_TYPE=\"Release\" \\
--DDEAL_II_WITH_UMFPACK=ON -DDEAL_II_WITH_LAPACK=ON -DLAPACK_DIR=~a~a -DDEAL_II_WITH_PETSC=ON -DPETSC_DIR=~a~a -DDEAL_II_WITH_P4EST=ON -DP4EST_DIR=~a~a -DGSL_DIR=~a~a -DMUPARSER_DIR=~a~a -DDEAL_II_WITH_THREADS=OFF -DDEAL_II_WITH_MPI=ON -DDEAL_II_WITH_HDF5=OFF -DCMAKE_INSTALL_PREFIX=~a~a .."
+-DDEAL_II_WITH_UMFPACK=ON -DDEAL_II_WITH_LAPACK=ON -DLAPACK_DIR=~a~a -DDEAL_II_WITH_PETSC=ON -DPETSC_DIR=~a~a -DDEAL_II_WITH_P4EST=ON -DP4EST_DIR=~a~a  \\
+-DGSL_DIR=~a~a -DMUPARSER_DIR=~a~a -DDEAL_II_WITH_BOOST=ON -DBOOST_DIR=~a~a -DDEAL_II_WITH_THREADS=OFF -DDEAL_II_WITH_MPI=ON -DDEAL_II_WITH_HDF5=OFF -DCMAKE_INSTALL_PREFIX=~a~a  .."
                  *CC*
                  *CXX*
                  *install-dir*
@@ -262,10 +277,13 @@ Otherwise returns nil. Test is done via equal."
                  (format nil "gsl-~a" (getf (package-match :name 'gsl) :version))
                  *install-dir*
                  (format nil "muparser-~a" (getf (package-match :name 'muparser) :version))
+                 *install-dir* 
+                 (format nil "boost-~a" (getf (package-match :name 'boost) :version))
                  *install-dir* full-name))
     (run "make clean")
     (run (format nil "make ~@[-j ~a~]" *make-threads*))
     (run "make install")
+    (install-meta-module name *install-dir* version *module-dir*)
     (install-module name *install-dir* version *module-dir*)
     (export-variables full-name)))
 
@@ -277,6 +295,7 @@ Otherwise returns nil. Test is done via equal."
     (error "Dependencies missing"))
   (let* ((name (string-downcase (symbol-name sw-name)))
          (full-name (format nil "~a-~a" name version)))
+    (install-module name *install-dir* version *module-dir*)
     (uiop:chdir (uiop:ensure-pathname (format nil "~abuild/" (uiop:getcwd))
                                       :ensure-directory t
                                       :ensure-directories-exist t))
@@ -291,8 +310,8 @@ Otherwise returns nil. Test is done via equal."
       (if (= exit-code 0)
           (run "make doc")
           (format t "Install doxygen to generate documentation.~%")))
-    (install-module name *install-dir* version *module-dir*)
-    (install-meta-module name *install-dir* version *module-dir*)))
+    
+    ))
 
 (defun install-module (tool path version install-path &optional extra-variables)
   (let* ((full-name (concatenate 'string tool "-" version))
@@ -302,8 +321,7 @@ Otherwise returns nil. Test is done via equal."
                          :direction :output :if-exists :supersede
                          :if-does-not-exist :create)
       (format t "Install modulefiles for ~a in ~a~%" full-name install-path)
-      (format out "#%Module1.0#####################################################################
-################################################################################
+      (format out "#%Module1.0
 
 set path       ~a
 set tool       ~a
@@ -348,8 +366,7 @@ prepend-path LD_RUN_PATH     $path/lib64
                          :direction :output
                          :if-exists :supersede
                          :if-does-not-exist :create)
-      (format out "#%Module1.0#####################################################################
-################################################################################
+      (format out "#%Module1.0
 
 set path       ~a
 set tool       ~a
@@ -375,10 +392,14 @@ if { $mode eq \"load\" || $mode eq \"switch2\" } {
 ################################################################################
 #
 
+setenv DEAL_II_DIR ~a~a
+
 ~{~&module load ~a~}~&"
               path
               tool
               version
+              *install-dir*
+              (format nil "deal.ii-~a" (getf (package-match :name 'deal.ii) :version))                 
               (loop :for package :in *packages*
                  :collect (format nil "~a-~a" (string-downcase (getf package :name))
                                   (getf package :version)))))))
