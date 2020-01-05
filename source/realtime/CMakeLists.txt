@@ -1,15 +1,20 @@
 
 ADD_EXECUTABLE( rt_prop_mpi rt_prop_mpi.cpp )
-TARGET_LINK_LIBRARIES( rt_prop_mpi ${MPI_CXX_LIBRARIES} myatus ${GSL_LIBRARY_1} ${GSL_LIBRARY_2} m ${DEAL_II_LIBRARY} ${PETSC_LIBRARY} ${MUPARSER_LIBRARY})
+DEAL_II_SETUP_TARGET( rt_prop_mpi )
+TARGET_LINK_LIBRARIES( rt_prop_mpi myatus )
 
 ADD_EXECUTABLE( rt_prop_mpi_2 rt_prop_mpi_2.cpp )
-TARGET_LINK_LIBRARIES( rt_prop_mpi_2 ${MPI_CXX_LIBRARIES} myatus ${GSL_LIBRARY_1} ${GSL_LIBRARY_2} m ${DEAL_II_LIBRARY} ${PETSC_LIBRARY} ${MUPARSER_LIBRARY})
+DEAL_II_SETUP_TARGET( rt_prop_mpi_2 )
+TARGET_LINK_LIBRARIES( rt_prop_mpi_2 myatus )
 
 ADD_EXECUTABLE( rt_prop_mpi_cs rt_prop_mpi_cs.cpp )
-TARGET_LINK_LIBRARIES( rt_prop_mpi_cs ${MPI_CXX_LIBRARIES} myatus ${GSL_LIBRARY_1} ${GSL_LIBRARY_2} m ${DEAL_II_LIBRARY} ${PETSC_LIBRARY} )
+DEAL_II_SETUP_TARGET( rt_prop_mpi_cs )
+TARGET_LINK_LIBRARIES( rt_prop_mpi_cs myatus )
 
 ADD_EXECUTABLE( rt_prop rtprop_1.cpp )
-TARGET_LINK_LIBRARIES( rt_prop ${MPI_CXX_LIBRARIES} myatus ${GSL_LIBRARY_1} ${GSL_LIBRARY_2} m ${DEAL_II_LIBRARY} ${PETSC_LIBRARY} )
+DEAL_II_SETUP_TARGET( rt_prop )
+TARGET_LINK_LIBRARIES( rt_prop myatus )
 
 ADD_EXECUTABLE( rt_prop_2 rtprop_2.cpp )
-TARGET_LINK_LIBRARIES( rt_prop_2 ${MPI_CXX_LIBRARIES} myatus ${GSL_LIBRARY_1} ${GSL_LIBRARY_2} m ${DEAL_II_LIBRARY} ${PETSC_LIBRARY} )
+DEAL_II_SETUP_TARGET( rt_prop_2 )
+TARGET_LINK_LIBRARIES( rt_prop_2 myatus )
