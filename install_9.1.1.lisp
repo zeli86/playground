@@ -12,24 +12,25 @@
                       (uiop:getenv "CXX")))
 
 (defvar *packages*
-  '((:name openmpi :version "3.0.0"
-     :url "https://www.open-mpi.org/software/ompi/v3.0/downloads/openmpi-3.0.0.tar.gz")
+  '((:name openmpi :version "4.0.2"
+     :url "https://download.open-mpi.org/release/open-mpi/v4.0/openmpi-4.0.2.tar.gz")
+    (:name nlopt :version "2.6.1"
+     :url "https://github.com/stevengj/nlopt/archive/v2.6.1.tar.gz"
+     :path "nlopt-2.6.1")
     (:name lapack :version "3.8.0"
      :url "http://www.netlib.org/lapack/lapack-3.8.0.tar.gz")
-    (:name gsl :version "2.4"
-     :url "ftp://ftp.gnu.org/gnu/gsl/gsl-2.4.tar.gz")
-    (:name nlopt :version "2.4.2"
-     :url "https://github.com/stevengj/nlopt/releases/download/nlopt-2.4.2/nlopt-2.4.2.tar.gz")
-    (:name muparser :version "2.2.5"
-     :url "https://codeload.github.com/beltoforion/muparser/tar.gz/v2.2.5"
-     :path "muparser-2.2.5")
-    (:name p4est :version "2.0"
-     :url "https://p4est.github.io/release/p4est-2.0.tar.gz")
-    (:name petsc :version "3.8.2"
-     :url "http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.8.2.tar.gz"
-     :path "petsc-3.8.2")
-    (:name deal.ii :version "8.5.1"
-     :url "https://github.com/dealii/dealii/releases/download/v8.5.1/dealii-8.5.1.tar.gz")
+    (:name gsl :version "2.6"
+     :url "ftp://ftp.gnu.org/gnu/gsl/gsl-2.6.tar.gz")
+    (:name muparser :version "2.2.6.1"
+     :url "https://github.com/beltoforion/muparser/archive/v2.2.6.1.tar.gz"
+     :path "muparser-2.2.6.1")  
+    (:name p4est :version "2.2"
+     :url "https://p4est.github.io/release/p4est-2.2.tar.gz")
+    (:name petsc :version "3.10.2"
+     :url "http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.12.1.tar.gz"
+     :path "petsc-3.12.1")
+    (:name deal.ii :version "9.1.1"
+     :url "https://github.com/dealii/dealii/releases/download/v9.1.1/dealii-9.1.1.tar.gz")
     (:name atus-pro :version "git"))
   "List of installable packages")
 
@@ -154,6 +155,20 @@ Otherwise returns nil. Test is done via equal."
     (sb-posix:setenv "CXX" "mpic++" 1)
     (sb-posix:setenv "FC" "mpif90" 1)))
 
+;; nlopt
+(defmethod install ((sw-name (eql 'nlopt)) version)
+  "Install method for nlopt"
+  (let* ((name (string-downcase (symbol-name sw-name)))
+         (full-name (format nil "~a-~a" name version)))
+    (uiop:chdir (uiop:ensure-pathname (format nil "~abuild/" (uiop:getcwd)) :ensure-directory t :ensure-directories-exist t))
+    (run (format nil "cmake -NLOPT_CXX=ON -DNLOPT_GUILE=OFF -DNLOPT_LINK_PYTHON=OFF -DNLOPT_MATLAB=OFF \\
+-DNLOPT_OCTAVE=OFF -DNLOPT_PYTHON=OFF -DNLOPT_SWIG=OFF -DCMAKE_BUILD_TYPE=Release ~@[-DCMAKE_C_COMPILER=~a~] ~@[-DCMAKE_CXX_COMPILER=~a~] -DCMAKE_INSTALL_PREFIX=~a~a .." *CC* *CXX* *install-dir* full-name))
+    (run "make clean")
+    (run (format nil "make ~@[-j ~a~]" *make-threads*))
+    (run "make install")
+    (install-module name *install-dir* version *module-dir*)
+    (export-variables full-name)))
+
 ;; lapack
 (defmethod install ((sw-name (eql 'lapack)) version)
   "Install method for lapack"
@@ -174,18 +189,6 @@ Otherwise returns nil. Test is done via equal."
 ;; gsl
 (defmethod install ((sw-name (eql 'gsl)) version)
   "Install method for gsl"
-  (let* ((name (string-downcase (symbol-name sw-name)))
-         (full-name (format nil "~a-~a" name version)))
-    (run (format nil "./configure --prefix=~a~a" *install-dir* full-name))
-    (run "make clean")
-    (run (format nil "make ~@[-j ~a~] CFLAGS=\"-march=native -O3\"" *make-threads*))
-    (run "make install")
-    (install-module name *install-dir* version *module-dir*)
-    (export-variables full-name)))
-
-;; nlopt
-(defmethod install ((sw-name (eql 'nlopt)) version)
-  "Install method for nlopt"
   (let* ((name (string-downcase (symbol-name sw-name)))
          (full-name (format nil "~a-~a" name version)))
     (run (format nil "./configure --prefix=~a~a" *install-dir* full-name))
@@ -449,7 +452,7 @@ if { $mode eq \"load\" || $mode eq \"switch2\" } {
       (format t "    Debug Mode: ON~%" ))
 
 
-  (unless (uiop:file-exists-p "install_8.5.1")
+  (unless (uiop:file-exists-p "install_9.1.1.lisp")
     (error "Wrong working directory: Please restart script inside atus-pro directory."))
 
   (handler-case
