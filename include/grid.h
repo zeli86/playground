@@ -1,5 +1,5 @@
 /* * atus-pro testing - atus-pro testing playgroung
- * Copyright (C) 2017 Želimir Marojević <zelimir.marojevic@gmail.com>
+ * Copyright (C) 2020 Želimir Marojević <zelimir.marojevic@gmail.com>
  *
  * This file is part of atus-pro testing.
  *
@@ -70,12 +70,12 @@
     
     GridGenerator::hyper_rectangle(triangulation, pt2, pt1);
     
-#if DIMENSION==2
+#if SPATIAL_DIM==2
     triangulation.refine_global(5);    
     //triangulation.refine_global(6);    
     double isovalues[] = {34,32,30};
 #endif
-#if DIMENSION==3
+#if SPATIAL_DIM==3
     triangulation.refine_global(3);
     double isovalues[] = {18,16,14};
 #endif

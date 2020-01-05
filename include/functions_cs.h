@@ -47,13 +47,13 @@ class CEigenfunctions : public Function<2>
     double m_faky;
 };
 
-double CEigenfunctions::value( const Point<2> &p, const unsigned int component ) const
+double CEigenfunctions::value( const Point<2> &p, const unsigned int ) const
 {
   double retval = (*EF_AIRY[m_QNx])(m_fakx,p(0)) * (*EF_PHO[m_QNy+50*m_QNz])(m_faky,p(1));
 return retval;
 }
 
-Tensor<1,2> CEigenfunctions::gradient (const Point<2> &p, const unsigned int component) const
+Tensor<1,2> CEigenfunctions::gradient (const Point<2> &p, const unsigned int ) const
 {
   Point<2> retval;
   retval[0] = (*EF_AIRY_DERIV[m_QNx])(m_fakx,p(0));
@@ -76,7 +76,7 @@ class CPotential : public Function<2>
 };
   
 /*************************************************************************************************/
-double CPotential::value( const Point<2> &p, const unsigned int component ) const
+double CPotential::value( const Point<2> &p, const unsigned int ) const
 {
   double retval=0;
   double rq = p(1)*p(1);

@@ -47,7 +47,7 @@ class CEigenfunctions : public Function<dim>
       m_faky=a[1]; m_fakz=a[2]; 
     }
     virtual double value ( const Point<dim> &p, const unsigned component = 0) const;
-    virtual Tensor<1,dim> gradient (const Point<2> &p, const unsigned int component=0) const;
+    virtual Tensor<1,dim> gradient (const Point<2> &p, const unsigned component=0) const;
   
   private:
     unsigned int m_QNx;
@@ -59,7 +59,7 @@ class CEigenfunctions : public Function<dim>
 };
 
 template <int dim>
-double CEigenfunctions<dim>::value( const Point<dim> &p, const unsigned component ) const
+double CEigenfunctions<dim>::value( const Point<dim> &p, const unsigned ) const
 {
   double retval;
   
@@ -94,7 +94,7 @@ return retval;
 }
 
 template <int dim>
-Tensor<1,dim> CEigenfunctions<dim>::gradient (const Point<2> &p, const unsigned int component) const
+Tensor<1,dim> CEigenfunctions<dim>::gradient (const Point<2> &p, const unsigned ) const
 {
   Point<dim> retval;
   switch(dim)
@@ -149,7 +149,7 @@ class CPotential : public Function<dim>
   
 /*************************************************************************************************/
 template <int dim>
-double CPotential<dim>::value( const Point<dim> &p, const unsigned component ) const
+double CPotential<dim>::value( const Point<dim> &p, const unsigned ) const
 {
   double retval;
 

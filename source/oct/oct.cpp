@@ -1,6 +1,6 @@
 //
 // atus-pro testing - atus-pro testing playgroung
-// Copyright (C) 2017 Želimir Marojević <zelimir.marojevic@gmail.com>
+// Copyright (C) 2020 Želimir Marojević <zelimir.marojevic@gmail.com>
 //
 // This file is part of atus-pro testing.
 //
@@ -18,7 +18,7 @@
 // along with atus-pro testing.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-/** Želimir Marojević
+/** 
  * DANGER Will Robinson!
  */
 
@@ -37,7 +37,7 @@
 #include <deal.II/lac/solver_gmres.h>
 #include <deal.II/lac/sparse_direct.h>
 #include <deal.II/lac/precondition.h>
-#include <deal.II/lac/constraint_matrix.h>
+//#include <deal.II/lac/affine_constraints.h>
 
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/tria_accessor.h>

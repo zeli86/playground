@@ -1,6 +1,6 @@
 //
 // atus-pro testing - atus-pro testing playgroung
-// Copyright (C) 2017 Želimir Marojević <zelimir.marojevic@gmail.com>
+// Copyright (C) 2020 Želimir Marojević <zelimir.marojevic@gmail.com>
 //
 // This file is part of atus-pro testing.
 //
@@ -226,8 +226,6 @@ namespace realtime_propagation
 
   void MySolver::run( const std::string& filename )
   {
-    double T, N, W;
-
     make_grid();
     setup_system();
 
@@ -244,7 +242,7 @@ namespace realtime_propagation
 
     output_results("");
 
-    N = MyComplexTools::Particle_Number( dof_handler, fe, m_Psi );
+    double N = MyComplexTools::Particle_Number( dof_handler, fe, m_Psi );
     //cout << "N == " << N << endl;
     MyComplexTools::Expectation_value_position( dof_handler, fe, m_Psi, pos );
     MyComplexTools::Expectation_value_momentum( dof_handler, fe, m_Psi, p );

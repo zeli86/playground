@@ -28,11 +28,11 @@ namespace LA
 #include <deal.II/lac/vector.h>
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/lac/solver_cg.h>
-#include <deal.II/lac/constraint_matrix.h>
+#include <deal.II/lac/affine_constraints.h>
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
 
-#include <deal.II/lac/petsc_parallel_sparse_matrix.h>
-#include <deal.II/lac/petsc_parallel_vector.h>
+#include <deal.II/lac/petsc_sparse_matrix.h>
+#include <deal.II/lac/petsc_vector.h>
 #include <deal.II/lac/petsc_solver.h>
 #include <deal.II/lac/petsc_precondition.h>
 
@@ -93,7 +93,7 @@ namespace HelperPrograms
     DoFHandler<dim> dof_handler_2;
     IndexSet locally_owned_dofs, locally_owned_dofs_2;
     IndexSet locally_relevant_dofs, locally_relevant_dofs_2;
-    ConstraintMatrix constraints, constraints_2;
+    AffineConstraints<double> constraints, constraints_2;
 
     string m_bin_filename;
 

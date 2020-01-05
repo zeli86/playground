@@ -2,10 +2,10 @@
 #include <cassert>
 #include <cmath>
 #include <complex>
+#include <vector>
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_system.h>
 #include <deal.II/fe/fe_values.h>
-#include <deal.II/lac/constraint_matrix.h>
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/lac/generic_linear_algebra.h>
@@ -13,7 +13,7 @@
 #include <deal.II/lac/vector.h>
 #include <deal.II/lac/sparsity_tools.h>
 #include <deal.II/numerics/matrix_tools.h>
-#include <vector>
+
 
 namespace MyComplexTools
 {
@@ -52,7 +52,7 @@ namespace MyComplexTools
 
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
                                                    endc = dof_handler.end(); 
-    for (; cell != endc; cell++)
+    for (; cell != endc; ++cell)
     {
       cell_matrix = 0;
       cell_rhs = 0;
@@ -63,7 +63,7 @@ namespace MyComplexTools
 
       for (unsigned qp = 0; qp < n_q_points; qp++)
       {
-        double JxW = fe_values.JxW(qp);
+        const double JxW = fe_values.JxW(qp);
 
         for (unsigned i = 0; i < dofs_per_cell; i++)
         {
@@ -73,8 +73,8 @@ namespace MyComplexTools
               JxW * (fe_values[rt].value(i, qp) * fe_values[rt].value(j, qp) +
                      fe_values[it].value(i, qp) * fe_values[it].value(j, qp));
           }
-          double c = vals[qp][0];
-          double d = vals[qp][1];
+          const double c = vals[qp][0];
+          const double d = vals[qp][1];
           cell_rhs(i) += JxW * ((a * c - b * d) * fe_values[rt].value(i, qp) +
                                 (b * c + a * d) * fe_values[it].value(i, qp));
         }
@@ -118,7 +118,7 @@ namespace MyComplexTools
     vector<vector<Tensor<1, dim>>> vals_grad(n_q_points, vector<Tensor<1, dim>>(2));
 
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for (; cell != endc; cell++)
+    for (; cell != endc; ++cell)
     {
       cell_matrix = 0;
       cell_rhs = 0;
@@ -127,14 +127,14 @@ namespace MyComplexTools
       fe_values.get_function_values(vec, vals);
       fe_values.get_function_gradients(vec, vals_grad);
 
-      for (unsigned qp = 0; qp < n_q_points; qp++)
+      for (unsigned qp = 0; qp < n_q_points; ++qp)
       {
-        double JxW = fe_values.JxW(qp);
-        double pot = Potential.value(fe_values.quadrature_point(qp));
+        const double JxW = fe_values.JxW(qp);
+        const double pot = Potential.value(fe_values.quadrature_point(qp));
 
-        for (unsigned i = 0; i < dofs_per_cell; i++)
+        for (unsigned i = 0; i < dofs_per_cell; ++i)
         {
-          for (unsigned j = 0; j < dofs_per_cell; j++)
+          for (unsigned j = 0; j < dofs_per_cell; ++j)
           {
             cell_matrix(i, j) += JxW * (fe_values[rt].value(i, qp) * fe_values[rt].value(j, qp) - dth * (fe_values[rt].gradient(i, qp) * fe_values[it].gradient(j, qp) + pot * fe_values[rt].value(i, qp) * fe_values[it].value(j, qp)) + fe_values[it].value(i, qp) * fe_values[it].value(j, qp) + dth * (fe_values[it].gradient(i, qp) * fe_values[rt].gradient(j, qp) + pot * fe_values[it].value(i, qp) * fe_values[rt].value(j, qp)));
           }
@@ -143,10 +143,10 @@ namespace MyComplexTools
         }
       }
       cell->get_dof_indices(local_dof_indices);
-      for ( unsigned i = 0; i < dofs_per_cell; i++ )
+      for ( unsigned i = 0; i < dofs_per_cell; ++i )
       {
         rhs(local_dof_indices[i]) += cell_rhs(i);
-        for ( unsigned j = 0; j < dofs_per_cell; j++ )
+        for ( unsigned j = 0; j < dofs_per_cell; ++j )
           matrix.add (local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));    
       }     
     }
@@ -181,7 +181,7 @@ namespace MyComplexTools
 
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
                                                    endc = dof_handler.end();
-    for (; cell != endc; cell++)
+    for (; cell != endc; ++cell)
     {
       cell_matrix = 0;
       cell_rhs = 0;
@@ -190,13 +190,13 @@ namespace MyComplexTools
       fe_values.get_function_values(vec, vals);
       fe_values.get_function_gradients(vec, vals_grad);
 
-      for (unsigned qp = 0; qp < n_q_points; qp++)
+      for (unsigned qp = 0; qp < n_q_points; ++qp)
       {
-        double JxW = fe_values.JxW(qp);
+        const double JxW = fe_values.JxW(qp);
 
-        for (unsigned i = 0; i < dofs_per_cell; i++)
+        for (unsigned i = 0; i < dofs_per_cell; ++i)
         {
-          for (unsigned j = 0; j < dofs_per_cell; j++)
+          for (unsigned j = 0; j < dofs_per_cell; ++j)
           {
             cell_matrix(i, j) += JxW * (fe_values[rt].value(i, qp) * fe_values[rt].value(j, qp) - 
                                         dth * fe_values[rt].gradient(i, qp) * fe_values[it].gradient(j, qp) +
@@ -208,10 +208,10 @@ namespace MyComplexTools
         }
       }
       cell->get_dof_indices(local_dof_indices);
-      for ( unsigned i = 0; i < dofs_per_cell; i++ )
+      for ( unsigned i = 0; i < dofs_per_cell; ++i )
       {
         rhs(local_dof_indices[i]) += cell_rhs(i);
-        for ( unsigned j = 0; j < dofs_per_cell; j++ )
+        for ( unsigned j = 0; j < dofs_per_cell; ++j )
           matrix.add (local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));    
       } 
     }
@@ -247,7 +247,7 @@ namespace MyComplexTools
 
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
                                                    endc = dof_handler.end();
-    for (; cell != endc; cell++)
+    for (; cell != endc; ++cell)
     {
       cell_matrix = 0;
       cell_rhs = 0;
@@ -256,19 +256,19 @@ namespace MyComplexTools
       fe_values.get_function_values(vec, vals);
       fe_values.get_function_gradients(vec, vals_grad);
 
-      for (unsigned qp = 0; qp < n_q_points; qp++)
+      for (unsigned qp = 0; qp < n_q_points; ++qp)
       {
-        double JxW = fe_values.JxW(qp);
-        double pot = Potential.value(fe_values.quadrature_point(qp));
-        double c = vals[qp][0];
-        double d = vals[qp][1];
-        double phi = -dt * (gam * (vals[qp][0] * vals[qp][0] + vals[qp][1] * vals[qp][1]) + Potential.value(fe_values.quadrature_point(qp)));
+        const double JxW = fe_values.JxW(qp);
+        const double pot = Potential.value(fe_values.quadrature_point(qp));
+        const double c = vals[qp][0];
+        const double d = vals[qp][1];
+        const double phi = -dt * (gam * (vals[qp][0] * vals[qp][0] + vals[qp][1] * vals[qp][1]) + Potential.value(fe_values.quadrature_point(qp)));
         double a, b;
         sincos(phi, &b, &a);
 
-        for (unsigned i = 0; i < dofs_per_cell; i++)
+        for (unsigned i = 0; i < dofs_per_cell; ++i)
         {
-          for (unsigned j = 0; j < dofs_per_cell; j++)
+          for (unsigned j = 0; j < dofs_per_cell; ++j)
           {
             cell_matrix(i, j) += JxW * (fe_values[rt].value(i, qp) * fe_values[rt].value(j, qp) +
                                         fe_values[it].value(i, qp) * fe_values[it].value(j, qp));
@@ -278,10 +278,10 @@ namespace MyComplexTools
         }
       }
       cell->get_dof_indices(local_dof_indices);
-      for ( unsigned i = 0; i < dofs_per_cell; i++ )
+      for ( unsigned i = 0; i < dofs_per_cell; ++i )
       {
         rhs(local_dof_indices[i]) += cell_rhs(i);
-        for ( unsigned j = 0; j < dofs_per_cell; j++ )
+        for ( unsigned j = 0; j < dofs_per_cell; ++j )
           matrix.add (local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));    
       } 
     }
@@ -298,14 +298,14 @@ namespace MyComplexTools
 
     FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_quadrature_points | update_JxW_values);
 
-    const unsigned dofs_per_cell = fe.dofs_per_cell;
+    //const unsigned dofs_per_cell = fe.dofs_per_cell;
     const unsigned n_q_points = quadrature_formula.size();
 
     vector<Vector<double>> vals(n_q_points, Vector<double>(2));
 
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
                                                    endc = dof_handler.end();
-    for (; cell != endc; cell++)
+    for (; cell != endc; ++cell)
     {
       fe_values.reinit(cell);
       fe_values.get_function_values(vec, vals);
@@ -344,12 +344,12 @@ namespace MyComplexTools
     Point<dim> tmp;
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
                                                    endc = dof_handler.end();
-    for (; cell != endc; cell++)
+    for (; cell != endc; ++cell)
     {
       fe_values.reinit(cell);
       fe_values.get_function_values(vec, vals);
 
-      for (unsigned qp = 0; qp < n_q_points; qp++)
+      for (unsigned qp = 0; qp < n_q_points; ++qp)
       {
         double JxWxn = fe_values.JxW(qp) * (vals[qp][0] * vals[qp][0] + vals[qp][1] * vals[qp][1]);
         Point<dim> spacept = fe_values.quadrature_point(qp);
@@ -383,14 +383,14 @@ namespace MyComplexTools
 
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), 
                                                    endc = dof_handler.end();
-    for (; cell != endc; cell++) 
+    for (; cell != endc; ++cell)
     {
       fe_values.reinit(cell);
       fe_values.get_function_values(vec, vec_vals);
-      for (unsigned qp = 0; qp < n_q_points; qp++)
+      for (unsigned qp = 0; qp < n_q_points; ++qp)
       {
         double JxW = fe_values.JxW(qp);
-        for (unsigned i = 0; i < dim; i++)
+        for (unsigned i = 0; i < dim; ++i)
           retval[i] += JxW * (vec_vals[qp][0] * vec_grads[qp][1][i] - vec_vals[qp][1] * vec_grads[qp][0][i]);
       }
     }
@@ -401,7 +401,7 @@ namespace MyComplexTools
                           const Vector<double> &vec,
                           const DoFHandler<dim> &dof_handler_2,
                           const FESystem<dim> &fe_2,
-                          const ConstraintMatrix &constraints,
+                          const dealii::AffineConstraints<double> &constraints,
                           Vector<double> &ret)
   {
     // assert( vec.has_ghost_elements() == true );
@@ -439,7 +439,7 @@ namespace MyComplexTools
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
                                                    endc = dof_handler.end();
     typename DoFHandler<dim>::active_cell_iterator cell_2 = dof_handler_2.begin_active();
-    for (; cell != endc; cell++, cell_2++)
+    for (; cell != endc; ++cell, ++cell_2)
     {
       cell_rhs = 0;
       cell_matrix = 0;
@@ -448,15 +448,15 @@ namespace MyComplexTools
       fe_values_2.reinit(cell_2);
       fe_values.get_function_values(vec, vals);
 
-      for (unsigned qp = 0; qp < n_q_points; qp++)
+      for (unsigned qp = 0; qp < n_q_points; ++qp)
       {
-        double JxW = fe_values_2.JxW(qp);
-        double tmp1 = vals[qp];
+        const double JxW = fe_values_2.JxW(qp);
+        const double tmp1 = vals[qp];
 
-        for (unsigned i = 0; i < dofs_per_cell; i++)
+        for (unsigned i = 0; i < dofs_per_cell; ++i)
         {
           cell_rhs(i) += JxW * tmp1 * fe_values_2[rt].value(i, qp);
-          for (unsigned j = 0; j < dofs_per_cell; j++)
+          for (unsigned j = 0; j < dofs_per_cell; ++j)
           {
             cell_matrix(i, j) += JxW * (fe_values_2[rt].value(i, qp) * fe_values_2[rt].value(j, qp) +
                                         fe_values_2[it].value(i, qp) * fe_values_2[it].value(j, qp));
@@ -464,10 +464,10 @@ namespace MyComplexTools
         }
       }
       cell_2->get_dof_indices(local_dof_indices);
-      for ( unsigned i = 0; i < dofs_per_cell; i++ )
+      for ( unsigned i = 0; i < dofs_per_cell; ++i )
       {
         rhs(local_dof_indices[i]) += cell_rhs(i);
-        for ( unsigned j = 0; j < dofs_per_cell; j++ )
+        for ( unsigned j = 0; j < dofs_per_cell; ++j )
           matrix.add (local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));    
       } 
     }
@@ -498,7 +498,7 @@ namespace MyComplexTools
     template <int dim>
     void AssembleSystem_mulvz(const DoFHandler<dim> &dof_handler,
                               const FESystem<dim> &fe,
-                              const ConstraintMatrix &constraints,
+                              const dealii::AffineConstraints<double> &constraints,
                               const LA::MPI::Vector &vec,
                               const std::complex<double> z,
                               LA::MPI::SparseMatrix &matrix, LA::MPI::Vector &rhs)
@@ -529,7 +529,7 @@ namespace MyComplexTools
 
       typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
                                                      endc = dof_handler.end();
-      for (; cell != endc; cell++)
+      for (; cell != endc; ++cell)
       {
         if (cell->is_locally_owned())
         {
@@ -539,13 +539,13 @@ namespace MyComplexTools
           fe_values.reinit(cell);
           fe_values.get_function_values(vec, vals);
 
-          for (unsigned qp = 0; qp < n_q_points; qp++)
+          for (unsigned qp = 0; qp < n_q_points; ++qp)
           {
-            double JxW = fe_values.JxW(qp);
+            const double JxW = fe_values.JxW(qp);
 
-            for (unsigned i = 0; i < dofs_per_cell; i++)
+            for (unsigned i = 0; i < dofs_per_cell; ++i)
             {
-              for (unsigned j = 0; j < dofs_per_cell; j++)
+              for (unsigned j = 0; j < dofs_per_cell; ++j)
               {
                 cell_matrix(i, j) += JxW * (fe_values[rt].value(i, qp) * fe_values[rt].value(j, qp) +
                                             fe_values[it].value(i, qp) * fe_values[it].value(j, qp));
@@ -567,7 +567,7 @@ namespace MyComplexTools
     template <int dim>
     void AssembleSystem_NL_Step(const DoFHandler<dim> &dof_handler,
                                 const FESystem<dim> &fe,
-                                const ConstraintMatrix &constraints,
+                                const dealii::AffineConstraints<double> &constraints,
                                 const LA::MPI::Vector &vec, const double gamdt,
                                 LA::MPI::SparseMatrix &matrix,
                                 LA::MPI::Vector &rhs)
@@ -595,7 +595,7 @@ namespace MyComplexTools
 
       typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
                                                      endc = dof_handler.end();
-      for (; cell != endc; cell++)
+      for (; cell != endc; ++cell)
       {
         if (cell->is_locally_owned())
         {
@@ -605,18 +605,18 @@ namespace MyComplexTools
           fe_values.reinit(cell);
           fe_values.get_function_values(vec, vals);
 
-          for (unsigned qp = 0; qp < n_q_points; qp++)
+          for (unsigned qp = 0; qp < n_q_points; ++qp)
           {
-            double JxW = fe_values.JxW(qp);
-            double c = vals[qp][0];
-            double d = vals[qp][1];
-            double phi = -gamdt * (vals[qp][0] * vals[qp][0] + vals[qp][1] * vals[qp][1]);
+            const double JxW = fe_values.JxW(qp);
+            const double c = vals[qp][0];
+            const double d = vals[qp][1];
+            const double phi = -gamdt * (vals[qp][0] * vals[qp][0] + vals[qp][1] * vals[qp][1]);
             double a, b;
             sincos(phi, &b, &a);
 
-            for (unsigned i = 0; i < dofs_per_cell; i++)
+            for (unsigned i = 0; i < dofs_per_cell; ++i)
             {
-              for (unsigned j = 0; j < dofs_per_cell; j++)
+              for (unsigned j = 0; j < dofs_per_cell; ++j)
               {
                 cell_matrix(i, j) += JxW * (fe_values[rt].value(i, qp) * fe_values[rt].value(j, qp) +
                                             fe_values[it].value(i, qp) * fe_values[it].value(j, qp));
@@ -636,7 +636,7 @@ namespace MyComplexTools
     template <int dim>
     void AssembleSystem_NL_Step(const DoFHandler<dim> &dof_handler,
                                 const FESystem<dim> &fe,
-                                const ConstraintMatrix &constraints,
+                                const dealii::AffineConstraints<double> &constraints,
                                 const LA::MPI::Vector &vec,
                                 const Function<dim> &Potential, const double dt,
                                 const double gam, LA::MPI::SparseMatrix &matrix,
@@ -665,7 +665,7 @@ namespace MyComplexTools
 
       typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
                                                      endc = dof_handler.end();
-      for (; cell != endc; cell++)
+      for (; cell != endc; ++cell)
       {
         if (cell->is_locally_owned())
         {
@@ -675,18 +675,18 @@ namespace MyComplexTools
           fe_values.reinit(cell);
           fe_values.get_function_values(vec, vals);
 
-          for (unsigned qp = 0; qp < n_q_points; qp++)
+          for (unsigned qp = 0; qp < n_q_points; ++qp)
           {
-            double JxW = fe_values.JxW(qp);
-            double c = vals[qp][0];
-            double d = vals[qp][1];
-            double phi = -dt * (gam * (vals[qp][0] * vals[qp][0] + vals[qp][1] * vals[qp][1]) + Potential.value(fe_values.quadrature_point(qp)));
+            const double JxW = fe_values.JxW(qp);
+            const double c = vals[qp][0];
+            const double d = vals[qp][1];
+            const double phi = -dt * (gam * (vals[qp][0] * vals[qp][0] + vals[qp][1] * vals[qp][1]) + Potential.value(fe_values.quadrature_point(qp)));
             double a, b;
             sincos(phi, &b, &a);
 
-            for (unsigned i = 0; i < dofs_per_cell; i++)
+            for (unsigned i = 0; i < dofs_per_cell; ++i)
             {
-              for (unsigned j = 0; j < dofs_per_cell; j++)
+              for (unsigned j = 0; j < dofs_per_cell; ++j)
               {
                 cell_matrix(i, j) += JxW * (fe_values[rt].value(i, qp) * fe_values[rt].value(j, qp) +
                                             fe_values[it].value(i, qp) * fe_values[it].value(j, qp));
@@ -706,7 +706,7 @@ namespace MyComplexTools
     template <int dim>
     void AssembleSystem_LIN_Step(const DoFHandler<dim> &dof_handler,
                                  const FESystem<dim> &fe,
-                                 const ConstraintMatrix &constraints,
+                                 const dealii::AffineConstraints<double> &constraints,
                                  const LA::MPI::Vector &vec,
                                  const Function<dim> &Potential, const double dt,
                                  LA::MPI::SparseMatrix &matrix,
@@ -737,7 +737,7 @@ namespace MyComplexTools
 
       typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
                                                      endc = dof_handler.end();
-      for (; cell != endc; cell++)
+      for (; cell != endc; ++cell)
       {
         if (cell->is_locally_owned())
         {
@@ -748,14 +748,14 @@ namespace MyComplexTools
           fe_values.get_function_values(vec, vals);
           fe_values.get_function_gradients(vec, vals_grad);
 
-          for (unsigned qp = 0; qp < n_q_points; qp++)
+          for (unsigned qp = 0; qp < n_q_points; ++qp)
           {
-            double JxW = fe_values.JxW(qp);
-            double pot = Potential.value(fe_values.quadrature_point(qp));
+            const double JxW = fe_values.JxW(qp);
+            const double pot = Potential.value(fe_values.quadrature_point(qp));
 
-            for (unsigned i = 0; i < dofs_per_cell; i++)
+            for (unsigned i = 0; i < dofs_per_cell; ++i)
             {
-              for (unsigned j = 0; j < dofs_per_cell; j++)
+              for (unsigned j = 0; j < dofs_per_cell; ++j)
               {
                 cell_matrix(i, j) += JxW * (fe_values[rt].value(i, qp) * fe_values[rt].value(j, qp) -
                                             dth * (fe_values[rt].gradient(i, qp) * fe_values[it].gradient(j, qp) + pot * fe_values[rt].value(i, qp) * fe_values[it].value(j, qp)) +
@@ -777,7 +777,7 @@ namespace MyComplexTools
     template <int dim>
     void AssembleSystem_LIN_Step(const DoFHandler<dim> &dof_handler,
                                  const FESystem<dim> &fe,
-                                 const ConstraintMatrix &constraints,
+                                 const dealii::AffineConstraints<double> &constraints,
                                  const LA::MPI::Vector &vec, const double dt,
                                  LA::MPI::SparseMatrix &matrix,
                                  LA::MPI::Vector &rhs)
@@ -807,7 +807,7 @@ namespace MyComplexTools
 
       typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
                                                      endc = dof_handler.end();
-      for (; cell != endc; cell++)
+      for (; cell != endc; ++cell)
       {
         if (cell->is_locally_owned())
         {
@@ -818,13 +818,13 @@ namespace MyComplexTools
           fe_values.get_function_values(vec, vals);
           fe_values.get_function_gradients(vec, vals_grad);
 
-          for (unsigned qp = 0; qp < n_q_points; qp++)
+          for (unsigned qp = 0; qp < n_q_points; ++qp)
           {
-            double JxW = fe_values.JxW(qp);
+            const double JxW = fe_values.JxW(qp);
 
-            for (unsigned i = 0; i < dofs_per_cell; i++)
+            for (unsigned i = 0; i < dofs_per_cell; ++i)
             {
-              for (unsigned j = 0; j < dofs_per_cell; j++)
+              for (unsigned j = 0; j < dofs_per_cell; ++j)
               {
                 cell_matrix(i, j) += JxW * (fe_values[rt].value(i, qp) * fe_values[rt].value(j, qp) -
                                             dth * fe_values[rt].gradient(i, qp) *
@@ -860,13 +860,13 @@ namespace MyComplexTools
 
       typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
                                                      endc = dof_handler.end();
-      for (; cell != endc; cell++)
+      for (; cell != endc; ++cell)
       {
         if (cell->is_locally_owned())
         {
           fe_values.reinit(cell);
           fe_values.get_function_values(vec, vec_vals);
-          for (unsigned qp = 0; qp < n_q_points; qp++)
+          for (unsigned qp = 0; qp < n_q_points; ++qp)
           {
             tmp += fe_values.JxW(qp) * (vec_vals[qp][0] * vec_vals[qp][0] + vec_vals[qp][1] * vec_vals[qp][1]);
           }
@@ -899,16 +899,16 @@ namespace MyComplexTools
 
       typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
                                                      endc = dof_handler.end();
-      for (; cell != endc; cell++)
+      for (; cell != endc; ++cell)
       {
         if (cell->is_locally_owned())
         {
           fe_values.reinit(cell);
           fe_values.get_function_values(vec1, vec_vals_1);
           fe_values.get_function_values(vec2, vec_vals_2);
-          for (unsigned qp = 0; qp < n_q_points; qp++)
+          for (unsigned qp = 0; qp < n_q_points; ++qp)
           {
-            double JxW = fe_values.JxW(qp);
+            const double JxW = fe_values.JxW(qp);
             tmp[0] += JxW * (vec_vals_1[qp][0] * vec_vals_2[qp][0] + vec_vals_1[qp][1] * vec_vals_2[qp][1]);
             tmp[1] += JxW * (vec_vals_1[qp][0] * vec_vals_2[qp][1] - vec_vals_1[qp][1] * vec_vals_2[qp][0]);
           }
@@ -938,15 +938,15 @@ namespace MyComplexTools
 
       typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
                                                      endc = dof_handler.end();
-      for (; cell != endc; cell++)
+      for (; cell != endc; ++cell)
       {
         if (cell->is_locally_owned())
         {
           fe_values.reinit(cell);
           fe_values.get_function_values(vec, vec_vals);
-          for (unsigned qp = 0; qp < n_q_points; qp++)
+          for (unsigned qp = 0; qp < n_q_points; ++qp)
           {
-            double JxWxn = fe_values.JxW(qp) * (vec_vals[qp][0] * vec_vals[qp][0] + vec_vals[qp][1] * vec_vals[qp][1]);
+            const double JxWxn = fe_values.JxW(qp) * (vec_vals[qp][0] * vec_vals[qp][0] + vec_vals[qp][1] * vec_vals[qp][1]);
             Point<dim> spacept = fe_values.quadrature_point(qp);
             tmp += JxWxn * spacept;
           }
@@ -981,15 +981,15 @@ namespace MyComplexTools
 
       typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
                                                      endc = dof_handler.end();
-      for (; cell != endc; cell++)
+      for (; cell != endc; ++cell)
       {
         if (cell->is_locally_owned())
         {
           fe_values.reinit(cell);
           fe_values.get_function_values(vec, vec_vals);
-          for (unsigned qp = 0; qp < n_q_points; qp++)
+          for (unsigned qp = 0; qp < n_q_points; ++qp)
           {
-            double JxWxn = fe_values.JxW(qp) * (vec_vals[qp][0] * vec_vals[qp][0] + vec_vals[qp][1] * vec_vals[qp][1]);
+            const double JxWxn = fe_values.JxW(qp) * (vec_vals[qp][0] * vec_vals[qp][0] + vec_vals[qp][1] * vec_vals[qp][1]);
             Point<dim> spacept = fe_values.quadrature_point(qp);
             for (unsigned i = 0; i < dim; i++)
               tmp[i] += JxWxn * (spacept[i] - pos[i]) * (spacept[i] - pos[i]);
@@ -1023,7 +1023,7 @@ namespace MyComplexTools
 
       typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
                                                     endc = dof_handler.end(); 
-      for (; cell != endc; cell++)
+      for (; cell != endc; ++cell)
       {
         if (cell->is_locally_owned())
         {
@@ -1031,8 +1031,8 @@ namespace MyComplexTools
           fe_values.get_function_values(vec, vec_vals);
           for (unsigned qp = 0; qp < n_q_points; qp++)
           {
-            double JxW = fe_values.JxW(qp);
-            for (unsigned i = 0; i < dim; i++)
+            const double JxW = fe_values.JxW(qp);
+            for (unsigned i = 0; i < dim; ++i)
               tmp[i] += JxW * (vec_vals[qp][0] * vec_grads[qp][1][i] - vec_vals[qp][1] * vec_grads[qp][0][i]);
           }
         }
@@ -1050,7 +1050,7 @@ namespace MyComplexTools
                             const LA::MPI::Vector &vec,
                             const DoFHandler<dim> &dof_handler_2,
                             const FESystem<dim> &fe_2,
-                            const ConstraintMatrix &constraints,
+                            const dealii::AffineConstraints<double> &constraints,
                             LA::MPI::Vector &ret)
     {
       assert(vec.has_ghost_elements() == true);
@@ -1093,7 +1093,7 @@ namespace MyComplexTools
       typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
                                                      endc = dof_handler.end();
       typename DoFHandler<dim>::active_cell_iterator cell_2 = dof_handler_2.begin_active();
-      for (; cell != endc; cell++, cell_2++)
+      for (; cell != endc; ++cell, ++cell_2)
       {
         if (cell->is_locally_owned())
         {
@@ -1106,13 +1106,13 @@ namespace MyComplexTools
 
           for (unsigned qp = 0; qp < n_q_points; qp++)
           {
-            double JxW = fe_values_2.JxW(qp);
-            double tmp1 = vals[qp];
+            const double JxW = fe_values_2.JxW(qp);
+            const double tmp1 = vals[qp];
 
-            for (unsigned i = 0; i < dofs_per_cell; i++)
+            for (unsigned i = 0; i < dofs_per_cell; ++i)
             {
               cell_rhs(i) += JxW * tmp1 * fe_values_2[rt].value(i, qp);
-              for (unsigned j = 0; j < dofs_per_cell; j++)
+              for (unsigned j = 0; j < dofs_per_cell; ++j)
               {
                 cell_matrix(i, j) += JxW * (fe_values_2[rt].value(i, qp) * fe_values_2[rt].value(j, qp) +
                                             fe_values_2[it].value(i, qp) * fe_values_2[it].value(j, qp));

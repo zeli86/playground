@@ -1,6 +1,6 @@
 //
 // atus-pro testing - atus-pro testing playgroung
-// Copyright (C) 2017 Želimir Marojević <zelimir.marojevic@gmail.com>
+// Copyright (C) 2020 Želimir Marojević <zelimir.marojevic@gmail.com>
 //
 // This file is part of atus-pro testing.
 //
@@ -28,11 +28,11 @@ namespace LA
 #include <deal.II/lac/vector.h>
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/lac/solver_cg.h>
-#include <deal.II/lac/constraint_matrix.h>
+#include <deal.II/lac/affine_constraints.h>
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
 
-#include <deal.II/lac/petsc_parallel_sparse_matrix.h>
-#include <deal.II/lac/petsc_parallel_vector.h>
+#include <deal.II/lac/petsc_sparse_matrix.h>
+#include <deal.II/lac/petsc_vector.h>
 #include <deal.II/lac/petsc_solver.h>
 #include <deal.II/lac/petsc_precondition.h>
 
@@ -126,7 +126,7 @@ namespace BreedSolver
     DoFHandler<dim> dof_handler;
     IndexSet locally_owned_dofs;
     IndexSet locally_relevant_dofs;
-    ConstraintMatrix constraints;
+    AffineConstraints<double> constraints;
 
     LA::MPI::SparseMatrix m_system_matrix;
     LA::MPI::Vector m_system_rhs;

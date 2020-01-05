@@ -1,6 +1,6 @@
 //
 // atus-pro testing - atus-pro testing playgroung
-// Copyright (C) 2017 Želimir Marojević <zelimir.marojevic@gmail.com>
+// Copyright (C) 2020 Želimir Marojević <zelimir.marojevic@gmail.com>
 //
 // This file is part of atus-pro testing.
 //
@@ -18,7 +18,7 @@
 // along with atus-pro testing.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-/** Želimir Marojević
+/** 
  * Purpose: Real time propagation for the Gross-Pitaevskii equation (cartesian coordinates)
  * Method: Operator splitting - the linear step is solved with Crank-Nicolson 
  */
@@ -33,11 +33,11 @@ namespace LA
 #include <deal.II/lac/vector.h>
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/lac/solver_cg.h>
-#include <deal.II/lac/constraint_matrix.h>
+#include <deal.II/lac/affine_constraints.h>
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
 
-#include <deal.II/lac/petsc_parallel_sparse_matrix.h>
-#include <deal.II/lac/petsc_parallel_vector.h>
+#include <deal.II/lac/petsc_sparse_matrix.h>
+#include <deal.II/lac/petsc_vector.h>
 #include <deal.II/lac/petsc_solver.h>
 #include <deal.II/lac/petsc_precondition.h>
 #include <deal.II/lac/sparsity_tools.h>
@@ -140,7 +140,7 @@ namespace realtime_propagation
     DoFHandler<dim> dof_handler;
     IndexSet locally_owned_dofs;
     IndexSet locally_relevant_dofs;
-    ConstraintMatrix constraints;
+    AffineConstraints<double> constraints;
 
     LA::MPI::SparseMatrix system_matrix;
     LA::MPI::Vector system_rhs;
@@ -404,7 +404,7 @@ int main ( int argc, char *argv[] )
 
   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv );
   {
-    realtime_propagation::MySolver<DIMENSION> solver("params_one.xml");
+    realtime_propagation::MySolver<SPATIAL_DIM> solver("params_one.xml");
     solver.run();
   }  
 return EXIT_SUCCESS;

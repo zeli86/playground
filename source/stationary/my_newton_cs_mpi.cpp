@@ -1,6 +1,6 @@
 //
 // atus-pro testing - atus-pro testing playgroung
-// Copyright (C) 2017 Želimir Marojević <zelimir.marojevic@gmail.com>
+// Copyright (C) 2020 Želimir Marojević <zelimir.marojevic@gmail.com>
 //
 // This file is part of atus-pro testing.
 //
@@ -31,18 +31,17 @@ namespace LA
 #include <deal.II/lac/vector.h>
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/lac/solver_cg.h>
-#include <deal.II/lac/constraint_matrix.h>
+#include <deal.II/lac/affine_constraints.h>
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
 
-#include <deal.II/lac/petsc_parallel_sparse_matrix.h>
-#include <deal.II/lac/petsc_parallel_vector.h>
+#include <deal.II/lac/petsc_sparse_matrix.h>
+#include <deal.II/lac/petsc_vector.h>
 #include <deal.II/lac/petsc_solver.h>
 #include <deal.II/lac/petsc_precondition.h>
 
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/tria_accessor.h>
 #include <deal.II/grid/tria_iterator.h>
-#include <deal.II/grid/tria_boundary_lib.h>
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_accessor.h>
@@ -138,7 +137,7 @@ namespace BreedSolver
     DoFHandler<dim> dof_handler_2;
     IndexSet locally_owned_dofs, locally_owned_dofs_2;
     IndexSet locally_relevant_dofs, locally_relevant_dofs_2;
-    ConstraintMatrix constraints, constraints_2;
+    AffineConstraints<double> constraints, constraints_2;
 
     LA::MPI::SparseMatrix m_system_matrix, m_system_matrix_2;
     LA::MPI::Vector m_system_rhs, m_system_rhs_2;
@@ -322,7 +321,6 @@ namespace BreedSolver
     vector<Tensor<1, dim> > Psi_ref_grad(n_q_points);
     vector<double> Psi_ref(n_q_points);
 
-    double JxW, Q1, pq, tmp;
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
     for ( ; cell!=endc; ++cell )
     {
@@ -337,9 +335,9 @@ namespace BreedSolver
 
         for ( unsigned qp=0; qp<n_q_points; qp++ )
         {
-          JxW = fe_values.JxW(qp)*fabs(fe_values.quadrature_point(qp)[1]);
-          pq = m_gs*Psi_ref[qp]*Psi_ref[qp];
-          Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + pq;
+          const double JxW = fe_values.JxW(qp)*fabs(fe_values.quadrature_point(qp)[1]);
+          const double pq = m_gs*Psi_ref[qp]*Psi_ref[qp];
+          const double Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + pq;
 
           for ( unsigned i=0; i<dofs_per_cell; i++ )
           {
@@ -391,7 +389,6 @@ namespace BreedSolver
     Vector<double> cell_rhs (dofs_per_cell);
     FullMatrix<double> cell_matrix (dofs_per_cell, dofs_per_cell);
     
-    double JxW, Q1, tmp1;
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
     typename DoFHandler<dim>::active_cell_iterator cell_2 = dof_handler_2.begin_active();
     for ( ; cell!=endc; ++cell, ++cell_2 )
@@ -407,12 +404,12 @@ namespace BreedSolver
 
         for ( unsigned qp=0; qp<n_q_points; qp++ )
         {
-          JxW = fe_values_2.JxW(qp);
-          tmp1 = vals[qp]; 
+          const double JxW = fe_values_2.JxW(qp);
+          const double JxWxV = JxW*vals[qp];
           
           for ( unsigned i=0; i<dofs_per_cell; i++ )
           {
-            cell_rhs(i) += JxW*tmp1*fe_values_2[rt].value(i,qp);
+            cell_rhs(i) += JxWxV*fe_values_2[rt].value(i,qp);
             for( unsigned j=0; j<dofs_per_cell; j++ )
             {
               cell_matrix(i,j)+=JxW*(fe_values_2[rt].value(i,qp)*fe_values_2[rt].value(j,qp)+fe_values_2[it].value(i,qp)*fe_values_2[it].value(j,qp));

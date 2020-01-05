@@ -28,11 +28,10 @@ namespace LA
 #include <deal.II/lac/vector.h>
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/lac/solver_cg.h>
-#include <deal.II/lac/constraint_matrix.h>
+#include <deal.II/lac/affine_constraints.h>
 
-
-#include <deal.II/lac/petsc_parallel_sparse_matrix.h>
-#include <deal.II/lac/petsc_parallel_vector.h>
+#include <deal.II/lac/petsc_sparse_matrix.h>
+#include <deal.II/lac/petsc_vector.h>
 #include <deal.II/lac/petsc_solver.h>
 #include <deal.II/lac/petsc_precondition.h>
 #include <deal.II/lac/sparsity_tools.h>
@@ -235,13 +234,13 @@ namespace HelperPrograms
     DoFHandler<dim> dof_handler;
     IndexSet locally_owned_dofs;
     IndexSet locally_relevant_dofs;
-    ConstraintMatrix constraints;
+    AffineConstraints<double> constraints;
 
     LA::MPI::Vector m_Psi;
 
-    ConditionalOStream pcout;
-
     bool m_root;
+
+    ConditionalOStream pcout;
 
     double m_xmin, m_xmax;
     double m_ymin, m_ymax;

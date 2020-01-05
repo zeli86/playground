@@ -1,5 +1,5 @@
 /* * atus-pro testing - atus-pro testing playgroung
- * Copyright (C) 2017 Želimir Marojević <zelimir.marojevic@gmail.com>
+ * Copyright (C) 2020 Želimir Marojević <zelimir.marojevic@gmail.com>
  *
  * This file is part of atus-pro testing.
  *
@@ -102,7 +102,7 @@ namespace MyUtils
       void broadcast( MPI_Comm, const int );
       void Dump( std::ostream& );
       void Dump( const string );
-      const int Get_dim() const { return dim; };
+      int Get_dim() const { return dim; };
     protected:
       void create_initial_list();
       void clear();

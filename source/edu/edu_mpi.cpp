@@ -1,6 +1,6 @@
 //
 // atus-pro testing - atus-pro testing playgroung
-// Copyright (C) 2017 Želimir Marojević <zelimir.marojevic@gmail.com>
+// Copyright (C) 2020 Želimir Marojević <zelimir.marojevic@gmail.com>
 //
 // This file is part of atus-pro testing.
 //
@@ -21,12 +21,12 @@
 #include <deal.II/lac/generic_linear_algebra.h>
 #include <deal.II/lac/vector.h>
 #include <deal.II/lac/full_matrix.h>
-#include <deal.II/lac/constraint_matrix.h>
+#include <deal.II/lac/affine_constraints.h>
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
 
 #include <deal.II/lac/sparsity_tools.h>
-#include <deal.II/lac/petsc_parallel_sparse_matrix.h>
-#include <deal.II/lac/petsc_parallel_vector.h>
+#include <deal.II/lac/petsc_sparse_matrix.h>
+#include <deal.II/lac/petsc_vector.h>
 #include <deal.II/lac/petsc_precondition.h>
 #include <deal.II/lac/petsc_solver.h>
 
@@ -39,7 +39,6 @@
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_accessor.h>
 #include <deal.II/dofs/dof_tools.h>
-//#include <deal.II/dofs/dof_renumbering.h>
 
 #include <deal.II/fe/fe_system.h>
 #include <deal.II/fe/fe_values.h>
@@ -105,7 +104,7 @@ namespace edu
 
     IndexSet locally_owned_dofs;
     IndexSet locally_relevant_dofs;
-    ConstraintMatrix constraints;
+    AffineConstraints<double>  constraints;
 
     LA::MPI::SparseMatrix system_matrix;
     LA::MPI::Vector system_rhs; // no ghost cells
@@ -294,8 +293,6 @@ namespace edu
   template <int dim>
   void MySolver<dim>::run()
   {
-    double T, N, W;
-
     GridIn<dim> grid_in;
     grid_in.attach_triangulation(triangulation);
 
@@ -319,7 +316,7 @@ namespace edu
     std::vector<double> pos(dim);
     std::vector<double> var(dim);
 
-    N = MyComplexTools::MPI::Particle_Number( mpi_communicator, dof_handler, fe, m_Psi );
+    double N = MyComplexTools::MPI::Particle_Number( mpi_communicator, dof_handler, fe, m_Psi );
     pcout << "N == " << N << endl;
 
     MyComplexTools::MPI::Expectation_value_position( mpi_communicator, dof_handler, fe, m_Psi, pos );

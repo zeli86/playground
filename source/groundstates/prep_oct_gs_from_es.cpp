@@ -1,6 +1,6 @@
 //
 // atus-pro testing - atus-pro testing playgroung
-// Copyright (C) 2017 Želimir Marojević <zelimir.marojevic@gmail.com>
+// Copyright (C) 2020 Želimir Marojević <zelimir.marojevic@gmail.com>
 //
 // This file is part of atus-pro testing.
 //
@@ -18,9 +18,6 @@
 // along with atus-pro testing.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-/** Želimir Marojević
- */
-
 #include <deal.II/lac/generic_linear_algebra.h>
 
 namespace LA
@@ -31,27 +28,28 @@ namespace LA
 #include <deal.II/lac/vector.h>
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/lac/solver_cg.h>
-#include <deal.II/lac/constraint_matrix.h>
+#include <deal.II/lac/affine_constraints.h>
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/sparsity_tools.h>
-#include <deal.II/lac/petsc_parallel_sparse_matrix.h>
-#include <deal.II/lac/petsc_parallel_vector.h>
+#include <deal.II/lac/petsc_sparse_matrix.h>
+#include <deal.II/lac/petsc_vector.h>
 #include <deal.II/lac/petsc_solver.h>
 #include <deal.II/lac/petsc_precondition.h>
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/function.h>
-#include <deal.II/base/utilities.h>
+//#include <deal.II/base/utilities.h>
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/index_set.h>
 #include <deal.II/base/timer.h>
 #include <deal.II/base/function_parser.h>
 
+#include <deal.II/grid/tria.h>
 #include <deal.II/grid/grid_generator.h>
+#include <deal.II/grid/grid_refinement.h>
 #include <deal.II/grid/tria_accessor.h>
 #include <deal.II/grid/tria_iterator.h>
-#include <deal.II/grid/tria_boundary_lib.h>
-#include <deal.II/grid/grid_out.h>
+
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_accessor.h>
 #include <deal.II/dofs/dof_tools.h>
@@ -88,7 +86,6 @@ namespace LA
 
 #define STR1(x) #x
 #define STR2(x) STR1(x)
-
 
 namespace BreedSolver
 {
@@ -166,8 +163,8 @@ namespace BreedSolver
     IndexSet locally_relevant_dofs;
     IndexSet locally_owned_dofs_2;
     IndexSet locally_relevant_dofs_2;
-    ConstraintMatrix constraints;
-    ConstraintMatrix constraints_2;
+    AffineConstraints<double> constraints;
+    AffineConstraints<double> constraints_2;
 
     LA::MPI::SparseMatrix m_system_matrix;
     LA::MPI::Vector m_system_rhs;
@@ -522,7 +519,6 @@ namespace BreedSolver
     FullMatrix<double> cell_matrix (dofs_per_cell, dofs_per_cell);
     vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
     
-    double JxW, Q1;
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
     for ( ; cell!=endc; ++cell )
     {
@@ -531,10 +527,9 @@ namespace BreedSolver
         cell_matrix=0;
         fe_values.reinit (cell);
 
-        for ( unsigned qp=0; qp<n_q_points; qp++ )
+        for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
-          JxW = fe_values.JxW(qp);
-	        //Q1 = Potential.value(fe_values.quadrature_point(qp)); 
+          const double JxW = fe_values.JxW(qp);
 
           for (unsigned int i=0; i<dofs_per_cell; ++i)
             for (unsigned int j=0; j<dofs_per_cell; ++j)
@@ -821,8 +816,6 @@ namespace BreedSolver
   int MySolver<dim>::DoIter ( string path )
   {
     int retval = Status::SUCCESS;
-    
-    double err;
     
     m_table.clear();
     
