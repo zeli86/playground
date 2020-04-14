@@ -8,4 +8,8 @@ expect "q - Abort Installation.\r"
 
 send -- "a\r"
 
+expect "export MODULEPATH=/home/zeli/local/modules/modulefiles/:$MODULEPATH\r"
+
+send -- "yes\r"
+
 expect eof 
