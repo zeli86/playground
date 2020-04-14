@@ -2,14 +2,14 @@
 
 set timeout -1
 
-spawn ./install_9.1.1.lisp
+spawn ./install_9_1_1.lisp
 
 expect "q - Abort Installation.\r"
 
-send -- "a\r"
+send -- "9\r"
 
-expect "export MODULEPATH=/home/zeli/local/modules/modulefiles/:\$MODULEPATH\r"
+expect "export MODULEPATH=*\r"
 
-send -- "yes\r"
+send -- "no\r"
 
 expect eof 
