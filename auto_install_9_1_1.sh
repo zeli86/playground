@@ -4,12 +4,12 @@ set timeout -1
 
 spawn ./install_9_1_1.lisp
 
-expect "q - Abort Installation.\r"
+expect " - Abort Installation.\r"
 
-send -- "9\r"
+send -- "a\r"
 
 expect "export MODULEPATH=*\r"
 
-send -- "no\r"
+send -- "yes\r"
 
 expect eof 
