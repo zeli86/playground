@@ -6,10 +6,10 @@ spawn ./install_9_1_1.lisp --build-dir=/home/zeli/local/src/ --install-dir=/home
 
 expect " - Abort Installation.\r"
 
-send -- "2\r"
+send -- "a\r"
 
 expect "*(yes or no)*"
 
-send -- "no\r"
+send -- "yes\r"
 
 expect eof 
