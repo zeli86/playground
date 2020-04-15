@@ -8,7 +8,7 @@ expect " - Abort Installation.\r"
 
 send -- "2\r"
 
-expect "export MODULEPATH=*\r"
+expect "*(yes or no)*"
 
 send -- "no\r"
 
