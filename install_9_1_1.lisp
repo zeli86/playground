@@ -163,9 +163,8 @@ Otherwise returns nil. Test is done via equal."
   (let* ((name (string-downcase (symbol-name sw-name)))
          (full-name (format nil "~a-~a" name version)))
     (uiop:chdir (uiop:getcwd))
-    (defvar prefix-path (merge-pathnames full-name *install-dir*))
     (run "./bootstrap.sh" )
-    (run (format nil "./b2 link=shared ~@[--prefix=~a~] --without-python ~@[-j ~a~] install" prefix-path *make-threads*))
+    (run (format nil "./b2 link=shared --prefix=~a~a --without-python ~@[-j ~a~] install" *install-dir* full-name *make-threads*))
     (install-module name *install-dir* version *module-dir*)
     (export-variables full-name)))
 
