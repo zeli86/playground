@@ -533,6 +533,7 @@ q - Abort Installation.
       (uiop:run-program "echo $PATH" :output :interactive :ignore-error-status t)
       (uiop:run-program "echo $LD_LIBRARY_PATH" :output :interactive :ignore-error-status t))
 
+    (format t "~% ~a ~%" (uiop:getenv "SHELL") )
     (let ((module-path (format nil "export MODULEPATH=~a:$MODULEPATH" *module-dir*))
           (shell-config-file (if (string= (pathname-name (uiop:getenv "SHELL")) "zsh")
                                  ".zshrc"
