@@ -123,7 +123,7 @@ void do_fit( const Table& table, Row& retval )
   double * t = new double[N];
   double * y = new double[N];
 
-  for( int i=0; i<N; i++ )
+  for( int i=0; i<N; ++i )
   {
     t[i] = table[i+shift][0];
     y[i] = table[i+shift][2];
@@ -174,7 +174,7 @@ void output_table( const string& filename, const Table& table )
   {
     out.flags(fmt[0]); 
     out << row[0]; 
-    for( int i=1; i<row.size(); i++ )
+    for( int i=1; i<row.size(); ++i )
     {
       //out << "\t" << row[i];
       out.flags(fmt[i]); 

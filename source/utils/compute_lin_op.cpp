@@ -301,7 +301,7 @@ namespace HelperPrograms
     double tmp[4] = {};
 
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for ( ; cell!=endc; cell++ )
+    for ( ; cell!=endc; ++cell )
     {
       if( cell->is_locally_owned() )
       {
@@ -311,7 +311,7 @@ namespace HelperPrograms
         fe_values_2.reinit (cell);
         fe_values_2.get_function_values( m_Psi, Psi_2 );
 
-        for( unsigned qp=0; qp<n_q_points; qp++ )
+        for( unsigned qp=0; qp<n_q_points; ++qp )
         {
           pt = fe_values.quadrature_point(qp);
           double tmp2 = fe_values.JxW(qp) * fabs(pt[1]) * Psi[qp] * Psi[qp] * Ef1.value(pt) * Ef2.value(pt);
@@ -320,7 +320,7 @@ namespace HelperPrograms
           tmp[1] += 3 * tmp2;
         }
 
-        for( unsigned qp=0; qp<n_q_points_2; qp++ )
+        for( unsigned qp=0; qp<n_q_points_2; ++qp )
         {
           pt = fe_values_2.quadrature_point(qp);
           double tmp2 = fe_values_2.JxW(qp) * fabs(pt[1]) * Psi_2[qp] * Psi_2[qp] * Ef1.value(pt) * Ef2.value(pt);
@@ -365,9 +365,9 @@ namespace HelperPrograms
     FullMatrix<double> block_1b(Ntot, Ntot);    
     FullMatrix<double> block_2b(Ntot, Ntot);    
     
-    for( int i=0; i<Ntot; i++ )
+    for( int i=0; i<Ntot; ++i )
     {
-      for( int j=i; j<Ntot; j++ )
+      for( int j=i; j<Ntot; ++j )
       {
         int I = i / N; 
         int J = i - I*N; 
@@ -411,16 +411,16 @@ namespace HelperPrograms
       mm_write_banner(fh, matcode); 
       mm_write_mtx_crd_size(fh, 2*Ntot, 2*Ntot, 2*Ntot*Ntot);
 
-      for( int i=0; i<Ntot; i++ )
+      for( int i=0; i<Ntot; ++i )
       {
-        for( int j=0; j<Ntot; j++ )
+        for( int j=0; j<Ntot; ++j )
         {
             fprintf(fh, "%d %d %.15e\n", i+Ntot+1, j+1, block_1(i,j));
         }    
       }
-      for( int i=0; i<Ntot; i++ )
+      for( int i=0; i<Ntot; ++i )
       {
-        for( int j=0; j<Ntot; j++ )
+        for( int j=0; j<Ntot; ++j )
         {
             fprintf(fh, "%d %d %.15e\n", i+1, j+Ntot+1, -block_2(i,j));
         }    
@@ -434,16 +434,16 @@ namespace HelperPrograms
       mm_write_banner(fh, matcode); 
       mm_write_mtx_crd_size(fh, 2*Ntot, 2*Ntot, 2*Ntot*Ntot);
 
-      for( int i=0; i<Ntot; i++ )
+      for( int i=0; i<Ntot; ++i )
       {
-        for( int j=0; j<Ntot; j++ )
+        for( int j=0; j<Ntot; ++j )
         {
             fprintf(fh, "%d %d %.15e\n", i+Ntot+1, j+1, block_1b(i,j));
         }    
       }
-      for( int i=0; i<Ntot; i++ )
+      for( int i=0; i<Ntot; ++i )
       {
-        for( int j=0; j<Ntot; j++ )
+        for( int j=0; j<Ntot; ++j )
         {
             fprintf(fh, "%d %d %.15e\n", i+1, j+Ntot+1, -block_2b(i,j));
         }    

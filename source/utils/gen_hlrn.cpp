@@ -41,7 +41,7 @@ int main( int argc, char *argv[] )
   pbs_file << "#PBS -l feature=mpp\n";
   pbs_file << "#PBS -l nodes=15:ppn=24\n";
       
-  for( int i=0; i<90; i++ )
+  for( int i=0; i<90; ++i )
   {
     char buf[10] = {};
     sprintf( buf, "%.4d", i );

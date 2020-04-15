@@ -206,7 +206,7 @@ namespace realtime_propagation
     double min[] = {m_xmin, m_ymin};
     double max[] = {m_xmax, m_ymax};
 
-    for( int i=0; i<dim; i++ )
+    for( int i=0; i<dim; ++i )
     {
       pt1(i) = min[i];
       pt2(i) = max[i];
@@ -229,9 +229,9 @@ namespace realtime_propagation
     dof_handler.distribute_dofs (fe);
     //DoFRenumbering::component_wise (dof_handler);
 
-    for( int i=0; i<no_time_steps; i++ )
+    for( int i=0; i<no_time_steps; ++i )
       m_all_Psi[i].reinit(dof_handler.n_dofs());
-    for( int i=0; i<no_time_steps; i++ )
+    for( int i=0; i<no_time_steps; ++i )
       m_all_p[i].reinit(dof_handler.n_dofs());
 
     system_rhs.reinit(dof_handler.n_dofs());
@@ -367,7 +367,7 @@ namespace realtime_propagation
     m_all_Psi[0] = m_Psi;
     cout << "dt == " << m_dt << endl;
     
-    for( int i=1; i<400; i++ )
+    for( int i=1; i<400; ++i )
     {
       one_loop(i);
 
@@ -452,12 +452,12 @@ namespace realtime_propagation
     one_loop(0); // compute the first gradient
     m_old_cost = m_cost;
     m_direction = m_grad;
-    for( int i=1; i<40; i++ )
+    for( int i=1; i<40; ++i )
     {
       m_potential_backup = m_potential;
 
       double tau=1;
-      for( int j=0; j<10; j++ )
+      for( int j=0; j<10; ++j )
       {
         m_potential.add( tau, m_direction );
         rt_propagtion_forward(0);
@@ -475,7 +475,7 @@ namespace realtime_propagation
       compute_beta();
 
       for( int s=0; s<m_direction.n(); s++ )
-        for( int ti=1; ti<m_direction.m()-1; ti++ )
+        for( int ti=1; ti<m_direction.m()-1; ++ti )
           m_direction(ti,s) = m_grad(ti,s) - m_beta[s]*m_old_direction(ti,s);
 
       m_potential.output( "lambda_" + to_string(i) + ".txt" );

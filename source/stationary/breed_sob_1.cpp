@@ -203,12 +203,12 @@ namespace BreedSolver_1
     W = 0;
 
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for (; cell != endc; cell++)
+    for (; cell != endc; ++cell)
     {
       fe_values.reinit(cell);
       fe_values.get_function_values(vec, vals);
       fe_values.get_function_gradients(vec, grad);
-      for (unsigned qp = 0; qp < n_q_points; qp++)
+      for (unsigned qp = 0; qp < n_q_points; ++qp)
       {
         double vec_val_q = vals[qp] * vals[qp];
         double JxW = fe_values.JxW(qp);
@@ -233,14 +233,14 @@ namespace BreedSolver_1
     double sum[] = {0, 0};
 
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for (; cell != endc; cell++)
+    for (; cell != endc; ++cell)
     {
       fe_values.reinit(cell);
       fe_values.get_function_values(m_Psi_sob, vals_1);
       fe_values.get_function_values(m_sob_grad, vals_2);
       fe_values.get_function_values(m_Psi, vals_3);
 
-      for (unsigned qp = 0; qp < n_q_points; qp++)
+      for (unsigned qp = 0; qp < n_q_points; ++qp)
       {
         double JxW = fe_values.JxW(qp);
         sum[0] += JxW * (vals_3[qp] * vals_2[qp]);
@@ -274,7 +274,7 @@ namespace BreedSolver_1
     vector<Tensor<1,dim>> grads(n_q_points);
 
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for ( ; cell!=endc; cell++ )
+    for ( ; cell!=endc; ++cell )
     {
       cell_rhs=0;
       cell_matrix=0;
@@ -283,24 +283,24 @@ namespace BreedSolver_1
       fe_values.get_function_values(m_Psi, vals);
       fe_values.get_function_gradients(m_Psi, grads);
 
-      for ( unsigned qp=0; qp<n_q_points; qp++ )
+      for ( unsigned qp=0; qp<n_q_points; ++qp )
       {
           double JxW = fe_values.JxW(qp);
           double Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs*(vals[qp]*vals[qp]);
 
-          for ( unsigned i=0; i<dofs_per_cell; i++ )
+          for ( unsigned i=0; i<dofs_per_cell; ++i )
           {
             cell_rhs(i) += JxW*(grads[qp]*fe_values.shape_grad(i,qp) + Q1*vals[qp]*fe_values.shape_value(i,qp));
-            for ( unsigned j=0; j<dofs_per_cell; j++ )
+            for ( unsigned j=0; j<dofs_per_cell; ++j )
                 cell_matrix(i,j) += JxW*(fe_values.shape_value(i,qp)*fe_values.shape_value(j,qp));
           }
         }
         cell->get_dof_indices (local_dof_indices);
 
-        for (unsigned i = 0; i < dofs_per_cell; i++)
+        for (unsigned i = 0; i < dofs_per_cell; ++i)
         {
           m_system_rhs(local_dof_indices[i]) += cell_rhs(i);
-          for (unsigned j = 0; j < dofs_per_cell; j++)
+          for (unsigned j = 0; j < dofs_per_cell; ++j)
             m_system_matrix.add(local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));
         }      
       }
@@ -331,23 +331,23 @@ namespace BreedSolver_1
 
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
                                                    endc = dof_handler.end();
-    for (; cell != endc; cell++)
+    for (; cell != endc; ++cell)
     {
       cell_rhs = 0;
       fe_values.reinit(cell);
       fe_values.get_function_values(m_Psi, vals);
       fe_values.get_function_gradients(m_Psi, grads);
 
-      for (unsigned qp = 0; qp < n_q_points; qp++)
+      for (unsigned qp = 0; qp < n_q_points; ++qp)
       {
         double JxW = fe_values.JxW(qp);
         double Q1 = Potential.value(fe_values.quadrature_point(qp)) + m_gs * (vals[qp] * vals[qp]);
 
-        for (unsigned i = 0; i < dofs_per_cell; i++)
+        for (unsigned i = 0; i < dofs_per_cell; ++i)
           cell_rhs(i) +=  JxW * (grads[qp] * fe_values.shape_grad(i, qp) + Q1 * vals[qp] * fe_values.shape_value(i, qp));
       }
       cell->get_dof_indices(local_dof_indices);
-      for ( unsigned i = 0; i < dofs_per_cell; i++ )
+      for ( unsigned i = 0; i < dofs_per_cell; ++i )
         m_system_rhs(local_dof_indices[i]) += cell_rhs(i);      
     }
   }
@@ -368,22 +368,22 @@ namespace BreedSolver_1
     vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
 
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for (; cell != endc; cell++)
+    for (; cell != endc; ++cell)
     {
       cell_matrix = 0;
       fe_values.reinit(cell);
 
-      for (unsigned qp = 0; qp < n_q_points; qp++)
+      for (unsigned qp = 0; qp < n_q_points; ++qp)
       {
         double JxW = fe_values.JxW(qp);
 
-        for (unsigned i = 0; i < dofs_per_cell; i++)
-          for (unsigned j = 0; j < dofs_per_cell; j++)
+        for (unsigned i = 0; i < dofs_per_cell; ++i)
+          for (unsigned j = 0; j < dofs_per_cell; ++j)
             cell_matrix(i, j) += JxW * (fe_values.shape_grad(i, qp) * fe_values.shape_grad(j, qp) + fe_values.shape_value(i, qp) * fe_values.shape_value(j, qp));
       }
       cell->get_dof_indices (local_dof_indices);
-      for ( unsigned i = 0; i < dofs_per_cell; i++ )
-        for ( unsigned j = 0; j < dofs_per_cell; j++ )
+      for ( unsigned i = 0; i < dofs_per_cell; ++i )
+        for ( unsigned j = 0; j < dofs_per_cell; ++j )
           m_system_matrix.add (local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));      
     }
   }
@@ -407,7 +407,7 @@ namespace BreedSolver_1
     FullMatrix<double> cell_matrix (dofs_per_cell, dofs_per_cell);
 
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for (; cell != endc; cell++)
+    for (; cell != endc; ++cell)
     {
       cell_rhs = 0;
       cell_matrix = 0;
@@ -415,22 +415,22 @@ namespace BreedSolver_1
       fe_values.get_function_values(m_Psi, vals);
       cell->get_dof_indices(local_dof_indices);
 
-      for (unsigned qp = 0; qp < n_q_points; qp++)
+      for (unsigned qp = 0; qp < n_q_points; ++qp)
       {
         double JxW = fe_values.JxW(qp);
 
-        for (unsigned i = 0; i < dofs_per_cell; i++)
+        for (unsigned i = 0; i < dofs_per_cell; ++i)
         {
           cell_rhs(i) += JxW * vals[qp] * fe_values.shape_value(i, qp);
-          for (unsigned j = 0; j < dofs_per_cell; j++)
+          for (unsigned j = 0; j < dofs_per_cell; ++j)
             cell_matrix(i, j) += JxW * (fe_values.shape_grad(i, qp) * fe_values.shape_grad(j, qp) + fe_values.shape_value(i, qp) * fe_values.shape_value(j, qp));
         }
       }
       cell->get_dof_indices (local_dof_indices);
-      for ( unsigned i = 0; i < dofs_per_cell; i++ )
+      for ( unsigned i = 0; i < dofs_per_cell; ++i )
       {
         m_system_rhs(local_dof_indices[i]) += cell_rhs(i);
-        for ( unsigned j = 0; j < dofs_per_cell; j++ )
+        for ( unsigned j = 0; j < dofs_per_cell; ++j )
           m_system_matrix.add (local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));    
       } 
     }
@@ -457,7 +457,7 @@ namespace BreedSolver_1
       fe_values.get_function_values(m_Psi, vals);
       fe_values.get_function_gradients(m_Psi, grads);
 
-      for (unsigned qp = 0; qp < n_q_points; qp++)
+      for (unsigned qp = 0; qp < n_q_points; ++qp)
       {
         double uq = vals[qp] * vals[qp];
         psum += fe_values.JxW(qp) * (grads[qp] * grads[qp] + (Potential.value(fe_values.quadrature_point(qp)) + m_gs * uq) * uq);
@@ -485,7 +485,7 @@ namespace BreedSolver_1
     double min[] = {m_xmin, m_ymin};
     double max[] = {m_xmax, m_ymax};
 
-    for ( int i = 0; i < dim; i++ )
+    for ( int i = 0; i < dim; ++i )
     {
       pt1(i) = min[i];
       pt2(i) = max[i];

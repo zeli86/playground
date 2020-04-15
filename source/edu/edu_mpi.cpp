@@ -81,7 +81,7 @@ namespace edu
   class MySolver
   {
   public:
-    MySolver( MyParameterHandler& );
+    explicit MySolver( MyParameterHandler& );
     ~MySolver();
 
     void run ();
@@ -133,7 +133,7 @@ namespace edu
     fe (FE_Q<dim>(gl_degree_fe), 2),
     dof_handler (triangulation),
     m_root(Utilities::MPI::this_mpi_process(mpi_communicator) == 0),
-    pcout (cout, m_root )
+    pcout (cout, m_root)
   {
     try
     {
@@ -147,7 +147,7 @@ namespace edu
       m_wf_str = m_ph.Get_AllStrings("WAVEFUNCTION_" + to_string(dim) + "D");
       
     }
-    catch( const std::string info )
+    catch( const std::string& info )
     {
       cerr << info << endl;
       MPI_Abort( mpi_communicator, 0 );
@@ -326,10 +326,10 @@ namespace edu
     pcout << "pos == " << pos[0]/N << ", " << pos[1]/N << ", " << pos[2]/N << endl;
     pcout << "var == " << var[0]/N << ", " << var[1]/N << ", " << var[2]/N << endl;
 
-    for( unsigned i=1; i<=m_NA; i++ )
+    for( unsigned i=1; i<=m_NA; ++i )
     {
       Do_Lin_Step( m_dth );
-      for( unsigned j=2; j<=m_NK; j++ )
+      for( unsigned j=2; j<=m_NK; ++j )
       {
 	      Do_NL_Step();
         Do_Lin_Step( m_dt );

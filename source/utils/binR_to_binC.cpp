@@ -147,7 +147,7 @@ namespace HelperPrograms
     double min[] = {m_xmin, m_ymin, m_zmin};
     double max[] = {m_xmax, m_ymax, m_zmax};
 
-    for( int i=0; i<dim; i++ )
+    for( int i=0; i<dim; ++i )
     {
       pt1(i) = min[i];
       pt2(i) = max[i];

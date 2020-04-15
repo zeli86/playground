@@ -257,11 +257,11 @@ namespace realtime_propagation
     FunctionParser<1> Potential;
     Potential.initialize( FunctionParser<1>::default_variable_names(), m_ph.Get_String( "POTENTIAL", 0 ), m_ph.Get_Constants_Map());
 
-    for( unsigned i=1; i<=m_NA; i++ )
+    for( unsigned i=1; i<=m_NA; ++i )
     {
       MyComplexTools::AssembleSystem_LIN_Step( dof_handler, fe, m_Psi, dth, system_matrix, system_rhs );
       solve();
-      for( unsigned j=1; j<m_NK; j++ )
+      for( unsigned j=1; j<m_NK; ++j )
       {
         MyComplexTools::AssembleSystem_NL_Step( dof_handler, fe, m_Psi, Potential, m_dt, m_gs,  system_matrix, system_rhs );
         solve();

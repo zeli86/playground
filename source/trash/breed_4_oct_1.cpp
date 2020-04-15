@@ -768,7 +768,7 @@ namespace BreedSolver
   {
     Vector<double> tmp( 2*dof_handler.n_dofs() );
     tmp=0;
-    for( int i=0; i<dof_handler.n_dofs(); i++ )
+    for( int i=0; i<dof_handler.n_dofs(); ++i )
     {
       tmp[i] = m_Psi_ref[i]; 
     }

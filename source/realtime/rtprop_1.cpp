@@ -253,7 +253,7 @@ namespace realtime_propagation
     const double fak8 = 0.125*m_gs*m_dt;
 
     DoFHandler<1>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for( ; cell!=endc; cell++ )
+    for( ; cell!=endc; ++cell )
     {
       cell_matrix=0;
 
@@ -263,7 +263,7 @@ namespace realtime_propagation
       fe_values.get_function_values(m_Psi_t, Psi_t);
       fe_values.get_function_gradients(m_Psi_t, Psi_t_grad);
 
-      for( unsigned qp=0; qp<n_q_points; qp++ )
+      for( unsigned qp=0; qp<n_q_points; ++qp )
       {
         JxW = fe_values.JxW(qp);
         pot = Potential.value(fe_values.quadrature_point(qp)); 
@@ -276,9 +276,9 @@ namespace realtime_propagation
         tmp1b = fak8*(sum_imq + 3*sum_req);
         tmp2 = fak4*sum_re*sum_im;
         
-        for( unsigned i=0; i<dofs_per_cell; i++ )
+        for( unsigned i=0; i<dofs_per_cell; ++i )
         {
-          for( unsigned j=0; j<dofs_per_cell; j++ )
+          for( unsigned j=0; j<dofs_per_cell; ++j )
           {
             cell_matrix(i,j) += JxW*((1.0-tmp2)*fe_values[rt].value(i,qp)*fe_values[rt].value(j,qp) + (1.0+tmp2)*fe_values[it].value(i,qp)*fe_values[it].value(j,qp)
                                      - tmp1a*fe_values[rt].value(i,qp)*fe_values[it].value(j,qp) - fak2*(fe_values[rt].gradient(i,qp)*fe_values[it].gradient(j,qp) + pot*fe_values[rt].value(i,qp)*fe_values[it].value(j,qp))
@@ -287,8 +287,8 @@ namespace realtime_propagation
         }
       }      
       cell->get_dof_indices (local_dof_indices);
-      for ( unsigned i = 0; i < dofs_per_cell; i++ )
-        for ( unsigned j = 0; j < dofs_per_cell; j++ )
+      for ( unsigned i = 0; i < dofs_per_cell; ++i )
+        for ( unsigned j = 0; j < dofs_per_cell; ++j )
           system_matrix.add (local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));
     }
   }
@@ -331,7 +331,7 @@ namespace realtime_propagation
       fe_values.get_function_gradients(m_Psi_t, Psi_t_grad);
 
       cell->get_dof_indices (local_dof_indices);
-      for( unsigned qp=0; qp<n_q_points; qp++ )
+      for( unsigned qp=0; qp<n_q_points; ++qp )
       {
         double JxW = fe_values.JxW(qp);
         double pot = Potential.value(fe_values.quadrature_point(qp)); 
@@ -339,7 +339,7 @@ namespace realtime_propagation
         double sum_im = Psi[qp][1]+Psi_t[qp][1];
         double tmp1 = fak8*(sum_re*sum_re + sum_im*sum_im);
 
-        for( unsigned i=0; i<dofs_per_cell; i++ )
+        for( unsigned i=0; i<dofs_per_cell; ++i )
         {
           cell_rhs(i) += JxW*(-fak2*((Psi_grad[qp][1]+Psi_t_grad[qp][1])*fe_values[rt].gradient(i,qp) + pot*sum_im*fe_values[rt].value(i,qp))
                               +fak2*((Psi_grad[qp][0]+Psi_t_grad[qp][0])*fe_values[it].gradient(i,qp) + pot*sum_re*fe_values[it].value(i,qp))
@@ -347,7 +347,7 @@ namespace realtime_propagation
                               +(Psi_t[qp][1]-Psi[qp][1])*fe_values[it].value(i,qp) + tmp1*sum_re*fe_values[it].value(i,qp));
         }
       }
-      for ( unsigned i = 0; i < dofs_per_cell; i++ )
+      for ( unsigned i = 0; i < dofs_per_cell; ++i )
         system_rhs(local_dof_indices[i]) += cell_rhs(i);
     }
     m_res = system_rhs.l2_norm(); 
@@ -414,9 +414,9 @@ namespace realtime_propagation
     cout << "p == " << p[0]/N << endl;
     cout << "pos == " << pos[0]/N << endl;
 
-    for( unsigned i=1; i<=m_NA; i++ )
+    for( unsigned i=1; i<=m_NA; ++i )
     {
-      for( unsigned j=1; j<=m_NK; j++ )
+      for( unsigned j=1; j<=m_NK; ++j )
       {
         cout << "t == " << m_t << endl;
         DoIter();

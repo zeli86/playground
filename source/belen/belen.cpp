@@ -243,7 +243,7 @@ namespace BreedSolver
         cell_rhs=0;
         fe_values.reinit (cell);
 
-        for ( unsigned qp=0; qp<n_q_points; qp++ )
+        for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
           double JxW = fe_values.JxW(qp)*fe_values.quadrature_point(qp)[0];
           p = fe_values.quadrature_point(qp);
@@ -253,11 +253,11 @@ namespace BreedSolver
             yi = 0;
           else
             yi = gsl_spline_eval (m_spline, xi, m_acc);
-          for ( unsigned i=0; i<dofs_per_cell; i++ )
+          for ( unsigned i=0; i<dofs_per_cell; ++i )
           {
             cell_rhs(i) += JxW*((m_mass_dist.value(p)+m_mass_dist_z.value(p)*yi)*fe_values.shape_value(i,qp));
 
-            for ( unsigned j=0; j<dofs_per_cell; j++ )
+            for ( unsigned j=0; j<dofs_per_cell; ++j )
             {
               cell_matrix(i,j) += -JxW*(fe_values.shape_grad(i,qp)*fe_values.shape_grad(j,qp)); // grad h1 grad h2
             }
@@ -371,7 +371,7 @@ namespace BreedSolver
     m_workspace_2 = m_system_rhs;
 
     Vector<float> subdomain (triangulation.n_active_cells());
-    for ( unsigned i=0; i<subdomain.size(); i++ )
+    for ( unsigned i=0; i<subdomain.size(); ++i )
       subdomain(i) = triangulation.locally_owned_subdomain();
 
     DataOut<2> data_out;

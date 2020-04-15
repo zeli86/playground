@@ -333,16 +333,16 @@ namespace BreedSolver
         fe_values.get_function_values(m_Psi_ref, Psi_ref);
         fe_values.get_function_gradients(m_Psi_ref, Psi_ref_grad);
 
-        for ( unsigned qp=0; qp<n_q_points; qp++ )
+        for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
           const double JxW = fe_values.JxW(qp)*fabs(fe_values.quadrature_point(qp)[1]);
           const double pq = m_gs*Psi_ref[qp]*Psi_ref[qp];
           const double Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + pq;
 
-          for ( unsigned i=0; i<dofs_per_cell; i++ )
+          for ( unsigned i=0; i<dofs_per_cell; ++i )
           {
             cell_rhs(i) += JxW*(Psi_ref_grad[qp]*fe_values.shape_grad(i,qp) + Q1*Psi_ref[qp]*fe_values.shape_value(i,qp));
-            for ( unsigned j=0; j<dofs_per_cell; j++ )
+            for ( unsigned j=0; j<dofs_per_cell; ++j )
               cell_matrix(i,j) += JxW*fe_values.shape_value(i,qp)*fe_values.shape_value(j,qp);
           }
         }
@@ -402,15 +402,15 @@ namespace BreedSolver
         fe_values_2.reinit (cell_2);
         fe_values.get_function_values(m_workspace_1, vals);
 
-        for ( unsigned qp=0; qp<n_q_points; qp++ )
+        for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
           const double JxW = fe_values_2.JxW(qp);
           const double JxWxV = JxW*vals[qp];
           
-          for ( unsigned i=0; i<dofs_per_cell; i++ )
+          for ( unsigned i=0; i<dofs_per_cell; ++i )
           {
             cell_rhs(i) += JxWxV*fe_values_2[rt].value(i,qp);
-            for( unsigned j=0; j<dofs_per_cell; j++ )
+            for( unsigned j=0; j<dofs_per_cell; ++j )
             {
               cell_matrix(i,j)+=JxW*(fe_values_2[rt].value(i,qp)*fe_values_2[rt].value(j,qp)+fe_values_2[it].value(i,qp)*fe_values_2[it].value(j,qp));
             }
@@ -479,12 +479,12 @@ namespace BreedSolver
         fe_values.get_function_values(m_Psi_ref, Psi_ref);
         fe_values.get_function_gradients(m_Psi_ref, Psi_ref_grad);
 
-        for ( unsigned qp=0; qp<n_q_points; qp++ )
+        for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
           JxW = fe_values.JxW(qp)*fabs(fe_values.quadrature_point(qp)[1]);
           Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs*Psi_ref[qp]*Psi_ref[qp];
 
-          for ( unsigned i=0; i<dofs_per_cell; i++ )
+          for ( unsigned i=0; i<dofs_per_cell; ++i )
             cell_rhs(i) += JxW*(Psi_ref_grad[qp]*fe_values.shape_grad(i,qp) + Q1*Psi_ref[qp]*fe_values.shape_value(i,qp));
         }
         cell->get_dof_indices (local_dof_indices);
@@ -530,13 +530,13 @@ namespace BreedSolver
         fe_values.get_function_values(m_Psi_ref, Psi_ref);
         fe_values.get_function_gradients(m_Psi_ref, Psi_ref_grad);
 
-        for ( unsigned qp=0; qp<n_q_points; qp++ )
+        for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
           JxW = fe_values.JxW(qp)*fabs(fe_values.quadrature_point(qp)[1]);
           Q2 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + 3.0*m_gs*Psi_ref[qp]*Psi_ref[qp];
 
-          for ( unsigned i=0; i<dofs_per_cell; i++ )
-            for ( unsigned j=0; j<dofs_per_cell; j++ )
+          for ( unsigned i=0; i<dofs_per_cell; ++i )
+            for ( unsigned j=0; j<dofs_per_cell; ++j )
               cell_matrix(i,j) += JxW*(fe_values.shape_grad(i,qp)*fe_values.shape_grad(j,qp) + Q2*fe_values.shape_value(i,qp)*fe_values.shape_value(j,qp));
         }
         cell->get_dof_indices (local_dof_indices);
@@ -668,7 +668,7 @@ namespace BreedSolver
         fe_values.get_function_gradients(m_workspace_1, Psi_1_grad);
         fe_values.get_function_gradients(m_workspace_2, Psi_2_grad);
 
-        for ( unsigned qp=0; qp<n_q_points; qp++ )
+        for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
           double JxW = fe_values.JxW(qp)*fabs(fe_values.quadrature_point(qp)[1]);
           double p12 = Psi_1[qp]*Psi_2[qp];
@@ -688,8 +688,8 @@ namespace BreedSolver
       }
     }
 
-    for( int i=0; i<5; i++ ) locint[i] *= m_gs;
-    for( int i=0; i<8; i++ ) locint[i] *= _FAKTOR_;
+    for( int i=0; i<5; ++i ) locint[i] *= m_gs;
+    for( int i=0; i<8; ++i ) locint[i] *= _FAKTOR_;
     
     MPI_Allreduce( locint, m_I, 8, MPI_DOUBLE, MPI_SUM, mpi_communicator);
     m_computing_timer.exit_section();
@@ -987,7 +987,7 @@ namespace BreedSolver
     
     output_guess();
     m_results.clear();
-    for( int i=0; i<m_Ndmu; i++ )
+    for( int i=0; i<m_Ndmu; ++i )
     {
       sprintf( shellcmd, "mkdir %.4d/", i );
       if( m_root ) system(shellcmd);

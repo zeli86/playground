@@ -98,7 +98,7 @@ namespace realtime_propagation
       CPotential ( const std::vector<double>& omega, const double dom ) : Function<dim>(), m_omegaq(2)
       { 
         m_dom = dom;
-        for( int i=0; i<dim; i++ )
+        for( int i=0; i<dim; ++i )
           m_omegaq[i] = omega[i]*omega[i];
       }
 
@@ -220,7 +220,7 @@ namespace realtime_propagation
     double min[] = {m_xmin, m_ymin, m_zmin};
     double max[] = {m_xmax, m_ymax, m_zmax};
 
-    for( int i=0; i<dim; i++ )
+    for( int i=0; i<dim; ++i )
     {
       pt1(i) = min[i];
       pt2(i) = max[i];
@@ -381,7 +381,7 @@ namespace realtime_propagation
 
     output_results("Cfinal");
 
-    for( unsigned i=0; i<Nt; i++ )
+    for( unsigned i=0; i<Nt; ++i )
     {
       Do_Lin_Step();
       Do_NL_Step(double(i)*m_dt);

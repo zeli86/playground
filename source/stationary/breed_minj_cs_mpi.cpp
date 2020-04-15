@@ -289,7 +289,7 @@ namespace BreedSolver
         fe_values.reinit (cell);
         fe_values.get_function_values(m_workspace_1, vals);
         fe_values.get_function_gradients(m_workspace_1, grad);
-        for ( unsigned qp=0; qp<n_q_points; qp++ )
+        for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
           vec_val_q = vals[qp]*vals[qp];
           JxW = fabs(fe_values.quadrature_point(qp)[1])*fe_values.JxW(qp);
@@ -331,7 +331,7 @@ namespace BreedSolver
         fe_values.reinit (cell);
         fe_values.get_function_values( m_workspace_1, vals );      
 
-        for ( unsigned qp=0; qp<n_q_points; qp++ )
+        for ( unsigned qp=0; qp<n_q_points; ++qp )
           tmp1 += fabs(fe_values.quadrature_point(qp)[1])*fe_values.JxW(qp)*(vals[qp]*vals[qp]);
       }
     }
@@ -387,7 +387,7 @@ namespace BreedSolver
         fe_values.get_function_values(m_workspace_1, vals);
         fe_values.get_function_gradients(m_workspace_1, grads);
 
-        for ( unsigned qp=0; qp<n_q_points; qp++ )
+        for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
           JxW = fe_values.JxW(qp)*fabs(fe_values.quadrature_point(qp)[1]);
           Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs*(vals[qp]*vals[qp]);
@@ -454,7 +454,7 @@ namespace BreedSolver
         fe_values.get_function_values(m_workspace_1, vals);
         fe_values.get_function_gradients(m_workspace_1, grads);
 
-        for ( unsigned qp=0; qp<n_q_points; qp++ )
+        for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
           JxW = fe_values.JxW(qp)*fabs(fe_values.quadrature_point(qp)[1]);
           Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs*(vals[qp]*vals[qp]);
@@ -514,7 +514,7 @@ namespace BreedSolver
         fe_values.get_function_values(m_workspace_1, Psi_ref);
         fe_values.get_function_gradients(m_workspace_1, Psi_ref_grad);
 
-        for ( unsigned qp=0; qp<n_q_points; qp++ )
+        for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
           JxW = fe_values.JxW(qp)*fabs(fe_values.quadrature_point(qp)[1]);
 	  fak = m_gs*Psi_ref[qp][0]*Psi_ref[qp][1];
@@ -982,7 +982,7 @@ namespace BreedSolver
     
     output_guess();
     m_results.clear();
-    for( int i=0; i<m_Ndmu; i++ )
+    for( int i=0; i<m_Ndmu; ++i )
     {
       sprintf( shellcmd, "mkdir %.4d/", i );
       if( m_root ) system(shellcmd);

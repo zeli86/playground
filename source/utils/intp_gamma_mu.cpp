@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
   
   if( argc < 3 ) return EXIT_SUCCESS;
   
-  for( int i=2; i<argc; i++ )
+  for( int i=2; i<argc; ++i )
   {
     double data = atof(argv[i]);
     gammas.push_back( data );
@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
   double *y = new double[dim];
   double mu, gamma;  
   
-  for( unsigned i=0; i<dim; i++ )
+  for( unsigned i=0; i<dim; ++i )
   {
     Row row = table[i];
     

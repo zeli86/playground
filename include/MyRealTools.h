@@ -23,13 +23,12 @@ namespace MyRealTools
 
     FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_quadrature_points|update_JxW_values);
 
-    const unsigned dofs_per_cell = fe.dofs_per_cell;
     const unsigned n_q_points = quadrature_formula.size();
 
     std::vector<double> vals(n_q_points);
 
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for( ; cell!=endc; cell++ )
+    for( ; cell!=endc; ++cell )
     {
       fe_values.reinit (cell);
       fe_values.get_function_values(vec, vals);
@@ -80,7 +79,7 @@ namespace MyRealTools
         fe_values.get_function_gradients( psi, u_grad);
         fe_values.get_function_gradients( direction, d_grad);
 
-        for ( unsigned qp=0; qp<n_q_points; qp++ )
+        for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
           double JxW = fe_values.JxW(qp);
           double Q = Potential.value(fe_values.quadrature_point(qp)) - mu;
@@ -143,13 +142,13 @@ namespace MyRealTools { namespace MPI
         vector<double> vec_vals(n_q_points);
 
         typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-        for( ; cell!=endc; cell++ )
+        for( ; cell!=endc; ++cell )
         {
            if( cell->is_locally_owned() )
            {
                 fe_values.reinit (cell);
                 fe_values.get_function_values( vec, vec_vals );
-                for( unsigned qp=0; qp<n_q_points; qp++ )
+                for( unsigned qp=0; qp<n_q_points; ++qp )
                 {
                     tmp += fe_values.JxW(qp)*vec_vals[qp]*vec_vals[qp];
                 }
@@ -180,13 +179,13 @@ namespace MyRealTools { namespace MPI
         vector<double> vec_vals(n_q_points);
 
         typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-        for( ; cell!=endc; cell++ )
+        for( ; cell!=endc; ++cell )
         {
            if( cell->is_locally_owned() )
            {
                 fe_values.reinit (cell);
                 fe_values.get_function_values( vec, vec_vals );
-                for( unsigned qp=0; qp<n_q_points; qp++ )
+                for( unsigned qp=0; qp<n_q_points; ++qp )
                 {
                     double JxWxn = fe_values.JxW(qp)*vec_vals[qp]*vec_vals[qp];
                     Point<dim> spacept = fe_values.quadrature_point(qp);
@@ -221,7 +220,7 @@ namespace MyRealTools { namespace MPI
         vector<double> vec_vals(n_q_points);
 
         typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-        for( ; cell!=endc; cell++ )
+        for( ; cell!=endc; ++cell )
         {
             if( cell->is_locally_owned() )
             {
@@ -277,7 +276,7 @@ namespace MyRealTools { namespace MPI
                 fe_values.reinit (cell);
                 fe_values.get_function_values(vec,vals);
 
-                for ( unsigned qp=0; qp<n_q_points; qp++ )
+                for ( unsigned qp=0; qp<n_q_points; ++qp )
                 {
                     double JxW = fe_values.JxW(qp);
                     double Q2 = Potential.value(fe_values.quadrature_point(qp)) - mu + 3.0*gs*vals[qp]*vals[qp];
@@ -333,7 +332,7 @@ namespace MyRealTools { namespace MPI
                 fe_values.get_function_values(vec, vals);
                 fe_values.get_function_gradients(vec, grad_vals);
 
-                for ( unsigned qp=0; qp<n_q_points; qp++ )
+                for ( unsigned qp=0; qp<n_q_points; ++qp )
                 {
                 double JxW = fe_values.JxW(qp);
                 double Q1 = Potential.value(fe_values.quadrature_point(qp)) - mu + gs*vals[qp]*vals[qp];
@@ -392,7 +391,7 @@ namespace MyRealTools { namespace MPI
                 fe_values.get_function_values(vec, vals);
                 fe_values.get_function_gradients(vec, grad_vals);
 
-                for ( unsigned qp=0; qp<n_q_points; qp++ )
+                for ( unsigned qp=0; qp<n_q_points; ++qp )
                 {
                     double JxW = fe_values.JxW(qp);
                     double Q2 = Potential.value(fe_values.quadrature_point(qp)) - mu + 3.0*gs*vals[qp]*vals[qp];
@@ -434,14 +433,14 @@ namespace MyRealTools { namespace MPI
         vector<Tensor<1,dim>> vec_grads(n_q_points);
     
         typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-        for( ; cell!=endc; cell++ )
+        for( ; cell!=endc; ++cell )
         {
            if( cell->is_locally_owned() )
            {
                 fe_values.reinit (cell);
                 fe_values.get_function_values( vec, vec_vals );
                 fe_values.get_function_gradients( vec, vec_grads );                
-                for( unsigned qp=0; qp<n_q_points; qp++ )
+                for( unsigned qp=0; qp<n_q_points; ++qp )
                 {
                     double JxW = fe_values.JxW(qp);
                     double valq = vec_vals[qp]*vec_vals[qp];
@@ -501,7 +500,7 @@ namespace MyRealTools { namespace MPI
           fe_values.get_function_gradients( psi, u_grad);
           fe_values.get_function_gradients( direction, d_grad);
   
-          for ( unsigned qp=0; qp<n_q_points; qp++ )
+          for ( unsigned qp=0; qp<n_q_points; ++qp )
           {
             double JxW = fe_values.JxW(qp);
             double Q = Potential.value(fe_values.quadrature_point(qp)) - mu;
@@ -574,7 +573,7 @@ namespace MyRealTools { namespace MPI
           fe_values.get_function_values( vec1, u1 );
           fe_values.get_function_values( vec2, u2 );
   
-          for ( unsigned int qp=0; qp<n_q_points; qp++ )
+          for ( unsigned int qp=0; qp<n_q_points; ++qp )
           {
             double JxW = fe_values.JxW(qp);
   

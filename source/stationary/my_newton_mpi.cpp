@@ -248,7 +248,7 @@ namespace BreedSolver
         fe_values.get_function_gradients( m_workspace_1, Psi_1_grad);
         fe_values.get_function_gradients( m_workspace_2, Psi_2_grad);
 
-        for ( unsigned qp=0; qp<n_q_points; qp++ )
+        for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
           double JxW = fe_values.JxW(qp);
           double p12 = Psi_1[qp]*Psi_2[qp];
@@ -267,7 +267,7 @@ namespace BreedSolver
         }  
       }
     }
-    for( int i=0; i<5; i++ ) 
+    for( int i=0; i<5; ++i ) 
       locint[i] *= m_gs;
 
     MPI_Allreduce( locint, m_I, 8, MPI_DOUBLE, MPI_SUM, mpi_communicator);
@@ -609,7 +609,7 @@ namespace BreedSolver
 
     //output_guess();
     m_results.clear();
-    for( int i=0; i<m_Ndmu; i++ )
+    for( int i=0; i<m_Ndmu; ++i )
     {
       sprintf( shellcmd, "mkdir %.4d/", i );
       if( m_root ) system(shellcmd);
@@ -698,7 +698,7 @@ namespace BreedSolver
 
     //output_guess();
     m_results.clear();
-    for( int i=0; i<m_Ndmu; i++ )
+    for( int i=0; i<m_Ndmu; ++i )
     {
       sprintf( shellcmd, "mkdir %.4d/", i );
       if( m_root ) system(shellcmd);

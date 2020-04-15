@@ -162,7 +162,7 @@ namespace HelperPrograms
         MPI_Win_create( wf, 2*locN, sizeof(double), MPI_INFO_NULL, mpi_communicator, &win );
         MPI_Win_fence( MPI_MODE_NOPRECEDE, win);
 
-        for( unsigned i=0; i<patches.size(); i++ )
+        for( unsigned i=0; i<patches.size(); ++i )
         {
           const DataOutBase::Patch<dim,dim>  &patch = patches[i];
 
@@ -171,7 +171,7 @@ namespace HelperPrograms
             const Point<dim> &pt = patch.vertices[l];
 
             bool skip = false;
-            for( unsigned k=0; k<dim; k++ )
+            for( unsigned k=0; k<dim; ++k )
             {
                coord_idx[k] = int(pt[k] / deltas[k]) + idx_shifts[k];
                skip = skip || (coord_idx[k]==N); 
@@ -291,7 +291,7 @@ namespace HelperPrograms
     double min[] = {m_xmin, m_ymin, m_zmin};
     double max[] = {m_xmax, m_ymax, m_zmax};
 
-    for( int i=0; i<dim; i++ )
+    for( int i=0; i<dim; ++i )
     {
       pt1(i) = min[i];
       pt2(i) = max[i];

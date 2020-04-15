@@ -234,11 +234,11 @@ int main ( int argc, char *argv[] )
     Point<2> pt;
 
     #pragma omp for reduction(+:retval,retval2)
-    for( unsigned i=0; i<N; i++ )
+    for( unsigned i=0; i<N; ++i )
     {
       pt[0] = i*dx;
       ptz[0] = i*dx;
-      for( unsigned j=0; j<N; j++ )
+      for( unsigned j=0; j<N; ++j )
       {
         pt[1] = j*dx;
         ptr[0] = j*dx;
@@ -266,7 +266,7 @@ int main ( int argc, char *argv[] )
   CPotentialPHO potho( omega[1], E );  
 
   Point<1> pt1;
-  for( unsigned i=0; i<N; i++ )
+  for( unsigned i=0; i<N; ++i )
   {
     pt1[0] = i*dx;
 

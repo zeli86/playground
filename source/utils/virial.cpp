@@ -224,7 +224,7 @@ namespace HelperPrograms
     
     double tmp[] = {0,0,0,0,0};
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for ( ; cell!=endc; cell++ )
+    for ( ; cell!=endc; ++cell )
     {
       if( cell->is_locally_owned() )
       {
@@ -232,7 +232,7 @@ namespace HelperPrograms
         fe_values.get_function_values( m_Psi, Psi );
         fe_values.get_function_gradients( m_Psi, Psi_grad );
 
-        for( unsigned qp=0; qp<n_q_points; qp++ )
+        for( unsigned qp=0; qp<n_q_points; ++qp )
         {
           x = fe_values.quadrature_point(qp)[0];
           y = fe_values.quadrature_point(qp)[1];

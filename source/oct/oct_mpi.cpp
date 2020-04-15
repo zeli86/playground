@@ -250,7 +250,7 @@ namespace realtime_propagation
     double min[] = {m_xmin, m_ymin, m_zmin};
     double max[] = {m_xmax, m_ymax, m_zmax};
 
-    for( int i=0; i<dim; i++ )
+    for( int i=0; i<dim; ++i )
     {
       pt1(i) = min[i];
       pt2(i) = max[i];
@@ -271,9 +271,9 @@ namespace realtime_propagation
     locally_owned_dofs = dof_handler.locally_owned_dofs ();
     DoFTools::extract_locally_relevant_dofs (dof_handler, locally_relevant_dofs);
     
-    for( int i=0; i<no_time_steps; i++ )
+    for( int i=0; i<no_time_steps; ++i )
       m_all_Psi[i].reinit(locally_owned_dofs, mpi_communicator); // no ghosts
-    for( int i=0; i<no_time_steps; i++ )
+    for( int i=0; i<no_time_steps; ++i )
       m_all_p[i].reinit(locally_owned_dofs, mpi_communicator); // no ghosts
 
     m_sol.reinit(locally_owned_dofs, mpi_communicator); // no ghosts
@@ -454,11 +454,11 @@ namespace realtime_propagation
     compute_correction(0);
     
     ofstream outf("first_corr.txt");
-    for( int i=0; i<no_time_steps; i++ )
+    for( int i=0; i<no_time_steps; ++i )
     {
       Point<1> pt(double(i)*m_dt);
       outf << pt[0] << "\t";
-      for( int j=0; j<m_potential.get_no_lambdas(); j++ )
+      for( int j=0; j<m_potential.get_no_lambdas(); ++j )
       {
         outf << m_grad(i,j) << ( j+1 == m_potential.get_no_lambdas() ? "\n" : "\t" );
       }

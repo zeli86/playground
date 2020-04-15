@@ -309,7 +309,7 @@ namespace BreedSolver
         fe_values.get_function_values(m_workspace_1, Psi);
         fe_values.get_function_gradients(m_workspace_1, Psi_grad);
 
-        for ( unsigned qp=0; qp<n_q_points; qp++ )
+        for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
           double JxW = fe_values.JxW(qp);
           double pq = m_gs*Psi[qp]*Psi[qp];
@@ -381,7 +381,7 @@ namespace BreedSolver
         fe_values.get_function_values(m_workspace_1, Psi);
         fe_values.get_function_gradients(m_workspace_1, Psi_grad);
 
-        for ( unsigned qp=0; qp<n_q_points; qp++ )
+        for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
           double JxW = fe_values.JxW(qp);
           double pq = m_gs*Psi[qp]*Psi[qp];
@@ -458,7 +458,7 @@ namespace BreedSolver
         fe_values.reinit (cell);
         fe_values.get_function_values(m_workspace_1, vals);
         fe_values.get_function_gradients(m_workspace_1, grad);
-        for ( unsigned qp=0; qp<n_q_points; qp++ )
+        for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
           vec_val_q = vals[qp]*vals[qp];
           JxW = fe_values.JxW(qp);
@@ -500,7 +500,7 @@ namespace BreedSolver
         fe_values.reinit (cell);
         fe_values.get_function_values( m_workspace_1, vals );      
 
-        for ( unsigned qp=0; qp<n_q_points; qp++ )
+        for ( unsigned qp=0; qp<n_q_points; ++qp )
           tmp1 += fe_values.JxW(qp)*(vals[qp]*vals[qp]);
       }
     }
@@ -551,15 +551,15 @@ namespace BreedSolver
         fe_values.get_function_values(m_workspace_1, vals);
         fe_values.get_function_gradients(m_workspace_1, grads);
 
-        for ( unsigned qp=0; qp<n_q_points; qp++ )
+        for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
           JxW = fe_values.JxW(qp);
           Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs*(vals[qp]*vals[qp]);
 
-          for ( unsigned i=0; i<dofs_per_cell; i++ )
+          for ( unsigned i=0; i<dofs_per_cell; ++i )
           {
             cell_rhs(i) += JxW*(grads[qp]*fe_values.shape_grad(i,qp) + Q1*vals[qp]*fe_values.shape_value(i,qp));
-            for ( unsigned j=0; j<dofs_per_cell; j++ )
+            for ( unsigned j=0; j<dofs_per_cell; ++j )
               cell_matrix(i,j) += JxW*(fe_values.shape_value(i,qp)*fe_values.shape_value(j,qp));
           }
         }
@@ -615,7 +615,7 @@ namespace BreedSolver
         fe_values.get_function_values(m_workspace_1, vals);
         fe_values.get_function_gradients(m_workspace_1, grads);
 
-        for ( unsigned qp=0; qp<n_q_points; qp++ )
+        for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
           JxW = fe_values.JxW(qp);
           Q1 = Potential.value(fe_values.quadrature_point(qp)) + m_gs*(vals[qp]*vals[qp]); 
@@ -675,7 +675,7 @@ namespace BreedSolver
         cell_matrix=0;
         fe_values.reinit (cell);
 
-        for ( unsigned qp=0; qp<n_q_points; qp++ )
+        for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
           JxW = fe_values.JxW(qp);
 	        //Q1 = Potential.value(fe_values.quadrature_point(qp)); 
@@ -719,7 +719,7 @@ namespace BreedSolver
         fe_values.get_function_values(m_workspace_1, vals);
         fe_values.get_function_gradients(m_workspace_1, grads);
 
-        for ( unsigned qp=0; qp<n_q_points; qp++ )
+        for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
           double uq = vals[qp]*vals[qp];
           psum += fe_values.JxW(qp)*(grads[qp]*grads[qp] + (Potential.value(fe_values.quadrature_point(qp)) + m_gs*uq)*uq); 

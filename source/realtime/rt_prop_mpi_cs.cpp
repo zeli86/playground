@@ -310,7 +310,7 @@ namespace realtime_propagation
         fe_values.get_function_values(m_workspace_2, Psi_t);
         fe_values.get_function_gradients(m_workspace_2, Psi_t_grad);
 
-        for( unsigned qp=0; qp<n_q_points; qp++ )
+        for( unsigned qp=0; qp<n_q_points; ++qp )
         {
           double JxW = fe_values.JxW(qp)*fabs(fe_values.quadrature_point(qp)[1]);
           double pot = Potential.value(fe_values.quadrature_point(qp));
@@ -323,9 +323,9 @@ namespace realtime_propagation
           double tmp1b = fak8*(sum_imq + 3*sum_req);
           double tmp2 = fak4*sum_re*sum_im;
 
-          for( unsigned i=0; i<dofs_per_cell; i++ )
+          for( unsigned i=0; i<dofs_per_cell; ++i )
           {
-            for( unsigned j=0; j<dofs_per_cell; j++ )
+            for( unsigned j=0; j<dofs_per_cell; ++j )
             {
               cell_matrix(i,j) += JxW*(1.0-tmp2)*fe_values[rt].value(i,qp)*fe_values[rt].value(j,qp);
               cell_matrix(i,j) += JxW*(1.0+tmp2)*fe_values[it].value(i,qp)*fe_values[it].value(j,qp);
@@ -392,7 +392,7 @@ namespace realtime_propagation
         fe_values.get_function_values(m_workspace_2, Psi_t);
         fe_values.get_function_gradients(m_workspace_2, Psi_t_grad);
 
-        for( unsigned int qp=0; qp<n_q_points; qp++ )
+        for( unsigned int qp=0; qp<n_q_points; ++qp )
         {
           JxW = fe_values.JxW(qp)*fabs(fe_values.quadrature_point(qp)[1]);
           pot = Potential.value(fe_values.quadrature_point(qp));
@@ -401,7 +401,7 @@ namespace realtime_propagation
           sum_im = Psi[qp][1]+Psi_t[qp][1];
           tmp1 = fak8*(sum_re*sum_re + sum_im*sum_im);
 
-          for (unsigned int i=0; i<dofs_per_cell; i++ )
+          for (unsigned int i=0; i<dofs_per_cell; ++i )
           {
             cell_rhs(i) -= JxW*fak2*((Psi_grad[qp][1]+Psi_t_grad[qp][1])*fe_values[rt].gradient(i,qp) + pot*sum_im*fe_values[rt].value(i,qp));
             cell_rhs(i) += JxW*fak2*((Psi_grad[qp][0]+Psi_t_grad[qp][0])*fe_values[it].gradient(i,qp) + pot*sum_re*fe_values[it].value(i,qp));
@@ -507,9 +507,9 @@ namespace realtime_propagation
     pcout << "t == " << m_t << endl;
     pcout << "N == " << N << endl;
 
-    for( unsigned i=1; i<=m_NA; i++ )
+    for( unsigned i=1; i<=m_NA; ++i )
     {
-      for( unsigned j=1; j<=m_NK; j++ )
+      for( unsigned j=1; j<=m_NK; ++j )
       {
         pcout << "t == " << m_t << endl;
         DoIter( m_Psi );
@@ -561,9 +561,9 @@ namespace realtime_propagation
     m_Psi_0 = system_rhs;
 
     N = Particle_Number(m_Psi);
-    for( unsigned i=1; i<=m_NA; i++ )
+    for( unsigned i=1; i<=m_NA; ++i )
     {
-      for( unsigned j=1; j<=m_NK; j++ )
+      for( unsigned j=1; j<=m_NK; ++j )
       {
         pcout << "t == " << m_t << endl;
         DoIter( m_Psi );
@@ -648,7 +648,7 @@ namespace realtime_propagation
         fe_values.reinit (cell);
         fe_values.get_function_values( m_workspace_1, Psi_0 );
         fe_values.get_function_values( m_workspace_2, Psi );
-        for( unsigned qp=0; qp<n_q_points; qp++ )
+        for( unsigned qp=0; qp<n_q_points; ++qp )
         {
           JxW = fe_values.JxW(qp)*fabs(fe_values.quadrature_point(qp)[1]);
 

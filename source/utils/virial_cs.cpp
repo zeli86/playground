@@ -234,7 +234,7 @@ namespace HelperPrograms
     
     double tmp[] = {0,0,0,0,0};
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for ( ; cell!=endc; cell++ )
+    for ( ; cell!=endc; ++cell )
     {
       if( cell->is_locally_owned() )
       {
@@ -242,7 +242,7 @@ namespace HelperPrograms
         fe_values.get_function_values( m_workspace, Psi );
         fe_values.get_function_gradients( m_workspace, Psi_grad );
 
-        for( unsigned qp=0; qp<n_q_points; qp++ )
+        for( unsigned qp=0; qp<n_q_points; ++qp )
         {
           r = fe_values.quadrature_point(qp)[1];
           rq = r*r;
@@ -314,7 +314,7 @@ namespace HelperPrograms
   void MySolver<dim>::setup_boundary_ids()
   {
     typename parallel::distributed::Triangulation<dim>::active_cell_iterator cell = triangulation.begin_active(), endc = triangulation.end();
-    for( ; cell!=endc; cell++ )
+    for( ; cell!=endc; ++cell )
     {
       for( unsigned f=0; f<GeometryInfo<dim>::faces_per_cell; f++ )
       {

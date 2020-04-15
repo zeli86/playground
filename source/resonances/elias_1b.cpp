@@ -427,13 +427,13 @@ print_state (size_t iter, gsl_multiroot_fsolver * s)
     vector<double> vals_im(n_q_points);
 
     DoFHandler<1>::active_cell_iterator cell=dof_handler.begin_active(), endc=dof_handler.end();
-    for( ; cell!=endc; cell++ )
+    for( ; cell!=endc; ++cell )
     {
       fe_values.reinit (cell);
       fe_values.get_function_values( m_Psi_re, vals_re );      
       fe_values.get_function_values( m_Psi_im, vals_im );      
 
-      for( unsigned qp=0; qp<n_q_points; qp++ )
+      for( unsigned qp=0; qp<n_q_points; ++qp )
         retval += fe_values.JxW(qp)*fe_values.quadrature_point(qp)[0]*fe_values.quadrature_point(qp)[0]*(vals_re[qp]*vals_re[qp]+vals_im[qp]*vals_im[qp]);
     }
   return retval;
@@ -455,7 +455,7 @@ print_state (size_t iter, gsl_multiroot_fsolver * s)
     vector<double> vals_sob_grad_im(n_q_points);
  
     DoFHandler<1>::active_cell_iterator cell=dof_handler.begin_active(), endc=dof_handler.end();
-    for( ; cell!=endc; cell++ )
+    for( ; cell!=endc; ++cell )
     {
       fe_values.reinit (cell);
       fe_values.get_function_values( m_Psi_re, vals_Psi_re );      
@@ -465,7 +465,7 @@ print_state (size_t iter, gsl_multiroot_fsolver * s)
       fe_values.get_function_values( m_sob_grad_re, vals_sob_grad_re );      
       fe_values.get_function_values( m_sob_grad_im, vals_sob_grad_im );
 
-      for( unsigned qp=0; qp<n_q_points; qp++ )
+      for( unsigned qp=0; qp<n_q_points; ++qp )
       {
         double JxW = fe_values.JxW(qp)*fe_values.quadrature_point(qp)[0]*fe_values.quadrature_point(qp)[0];
         tmp[0] += JxW*(vals_Psi_re[qp]*vals_sob_grad_re[qp] + vals_Psi_im[qp]*vals_sob_grad_im[qp]);
@@ -504,7 +504,7 @@ print_state (size_t iter, gsl_multiroot_fsolver * s)
 
     double JxW, Pot, req, imq, tmp, F;
     DoFHandler<1>::active_cell_iterator cell=dof_handler.begin_active(), endc=dof_handler.end();
-    for( ; cell!=endc; cell++ )
+    for( ; cell!=endc; ++cell )
     {
       fe_values.reinit (cell);
       fe_values.get_function_values(m_Psi_re, vals_re);
@@ -514,7 +514,7 @@ print_state (size_t iter, gsl_multiroot_fsolver * s)
      
       cell->get_dof_indices (local_dof_indices);
         
-      for( unsigned qp=0; qp<n_q_points; qp++ )
+      for( unsigned qp=0; qp<n_q_points; ++qp )
       {
         JxW = fe_values.JxW(qp)*fe_values.quadrature_point(qp)[0]*fe_values.quadrature_point(qp)[0];
         Pot = m_Potential.value(fe_values.quadrature_point(qp));
@@ -522,7 +522,7 @@ print_state (size_t iter, gsl_multiroot_fsolver * s)
         imq = vals_im[qp]*vals_im[qp];
         F = m_F.value(fe_values.quadrature_point(qp));
 
-        for( unsigned i=0; i<dofs_per_cell; i++ )
+        for( unsigned i=0; i<dofs_per_cell; ++i )
         {
           m_system_rhs_re(local_dof_indices[i]) += JxW*(grads_re[qp]*fe_values.shape_grad(i,qp) + (Pot+m_gs*F*(req-3*imq))*vals_re[qp]*fe_values.shape_value(i,qp) + m_Gamma*vals_im[qp]*fe_values.shape_value(i,qp));
           m_system_rhs_im(local_dof_indices[i]) += JxW*(grads_im[qp]*fe_values.shape_grad(i,qp) + (Pot+m_gs*F*(3*req-imq))*vals_im[qp]*fe_values.shape_value(i,qp) - m_Gamma*vals_re[qp]*fe_values.shape_value(i,qp));
@@ -549,27 +549,27 @@ print_state (size_t iter, gsl_multiroot_fsolver * s)
 
     double JxW, Pot, fak;
     DoFHandler<1>::active_cell_iterator cell=dof_handler.begin_active(), endc=dof_handler.end();
-    for( ; cell!=endc; cell++ )
+    for( ; cell!=endc; ++cell )
     {
       cell_matrix=0;
 
       fe_values.reinit (cell);
       cell->get_dof_indices (local_dof_indices);
 
-      for( unsigned qp=0; qp<n_q_points; qp++ )
+      for( unsigned qp=0; qp<n_q_points; ++qp )
       {
         JxW = fe_values.JxW(qp)*fe_values.quadrature_point(qp)[0]*fe_values.quadrature_point(qp)[0];
         Pot = m_Potential.value(fe_values.quadrature_point(qp));
         
 
-        for( unsigned i=0; i<dofs_per_cell; i++ )
-          for( unsigned j=0; j<dofs_per_cell; j++ )
+        for( unsigned i=0; i<dofs_per_cell; ++i )
+          for( unsigned j=0; j<dofs_per_cell; ++j )
             cell_matrix(i,j) += JxW*( (1+Pot)*fe_values.shape_value(i,qp)*fe_values.shape_value(j,qp) + fe_values.shape_grad(i,qp)*fe_values.shape_grad(j,qp));
       }
       
-      for( unsigned i=0; i<dofs_per_cell; i++ )
+      for( unsigned i=0; i<dofs_per_cell; ++i )
       {
-        for( unsigned j=0; j<dofs_per_cell; j++ ) 
+        for( unsigned j=0; j<dofs_per_cell; ++j ) 
           system_matrix.add (local_dof_indices[i],local_dof_indices[j], cell_matrix(i,j));
       }      
     }
@@ -595,25 +595,25 @@ print_state (size_t iter, gsl_multiroot_fsolver * s)
 
     double JxW, Pot, fak;
     DoFHandler<1>::active_cell_iterator cell=dof_handler.begin_active(), endc=dof_handler.end();
-    for( ; cell!=endc; cell++ )
+    for( ; cell!=endc; ++cell )
     {
       cell_matrix=0;
 
       fe_values.reinit (cell);
       cell->get_dof_indices (local_dof_indices);
 
-      for( unsigned qp=0; qp<n_q_points; qp++ )
+      for( unsigned qp=0; qp<n_q_points; ++qp )
       {
         JxW = fe_values.JxW(qp)*fe_values.quadrature_point(qp)[0]*fe_values.quadrature_point(qp)[0];
 
-        for( unsigned i=0; i<dofs_per_cell; i++ )
-          for( unsigned j=0; j<dofs_per_cell; j++ )
+        for( unsigned i=0; i<dofs_per_cell; ++i )
+          for( unsigned j=0; j<dofs_per_cell; ++j )
             cell_matrix(i,j) += JxW*fe_values.shape_value(i,qp)*fe_values.shape_value(j,qp);
       }
       
-      for( unsigned i=0; i<dofs_per_cell; i++ )
+      for( unsigned i=0; i<dofs_per_cell; ++i )
       {
-        for( unsigned j=0; j<dofs_per_cell; j++ ) 
+        for( unsigned j=0; j<dofs_per_cell; ++j ) 
           system_matrix.add (local_dof_indices[i],local_dof_indices[j], cell_matrix(i,j));
       }
     }
@@ -642,7 +642,7 @@ print_state (size_t iter, gsl_multiroot_fsolver * s)
     double z2[] = {0,0};
     double JxW, req, imq, F, Pot;
     DoFHandler<1>::active_cell_iterator cell=dof_handler.begin_active(), endc=dof_handler.end();
-    for( ; cell!=endc; cell++ )
+    for( ; cell!=endc; ++cell )
     {
       fe_values.reinit (cell);
       
@@ -861,7 +861,7 @@ print_state (size_t iter, gsl_multiroot_fsolver * s)
 
     output_guess();
     m_results.clear();
-    for( int i=0; i<1; i++ )
+    for( int i=0; i<1; ++i )
     {
       sprintf( shellcmd, "mkdir %.4d/", i );
       system(shellcmd);

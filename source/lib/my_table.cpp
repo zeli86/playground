@@ -112,7 +112,7 @@ ostream& operator<<( ostream& stream, MyTable& obj )
 {
   columns& cols = obj.m_table.back();
   
-  for( unsigned int i=0; i<obj.m_order.size(); i++ )
+  for( unsigned int i=0; i<obj.m_order.size(); ++i )
   {
     stream << setw(14) << std::left << obj.m_order[i] << " == " << cols[obj.m_order[i]] << endl;
   }
@@ -145,7 +145,7 @@ void MyTable::load( string filename )
     for( string str : vec2 )
     {
       insert( cols, vec[i], stod(str));
-      i++;
+      ++i;
     }
   }
 }

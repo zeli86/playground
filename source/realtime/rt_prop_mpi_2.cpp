@@ -205,7 +205,7 @@ namespace realtime_propagation
     double min[] = {m_xmin, m_ymin, m_zmin};
     double max[] = {m_xmax, m_ymax, m_zmax};
 
-    for( int i=0; i<dim; i++ )
+    for( int i=0; i<dim; ++i )
     {
       pt1(i) = min[i];
       pt2(i) = max[i];
@@ -370,10 +370,10 @@ namespace realtime_propagation
     pcout << "pos == " << pos[0]/N << ", " << pos[1]/N << ", " << pos[2]/N << endl;
     pcout << "var == " << var[0]/N << ", " << var[1]/N << ", " << var[2]/N << endl;
 
-    for( unsigned i=1; i<=m_NA; i++ )
+    for( unsigned i=1; i<=m_NA; ++i )
     {
       Do_Lin_Step( m_dth );
-      for( unsigned j=2; j<=m_NK; j++ )
+      for( unsigned j=2; j<=m_NK; ++j )
       {
 	      Do_NL_Step();
         Do_Lin_Step( m_dt );

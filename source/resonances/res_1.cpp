@@ -239,12 +239,12 @@ namespace BreedSolver
     
     T=0; N=0; W=0;
     typename DoFHandler<1>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for( ; cell!=endc; cell++ )
+    for( ; cell!=endc; ++cell )
     {
       fe_values.reinit (cell);
       fe_values.get_function_values(vec, vals);
       fe_values.get_function_gradients(vec, grad);
-      for( unsigned qp=0; qp<n_q_points; qp++ )
+      for( unsigned qp=0; qp<n_q_points; ++qp )
       {
         vec_val_q = vals[qp]*vals[qp];
         JxW = fe_values.JxW(qp);
@@ -266,12 +266,12 @@ namespace BreedSolver
     vector<Vector<double>> vals(n_q_points,Vector<double>(2));
 
     DoFHandler<1>::active_cell_iterator cell=dof_handler.begin_active(), endc=dof_handler.end();
-    for( ; cell!=endc; cell++ )
+    for( ; cell!=endc; ++cell )
     {
       fe_values.reinit (cell);
       fe_values.get_function_values( vec, vals );      
 
-      for( unsigned qp=0; qp<n_q_points; qp++ )
+      for( unsigned qp=0; qp<n_q_points; ++qp )
         retval += fe_values.JxW(qp)*(vals[qp]*vals[qp]);
     }
   return retval;
@@ -313,15 +313,15 @@ namespace BreedSolver
         fe_values.get_function_values(m_workspace_1, vals);
         fe_values.get_function_gradients(m_workspace_1, grads);
 
-        for( unsigned qp=0; qp<n_q_points; qp++ )
+        for( unsigned qp=0; qp<n_q_points; ++qp )
         {
           JxW = fe_values.JxW(qp);
           Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs*(vals[qp]*vals[qp]);
 
-          for( unsigned i=0; i<dofs_per_cell; i++ )
+          for( unsigned i=0; i<dofs_per_cell; ++i )
           {
             cell_rhs(i) += JxW*(grads[qp][0]*fe_values[rt].gradient(i,qp) + Q1*vals[qp][0]*fe_values[rt].value(i,qp) + grads[qp][1]*fe_values[it].gradient(i,qp) + Q1*vals[qp][1]*fe_values[it].value(i,qp));
-            for( unsigned j=0; j<dofs_per_cell; j++ )
+            for( unsigned j=0; j<dofs_per_cell; ++j )
               cell_matrix(i,j) += JxW*(fe_values[rt].value(i,qp)*fe_values[rt].value(j,qp)+fe_values[it].value(i,qp)*fe_values[it].value(j,qp));
           }
         }
@@ -341,7 +341,7 @@ namespace BreedSolver
     /*
     vector<bool> boundary_dofs (dof_handler.n_dofs());
     DoFTools::extract_boundary_dofs(dof_handler, ComponentMask(), boundary_dofs);
-    for( unsigned i=0; i<dof_handler.n_dofs(); i++ )
+    for( unsigned i=0; i<dof_handler.n_dofs(); ++i )
       if( boundary_dofs[i] ) m_Psi_ref(i)=0;        
     */
 
@@ -363,21 +363,21 @@ namespace BreedSolver
     
     double JxW, Pot, req, imq, tmp;
     DoFHandler<1>::active_cell_iterator cell=dof_handler.begin_active(), endc=dof_handler.end();
-    for( ; cell!=endc; cell++ )
+    for( ; cell!=endc; ++cell )
     {
       fe_values.reinit (cell);
       fe_values.get_function_values(m_Psi_ref, vals);
       fe_values.get_function_gradients(m_Psi_ref, grads);
       cell->get_dof_indices (local_dof_indices);
         
-      for( unsigned qp=0; qp<n_q_points; qp++ )
+      for( unsigned qp=0; qp<n_q_points; ++qp )
       {
         JxW = fe_values.JxW(qp);
         Pot = m_Potential.value(fe_values.quadrature_point(qp))-m_mu;
         req = vals[qp][0]*vals[qp][0];
         imq = vals[qp][1]*vals[qp][1];
 
-        for( unsigned i=0; i<dofs_per_cell; i++ )
+        for( unsigned i=0; i<dofs_per_cell; ++i )
             system_rhs(local_dof_indices[i]) += JxW*(grads[qp][0]*fe_values[rt].gradient(i,qp) + (Pot+m_gs*(req-3*imq))*vals[qp][0]*fe_values[rt].value(i,qp) + m_Gamma*vals[qp][1]*fe_values[rt].value(i,qp) 
                                                     +grads[qp][1]*fe_values[it].gradient(i,qp) + (Pot+m_gs*(3*req-imq))*vals[qp][1]*fe_values[it].value(i,qp) - m_Gamma*vals[qp][0]*fe_values[it].value(i,qp) );
       }
@@ -390,7 +390,7 @@ namespace BreedSolver
     /*
     vector<bool> boundary_dofs (dof_handler.n_dofs());
     DoFTools::extract_boundary_dofs(dof_handler, ComponentMask(), boundary_dofs);
-    for( unsigned i=0; i<dof_handler.n_dofs(); i++ )
+    for( unsigned i=0; i<dof_handler.n_dofs(); ++i )
       if( boundary_dofs[i] ) m_Psi_ref(i)=0;        
     */
    
@@ -413,7 +413,7 @@ namespace BreedSolver
 
     double JxW, Pot, fak;
     DoFHandler<1>::active_cell_iterator cell=dof_handler.begin_active(), endc=dof_handler.end();
-    for( ; cell!=endc; cell++ )
+    for( ; cell!=endc; ++cell )
     {
       cell_matrix=0;
 
@@ -422,23 +422,23 @@ namespace BreedSolver
       fe_values.get_function_gradients(m_Psi_ref, Psi_ref_grad);
       cell->get_dof_indices (local_dof_indices);
 
-      for( unsigned qp=0; qp<n_q_points; qp++ )
+      for( unsigned qp=0; qp<n_q_points; ++qp )
       {
         JxW = fe_values.JxW(qp);
         Pot = m_Potential.value(fe_values.quadrature_point(qp)) - m_mu + 3*m_gs*(Psi_ref[qp][0]*Psi_ref[qp][0] - Psi_ref[qp][1]*Psi_ref[qp][1]);
         fak = 6*m_gs*Psi_ref[qp][0]*Psi_ref[qp][1];
 
-        for( unsigned i=0; i<dofs_per_cell; i++ )
-          for( unsigned j=0; j<dofs_per_cell; j++ )
+        for( unsigned i=0; i<dofs_per_cell; ++i )
+          for( unsigned j=0; j<dofs_per_cell; ++j )
             cell_matrix(i,j) += JxW*(fe_values[rt].gradient(i,qp)*fe_values[rt].gradient(j,qp) + Pot*fe_values[rt].value(i,qp)*fe_values[rt].value(j,qp) 
                                     +(m_Gamma-fak)*fe_values[rt].value(i,qp)*fe_values[it].value(j,qp) 
                                     +(fak-m_Gamma)*fe_values[it].value(i,qp)*fe_values[rt].value(j,qp)
                                     +fe_values[it].gradient(i,qp)*fe_values[it].gradient(j,qp) + Pot*fe_values[it].value(i,qp)*fe_values[it].value(j,qp));
       }
       
-      for( unsigned i=0; i<dofs_per_cell; i++ )
+      for( unsigned i=0; i<dofs_per_cell; ++i )
       {
-        for( unsigned j=0; j<dofs_per_cell; j++ ) 
+        for( unsigned j=0; j<dofs_per_cell; ++j ) 
           system_matrix.add (local_dof_indices[i],local_dof_indices[j], cell_matrix(i,j));
       }      
     }
@@ -461,7 +461,7 @@ namespace BreedSolver
 
     double psum=0, req, imq;
     DoFHandler<1>::active_cell_iterator cell=dof_handler.begin_active(), endc=dof_handler.end();
-    for( ; cell!=endc; cell++ )
+    for( ; cell!=endc; ++cell )
     {
       fe_values.reinit (cell);
       fe_values.get_function_values(m_Psi_ref, vals);
@@ -572,7 +572,7 @@ namespace BreedSolver
     
     vector<bool> boundary_dofs (dof_handler.n_dofs());
     DoFTools::extract_boundary_dofs(dof_handler, ComponentMask(), boundary_dofs);
-    for( unsigned i=0; i<dof_handler.n_dofs(); i++ )
+    for( unsigned i=0; i<dof_handler.n_dofs(); ++i )
       if( boundary_dofs[i] ) m_Psi_ref(i)=0;          
   }
 
@@ -792,7 +792,7 @@ namespace BreedSolver
     
     output_guess();
     m_results.clear();
-    for( int i=0; i<m_Ndmu; i++ )
+    for( int i=0; i<m_Ndmu; ++i )
     {
       sprintf( shellcmd, "mkdir %.4d/", i );
       system(shellcmd);

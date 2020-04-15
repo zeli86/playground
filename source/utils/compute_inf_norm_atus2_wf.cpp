@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
 
     double retval=0;
     #pragma omp parallel for reduction(max:retval)
-    for( long long i=0; i<N; i++ )
+    for( long long i=0; i<N; ++i )
     {
       if( fabs(field[i]) > retval ) retval = fabs(field[i]); 
     }
