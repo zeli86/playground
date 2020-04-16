@@ -1,5 +1,5 @@
-/* * atus-pro testing - atus-pro testing playgroung
- * Copyright (C) 2017 Želimir Marojević <zelimir.marojevic@gmail.com>
+/** atus-pro testing - atus-pro testing playgroung
+ * Copyright (C) 2020 Želimir Marojević <zelimir.marojevic@gmail.com>
  *
  * This file is part of atus-pro testing.
  *
@@ -17,11 +17,8 @@
  * along with atus-pro testing.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/** Želimir Marojević
- */
+#pragma once
 
-#ifndef __shared_1_h__
-#define __shared_1_h__
 #include <stdio.h>
 
   template <int dim>
@@ -172,4 +169,4 @@
     m_computing_timer.exit_section();
     return true;
   }
-#endif
+

@@ -243,7 +243,7 @@ namespace MyRealTools { namespace MPI
     template <int dim>
     void AssembleSystem_Jacobian( const DoFHandler<dim>& dof_handler,
                                   const FE_Q<dim>& fe,
-                                  const ConstraintMatrix& constraints,
+                                  const  AffineConstraints<double>& constraints,
                                   const LA::MPI::Vector& vec, 
                                   const Function<dim>& Potential,
                                   const double mu,
@@ -295,7 +295,7 @@ namespace MyRealTools { namespace MPI
     template <int dim>
     void AssembleRHS_L2gradient( const DoFHandler<dim>& dof_handler,
                                  const FE_Q<dim>& fe,
-                                 const ConstraintMatrix& constraints,
+                                 const AffineConstraints<double>& constraints,
                                  const LA::MPI::Vector& vec, 
                                  const Function<dim>& Potential,
                                  const double mu,
@@ -351,7 +351,7 @@ namespace MyRealTools { namespace MPI
     template <int dim>
     void AssembleSystem_tangent( const DoFHandler<dim>& dof_handler,
                                  const FE_Q<dim>& fe,
-                                 const ConstraintMatrix& constraints,
+                                 const  AffineConstraints<double>& constraints,
                                  const LA::MPI::Vector& vec, 
                                  const Function<dim>& Potential,
                                  const double mu,
@@ -542,7 +542,7 @@ namespace MyRealTools { namespace MPI
     void orthonormalize( MPI_Comm mpi_communicator, 
                          const DoFHandler<dim>& dof_handler,
                          const FE_Q<dim>& fe,
-                         const ConstraintMatrix& constraints,
+                         const  AffineConstraints<double>& constraints,
                          const LA::MPI::Vector& vec1,
                          const LA::MPI::Vector& vec2,
                          LA::MPI::Vector& retval )

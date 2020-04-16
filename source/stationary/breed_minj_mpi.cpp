@@ -1,6 +1,6 @@
 //
 // atus-pro testing - atus-pro testing playgroung
-// Copyright (C) 2017 Želimir Marojević <zelimir.marojevic@gmail.com>
+// Copyright (C) 2020 Želimir Marojević <zelimir.marojevic@gmail.com>
 //
 // This file is part of atus-pro testing.
 //
@@ -17,9 +17,6 @@
 // You should have received a copy of the GNU General Public License
 // along with atus-pro testing.  If not, see <http://www.gnu.org/licenses/>.
 //
-
-/** Želimir Marojević
- */
 
 #include <deal.II/lac/generic_linear_algebra.h>
 

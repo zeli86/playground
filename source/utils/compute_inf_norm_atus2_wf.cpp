@@ -3,7 +3,7 @@
 // (CENTER OF APPLIED SPACE TECHNOLOGY AND MICROGRAVITY), Germany. This project is
 // founded by the DLR Agentur (Deutsche Luft und Raumfahrt Agentur). Grant numbers:
 // 50WM0942, 50WM1042, 50WM1342.
-// Copyright (C) 2017 Želimir Marojević, Ertan Göklü, Claus Lämmerzahl
+// Copyright (C) 2020 Želimir Marojević, Ertan Göklü, Claus Lämmerzahl
 //
 // This file is part of ATUS2.
 //

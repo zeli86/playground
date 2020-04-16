@@ -1,6 +1,6 @@
 //
 // atus-pro testing - atus-pro testing playgroung
-// Copyright (C) 2017 Želimir Marojević <zelimir.marojevic@gmail.com>
+// Copyright (C) 2020 Želimir Marojević <zelimir.marojevic@gmail.com>
 //
 // This file is part of atus-pro testing.
 //
@@ -18,9 +18,6 @@
 // along with atus-pro testing.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-/** Želimir Marojević
- */
-
 #include <deal.II/lac/generic_linear_algebra.h>
 
 namespace LA
@@ -31,18 +28,17 @@ namespace LA
 #include <deal.II/lac/vector.h>
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/lac/solver_cg.h>
-#include <deal.II/lac/constraint_matrix.h>
+#include <deal.II/lac/affine_constraints.h>
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
 
-#include <deal.II/lac/petsc_parallel_sparse_matrix.h>
-#include <deal.II/lac/petsc_parallel_vector.h>
+#include <deal.II/lac/petsc_sparse_matrix.h>
+#include <deal.II/lac/petsc_vector.h>
 #include <deal.II/lac/petsc_solver.h>
 #include <deal.II/lac/petsc_precondition.h>
 
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/tria_accessor.h>
 #include <deal.II/grid/tria_iterator.h>
-#include <deal.II/grid/tria_boundary_lib.h>
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_accessor.h>
@@ -116,7 +112,7 @@ namespace BreedSolver
   class MySolver
   {
   public:
-    MySolver( const std::string );
+    explicit MySolver( const std::string );
     virtual ~MySolver();
 
     void run ();
@@ -187,7 +183,7 @@ namespace BreedSolver
     DoFHandler<dim> dof_handler;
     IndexSet locally_owned_dofs;
     IndexSet locally_relevant_dofs;
-    ConstraintMatrix constraints;
+    AffineConstraints<double> constraints;
 
     LA::MPI::SparseMatrix system_matrix;
     LA::MPI::Vector newton_update;
@@ -244,7 +240,7 @@ namespace BreedSolver
       m_Ndmu = m_ph.Get_Algorithm("Ndmu",0); 
       m_dmu = m_ph.Get_Algorithm("dmu",0);
     }
-    catch( const std::string info )
+    catch( const std::string& info )
     {
       std::cerr << info << endl;
       MPI_Abort( mpi_communicator, 0 );
@@ -381,7 +377,7 @@ namespace BreedSolver
       if( cell->is_locally_owned() )
       {
         cell_rhs=0;
-	cell_matrix=0;
+	      cell_matrix=0;
 
         fe_values.reinit (cell);
         fe_values.get_function_values(m_workspace_1, vals);
@@ -395,8 +391,8 @@ namespace BreedSolver
           for (unsigned int i=0; i<dofs_per_cell; ++i)
           {
             cell_rhs(i) += JxW*(grads[qp][0]*fe_values[rt].gradient(i,qp) + Q1*vals[qp][0]*fe_values[rt].value(i,qp) + grads[qp][1]*fe_values[it].gradient(i,qp) + Q1*vals[qp][1]*fe_values[it].value(i,qp));
-	    for (unsigned int j=0; j<dofs_per_cell; ++j)
-	      cell_matrix(i,j) += JxW*(fe_values[rt].value(i,qp)*fe_values[rt].value(j,qp)+fe_values[it].value(i,qp)*fe_values[it].value(j,qp));
+	          for (unsigned int j=0; j<dofs_per_cell; ++j)
+	            cell_matrix(i,j) += JxW*(fe_values[rt].value(i,qp)*fe_values[rt].value(j,qp)+fe_values[it].value(i,qp)*fe_values[it].value(j,qp));
           }
         }
         cell->get_dof_indices (local_dof_indices);
@@ -517,10 +513,10 @@ namespace BreedSolver
         for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
           JxW = fe_values.JxW(qp)*fabs(fe_values.quadrature_point(qp)[1]);
-	  fak = m_gs*Psi_ref[qp][0]*Psi_ref[qp][1];
-	  Pot = Potential.value(fe_values.quadrature_point(qp)) - m_mu;
-	  req = Psi_ref[qp][0]*Psi_ref[qp][0];
-	  imq = Psi_ref[qp][1]*Psi_ref[qp][1];
+	        fak = m_gs*Psi_ref[qp][0]*Psi_ref[qp][1];
+	        Pot = Potential.value(fe_values.quadrature_point(qp)) - m_mu;
+	        req = Psi_ref[qp][0]*Psi_ref[qp][0];
+	        imq = Psi_ref[qp][1]*Psi_ref[qp][1];
 
           for (unsigned int i=0; i<dofs_per_cell; ++i)
             for (unsigned int j=0; j<dofs_per_cell; ++j)
@@ -564,10 +560,10 @@ namespace BreedSolver
         fe_values.get_function_values(m_workspace_1, vals);
         fe_values.get_function_gradients(m_workspace_1, grads);
 
-	for ( unsigned qp=0; qp<n_q_points; ++qp )
+	      for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
           uq = vals[qp]*vals[qp];
-	  psum += fe_values.JxW(qp)*fabs(fe_values.quadrature_point(qp)[1])*( grads[qp][0]*grads[qp][0] + grads[qp][1]*grads[qp][1] + (Potential.value(fe_values.quadrature_point(qp))-m_mu)*uq + 0.5*m_gs*uq*uq ); 
+	        psum += fe_values.JxW(qp)*fabs(fe_values.quadrature_point(qp)[1])*( grads[qp][0]*grads[qp][0] + grads[qp][1]*grads[qp][1] + (Potential.value(fe_values.quadrature_point(qp))-m_mu)*uq + 0.5*m_gs*uq*uq ); 
         }
       }
     }
@@ -656,7 +652,7 @@ namespace BreedSolver
         for (unsigned int v=0; v < GeometryInfo<dim>::vertices_per_cell; ++v )
         {
           Point<dim> p = cell->vertex(v);
-	  if( fabs(Potential_fct.value(p))  < isovalues[step] )
+	        if( fabs(Potential_fct.value(p))  < isovalues[step] )
           {
             cell->set_refine_flag ();
             break;
@@ -670,11 +666,11 @@ namespace BreedSolver
     {
       for (unsigned int f=0; f < GeometryInfo<dim>::faces_per_cell; ++f)
       {
-	const Point<dim> face_center = cell->face(f)->center();
-	if (cell->face(f)->at_boundary() && !(face_center[1]==0) )    
-	{
-	  cell->face(f)->set_all_boundary_ids(1);
-	}
+      	const Point<dim> face_center = cell->face(f)->center();
+      	if (cell->face(f)->at_boundary() && !(face_center[1]==0) )    
+      	{
+	        cell->face(f)->set_all_boundary_ids(1);
+	      }
       }
     }
 
@@ -759,8 +755,6 @@ namespace BreedSolver
   {
     m_computing_timer.enter_section(__func__);
     
-    string filename, filename2;
-    
     constraints.distribute(m_Psi_1);
     constraints.distribute(m_Psi_2);
     m_workspace_1=m_Psi_1;
@@ -787,8 +781,6 @@ namespace BreedSolver
   {
     m_computing_timer.enter_section(__func__);
 
-    string filename, filename2;
-
     Vector<float> subdomain (triangulation.n_active_cells());
     for (unsigned int i=0; i<subdomain.size(); ++i)
       subdomain(i) = triangulation.locally_owned_subdomain();
@@ -802,7 +794,7 @@ namespace BreedSolver
     data_out.add_data_vector (subdomain, "subdomain");
     data_out.build_patches ();
 
-    filename = path + prefix + "-" + Utilities::int_to_string (m_counter,5) + ".vtu";
+    std::string filename = path + prefix + "-" + Utilities::int_to_string (m_counter,5) + ".vtu";
     data_out.write_vtu_in_parallel (filename.c_str(), mpi_communicator);
 
     m_computing_timer.exit_section();    
@@ -1039,7 +1031,7 @@ namespace BreedSolver
   {
     m_workspace_1=m_Psi_ref;
     parallel::distributed::SolutionTransfer<dim,LA::MPI::Vector> solution_transfer(dof_handler);
-    solution_transfer.prepare_serialization(m_workspace_1);
+    solution_transfer.prepare_for_serialization(m_workspace_1);
     triangulation.save( filename.c_str() );
   }
   
@@ -1050,7 +1042,7 @@ namespace BreedSolver
     m_workspace_1=m_Psi_ref;
     m_workspace_1*=sqrt(1/tmp);
     parallel::distributed::SolutionTransfer<dim,LA::MPI::Vector> solution_transfer(dof_handler);
-    solution_transfer.prepare_serialization(m_workspace_1);
+    solution_transfer.prepare_for_serialization(m_workspace_1);
     triangulation.save( filename.c_str() );
   }
   

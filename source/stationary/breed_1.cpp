@@ -32,8 +32,6 @@
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/logstream.h>
 #include <deal.II/base/utilities.h>
-//include <deal.II/base/function.h>
-//#include <deal.II/base/function_parser.h>
 
 #include <deal.II/lac/vector.h>
 #include <deal.II/lac/full_matrix.h>
@@ -45,7 +43,6 @@
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/tria_accessor.h>
 #include <deal.II/grid/tria_iterator.h>
-#include <deal.II/grid/tria_boundary_lib.h>
 
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_accessor.h>
@@ -83,7 +80,7 @@ namespace BreedSolver_1
   class MySolver : public CBase<dim,2>
   {
   public:
-    MySolver( const std::string & );
+    explicit MySolver( const std::string & );
     ~MySolver();
 
     void run ();
@@ -208,8 +205,8 @@ namespace BreedSolver_1
 
       for ( unsigned qp = 0; qp < n_q_points; ++qp )
       {
-        double JxW = fe_values.JxW(qp);
-        double vec_val_q = vec_vals[qp] * vec_vals[qp];
+        const double JxW = fe_values.JxW(qp);
+        const double vec_val_q = vec_vals[qp] * vec_vals[qp];
         T += JxW * ( vec_grad[qp] * vec_grad[qp] + Potential.value(fe_values.quadrature_point(qp)) * vec_val_q);
         N += JxW * vec_val_q;
         W += JxW * vec_val_q * vec_val_q;
@@ -246,11 +243,11 @@ namespace BreedSolver_1
 
       for ( unsigned qp = 0; qp < n_q_points; ++qp )
       {
-        double JxW = fe_values.JxW(qp);
-        double p12 = Psi_1[qp] * Psi_2[qp];
-        double p1q = Psi_1[qp] * Psi_1[qp];
-        double p2q = Psi_2[qp] * Psi_2[qp];
-        double Q = Potential.value(fe_values.quadrature_point(qp)) - m_mu;
+        const double JxW = fe_values.JxW(qp);
+        const double p12 = Psi_1[qp] * Psi_2[qp];
+        const double p1q = Psi_1[qp] * Psi_1[qp];
+        const double p2q = Psi_2[qp] * Psi_2[qp];
+        const double Q = Potential.value(fe_values.quadrature_point(qp)) - m_mu;
 
         m_I[0] += JxW*p1q*p1q;
         m_I[1] += JxW*p2q*p2q;
@@ -314,8 +311,8 @@ namespace BreedSolver_1
 
       for ( unsigned qp = 0; qp < n_q_points; ++qp )
       {
-        double JxW = fe_values.JxW(qp);
-        double Q2 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + 3.0 * m_gs * Psi_ref[qp] * Psi_ref[qp];
+        const double JxW = fe_values.JxW(qp);
+        const double Q2 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + 3.0 * m_gs * Psi_ref[qp] * Psi_ref[qp];
 
         for ( unsigned i = 0; i < dofs_per_cell; ++i )
           for ( unsigned j = 0; j < dofs_per_cell; ++j )
@@ -361,8 +358,8 @@ namespace BreedSolver_1
 
       for ( unsigned qp = 0; qp < n_q_points; ++qp )
       {
-        double JxW = fe_values.JxW(qp);
-        double Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs * Psi_ref[qp] * Psi_ref[qp];
+        const double JxW = fe_values.JxW(qp);
+        const double Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs * Psi_ref[qp] * Psi_ref[qp];
 
         for ( unsigned i = 0; i < dofs_per_cell; ++i )
           cell_rhs(i) += JxW * (Psi_ref_grad[qp] * fe_values.shape_grad(i, qp) + Q1 * Psi_ref[qp] * fe_values.shape_value(i, qp));
@@ -536,8 +533,8 @@ namespace BreedSolver_1
 
       for ( unsigned qp = 0; qp < n_q_points; ++qp )
       {
-        double JxW = fe_values.JxW(qp);
-        double Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs * (vals[qp] * vals[qp]);
+        const double JxW = fe_values.JxW(qp);
+        const double Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs * (vals[qp] * vals[qp]);
 
         for ( unsigned i = 0; i < dofs_per_cell; ++i )
         {

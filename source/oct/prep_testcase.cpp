@@ -104,7 +104,6 @@ namespace realtime_propagation
 
       virtual double value ( const Point<dim> &p, const unsigned component = 0) const 
       {
-        double retval=0;
         double t = this->get_time();
       return (1+2*sin(m_dom*t))*m_omegaq[0]*p[0]*p[0] + m_omegaq[1]*p[1]*p[1];
       }
@@ -118,7 +117,7 @@ namespace realtime_propagation
   class MySolver
   {
   public:
-    MySolver( const std::string& );
+    explicit MySolver( const std::string& );
     ~MySolver();
 
     void run ();

@@ -1,6 +1,6 @@
 //
 // atus-pro testing - atus-pro testing playgroung
-// Copyright (C) 2017 Želimir Marojević <zelimir.marojevic@gmail.com>
+// Copyright (C) 2020 Želimir Marojević <zelimir.marojevic@gmail.com>
 //
 // This file is part of atus-pro testing.
 //
@@ -54,7 +54,6 @@
 
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/tria_accessor.h>
-#include <deal.II/grid/tria_boundary_lib.h>
 #include <deal.II/grid/tria_iterator.h>
 
 #include <deal.II/numerics/matrix_tools.h>
@@ -89,24 +88,24 @@ namespace BreedSolver_1
   class MySolver
   {
   public:
-    MySolver(const std::string);
+    explicit MySolver(const std::string&);
     virtual ~MySolver();
 
     void run();
 
   protected:
-    double m_xmin, m_xmax;
-    double m_ymin, m_ymax;
+    double m_xmin=-5.0, m_xmax=5.0;
+    double m_ymin=-5.0, m_ymax=5.0;
     double m_res, m_res_old, m_resp;
-    double m_final_error;
-    double m_N;
+    double m_final_error = 0.0;
+    double m_N = 0.0;
 
-    double m_mu;
-    double m_gs;
+    double m_mu=0.0;
+    double m_gs=1.0;
     vector<double> m_omega;
     vector<double> m_epsilon;
 
-    unsigned m_counter;
+    unsigned m_counter=0;
     unsigned m_global_refinement;
     unsigned m_NA;
 
@@ -151,7 +150,7 @@ namespace BreedSolver_1
    * Constructor
    */
   template <int dim>
-  MySolver<dim>::MySolver(const std::string xmlfilename) : 
+  MySolver<dim>::MySolver(const std::string& xmlfilename) : 
     m_ph(xmlfilename),
     triangulation(),
     fe(gl_degree_fe), 
@@ -172,7 +171,7 @@ namespace BreedSolver_1
       m_epsilon = m_ph.Get_Algorithm("epsilon");
       m_guess_str = m_ph.Get_Parameter("guess_fct");
     }
-    catch (const std::string info)
+    catch (const std::string& info)
     {
       std::cerr << info << endl;
     }
@@ -210,8 +209,8 @@ namespace BreedSolver_1
       fe_values.get_function_gradients(vec, grad);
       for (unsigned qp = 0; qp < n_q_points; ++qp)
       {
-        double vec_val_q = vals[qp] * vals[qp];
-        double JxW = fe_values.JxW(qp);
+        const double vec_val_q = vals[qp] * vals[qp];
+        const double JxW = fe_values.JxW(qp);
         T += JxW * (grad[qp] * grad[qp] + Potential.value(fe_values.quadrature_point(qp)) * vec_val_q);
         N += JxW * vec_val_q;
         W += JxW * vec_val_q * vec_val_q;
@@ -242,7 +241,7 @@ namespace BreedSolver_1
 
       for (unsigned qp = 0; qp < n_q_points; ++qp)
       {
-        double JxW = fe_values.JxW(qp);
+        const double JxW = fe_values.JxW(qp);
         sum[0] += JxW * (vals_3[qp] * vals_2[qp]);
         sum[1] += JxW * (vals_3[qp] * vals_1[qp]);
       }
@@ -285,8 +284,8 @@ namespace BreedSolver_1
 
       for ( unsigned qp=0; qp<n_q_points; ++qp )
       {
-          double JxW = fe_values.JxW(qp);
-          double Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs*(vals[qp]*vals[qp]);
+          const double JxW = fe_values.JxW(qp);
+          const double Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs*(vals[qp]*vals[qp]);
 
           for ( unsigned i=0; i<dofs_per_cell; ++i )
           {
@@ -340,8 +339,8 @@ namespace BreedSolver_1
 
       for (unsigned qp = 0; qp < n_q_points; ++qp)
       {
-        double JxW = fe_values.JxW(qp);
-        double Q1 = Potential.value(fe_values.quadrature_point(qp)) + m_gs * (vals[qp] * vals[qp]);
+        const double JxW = fe_values.JxW(qp);
+        const double Q1 = Potential.value(fe_values.quadrature_point(qp)) + m_gs * (vals[qp] * vals[qp]);
 
         for (unsigned i = 0; i < dofs_per_cell; ++i)
           cell_rhs(i) +=  JxW * (grads[qp] * fe_values.shape_grad(i, qp) + Q1 * vals[qp] * fe_values.shape_value(i, qp));
@@ -375,7 +374,7 @@ namespace BreedSolver_1
 
       for (unsigned qp = 0; qp < n_q_points; ++qp)
       {
-        double JxW = fe_values.JxW(qp);
+        const double JxW = fe_values.JxW(qp);
 
         for (unsigned i = 0; i < dofs_per_cell; ++i)
           for (unsigned j = 0; j < dofs_per_cell; ++j)
@@ -417,7 +416,7 @@ namespace BreedSolver_1
 
       for (unsigned qp = 0; qp < n_q_points; ++qp)
       {
-        double JxW = fe_values.JxW(qp);
+        const double JxW = fe_values.JxW(qp);
 
         for (unsigned i = 0; i < dofs_per_cell; ++i)
         {
@@ -459,7 +458,7 @@ namespace BreedSolver_1
 
       for (unsigned qp = 0; qp < n_q_points; ++qp)
       {
-        double uq = vals[qp] * vals[qp];
+        const double uq = vals[qp] * vals[qp];
         psum += fe_values.JxW(qp) * (grads[qp] * grads[qp] + (Potential.value(fe_values.quadrature_point(qp)) + m_gs * uq) * uq);
       }
     }
@@ -532,8 +531,6 @@ namespace BreedSolver_1
   int MySolver<dim>::DoIter(string path)
   {
     int retval = Status::SUCCESS;
-
-    double err;
 
     m_table.clear();
 

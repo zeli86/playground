@@ -1,5 +1,5 @@
-/* * atus-pro testing - atus-pro testing playgroung
- * Copyright (C) 2017 Želimir Marojević <zelimir.marojevic@gmail.com>
+/** atus-pro testing - atus-pro testing playgroung
+ * Copyright (C) 2020 Želimir Marojević <zelimir.marojevic@gmail.com>
  *
  * This file is part of atus-pro testing.
  *
