@@ -85,7 +85,7 @@ namespace BreedSolver_1
 
     void run ();
 
-    double m_I[8];
+    double m_I[8] = {};
   private:
     void make_grid();
     void setup_system();
@@ -228,7 +228,7 @@ namespace BreedSolver_1
     vector<double> Psi_2(n_q_points);
     vector<Tensor<1, dim>> Psi_1_grad(n_q_points);
     vector<Tensor<1, dim>> Psi_2_grad(n_q_points);
-    vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
+    
 
     for( int i=0; i<8; ++i ) m_I[i] = 0;
 
@@ -563,7 +563,7 @@ namespace BreedSolver_1
     string path;
     char shellcmd[255];
     double T, N, W;
-    int status;
+    
 
     make_grid();
     setup_system();
@@ -600,7 +600,7 @@ namespace BreedSolver_1
       m_ti = sqrt((m_mu * N - T) / (m_gs * W));
 #endif
 
-      status = DoIter(path);
+      const auto status = DoIter(path);
       estimate_error(m_final_error);
 
       columns &cols = m_results.new_line();

@@ -937,7 +937,7 @@ namespace BreedSolver
     
     m_Psi_C_ghosted=m_Psi_C;
     parallel::distributed::SolutionTransfer<dim,LA::MPI::Vector> solution_transfer(dof_handler_2);
-    solution_transfer.prepare_serialization(m_Psi_C_ghosted);
+    solution_transfer.prepare_for_serialization(m_Psi_C_ghosted);
     triangulation.save( filename.c_str() );
 
 /*    
@@ -956,7 +956,7 @@ namespace BreedSolver
   {
     constraints.distribute(m_Psi_ref);
     parallel::distributed::SolutionTransfer<dim,LA::MPI::Vector> solution_transfer(dof_handler);
-    solution_transfer.prepare_serialization(m_Psi_ref);
+    solution_transfer.prepare_for_serialization(m_Psi_ref);
 
     triangulation.save( filename.c_str() );
   }
@@ -968,7 +968,7 @@ namespace BreedSolver
     m_workspace_1=m_Psi_ref;
     m_workspace_1*=sqrt(1/tmp);
     parallel::distributed::SolutionTransfer<dim,LA::MPI::Vector> solution_transfer(dof_handler);
-    solution_transfer.prepare_serialization(m_workspace_1);
+    solution_transfer.prepare_for_serialization(m_workspace_1);
     triangulation.save( filename.c_str() );
   }
 

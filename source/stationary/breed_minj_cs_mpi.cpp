@@ -274,7 +274,6 @@ namespace BreedSolver
     vector<Vector<double>> vals(n_q_points,Vector<double>(2));    
     vector<vector<Tensor<1,dim>>> grad(n_q_points, vector<Tensor<1,dim>>(2));
     
-    double JxW, vec_val_q;
     double tmp[]={0,0,0}, res[]={0,0,0};
     
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
@@ -287,8 +286,8 @@ namespace BreedSolver
         fe_values.get_function_gradients(m_workspace_1, grad);
         for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
-          vec_val_q = vals[qp]*vals[qp];
-          JxW = fabs(fe_values.quadrature_point(qp)[1])*fe_values.JxW(qp);
+          const double vec_val_q = vals[qp]*vals[qp];
+          const double JxW = fabs(fe_values.quadrature_point(qp)[1])*fe_values.JxW(qp);
           tmp[0] += JxW*( grad[qp][0]*grad[qp][0] + grad[qp][1]*grad[qp][1] + Potential.value(fe_values.quadrature_point(qp))*vec_val_q );
           tmp[1] += JxW*vec_val_q;
           tmp[2] += JxW*vec_val_q*vec_val_q;
@@ -370,14 +369,13 @@ namespace BreedSolver
     vector<Vector<double>> vals(n_q_points,Vector<double>(2));
     vector<vector<Tensor<1,dim>>> grads(n_q_points, vector<Tensor<1,dim>>(2));
 
-    double JxW, Q1, pq, tmp;
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
     for ( ; cell!=endc; ++cell )
     {
       if( cell->is_locally_owned() )
       {
         cell_rhs=0;
-	      cell_matrix=0;
+        cell_matrix=0;
 
         fe_values.reinit (cell);
         fe_values.get_function_values(m_workspace_1, vals);
@@ -385,8 +383,8 @@ namespace BreedSolver
 
         for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
-          JxW = fe_values.JxW(qp)*fabs(fe_values.quadrature_point(qp)[1]);
-          Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs*(vals[qp]*vals[qp]);
+          const double JxW = fe_values.JxW(qp)*fabs(fe_values.quadrature_point(qp)[1]);
+          const double Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs*(vals[qp]*vals[qp]);
 
           for (unsigned int i=0; i<dofs_per_cell; ++i)
           {
@@ -438,7 +436,6 @@ namespace BreedSolver
     vector<Vector<double>> vals(n_q_points,Vector<double>(2));
     vector<vector<Tensor<1,dim>>> grads(n_q_points, vector<Tensor<1,dim>>(2));
     
-    double JxW, Q1, pq, tmp;
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
     for ( ; cell!=endc; ++cell )
     {
@@ -452,8 +449,8 @@ namespace BreedSolver
 
         for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
-          JxW = fe_values.JxW(qp)*fabs(fe_values.quadrature_point(qp)[1]);
-          Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs*(vals[qp]*vals[qp]);
+          const double JxW = fe_values.JxW(qp)*fabs(fe_values.quadrature_point(qp)[1]);
+          const double Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs*(vals[qp]*vals[qp]);
 
           for (unsigned int i=0; i<dofs_per_cell; ++i)
             cell_rhs(i) += JxW*(grads[qp][0]*fe_values[rt].gradient(i,qp) + Q1*vals[qp][0]*fe_values[rt].value(i,qp) 
@@ -479,8 +476,7 @@ namespace BreedSolver
     CPotential Potential( m_omega, m_QN1[2] );
     const QGauss<dim> quadrature_formula(fe.degree+1);
     //const QGauss<dim-1> face_quadrature_formula(fe.degree+1);
-   
-    
+       
     constraints.distribute(m_Psi_ref);
     m_workspace_1=m_Psi_ref;
     system_matrix=0;
@@ -498,7 +494,6 @@ namespace BreedSolver
     vector<vector<Tensor<1,dim>>> Psi_ref_grad(n_q_points, vector<Tensor<1,dim>>(2));
     vector<Vector<double>> Psi_ref(n_q_points,Vector<double>(2));
 
-    double JxW, Pot, fak, req, imq;
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
     for ( ; cell!=endc; ++cell )
     {
@@ -512,11 +507,11 @@ namespace BreedSolver
 
         for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
-          JxW = fe_values.JxW(qp)*fabs(fe_values.quadrature_point(qp)[1]);
-	        fak = m_gs*Psi_ref[qp][0]*Psi_ref[qp][1];
-	        Pot = Potential.value(fe_values.quadrature_point(qp)) - m_mu;
-	        req = Psi_ref[qp][0]*Psi_ref[qp][0];
-	        imq = Psi_ref[qp][1]*Psi_ref[qp][1];
+          const double JxW = fe_values.JxW(qp)*fabs(fe_values.quadrature_point(qp)[1]);
+	        const double fak = m_gs*Psi_ref[qp][0]*Psi_ref[qp][1];
+	        const double Pot = Potential.value(fe_values.quadrature_point(qp)) - m_mu;
+	        const double req = Psi_ref[qp][0]*Psi_ref[qp][0];
+	        const double imq = Psi_ref[qp][1]*Psi_ref[qp][1];
 
           for (unsigned int i=0; i<dofs_per_cell; ++i)
             for (unsigned int j=0; j<dofs_per_cell; ++j)
@@ -550,7 +545,7 @@ namespace BreedSolver
     vector<Vector<double>> vals(n_q_points,Vector<double>(2));
     vector<vector<Tensor<1,dim>>> grads(n_q_points, vector<Tensor<1,dim>>(2));
 
-    double psum=0, uq;
+    double psum=0;
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
     for ( ; cell!=endc; ++cell )
     {
@@ -562,7 +557,7 @@ namespace BreedSolver
 
 	      for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
-          uq = vals[qp]*vals[qp];
+          const double uq = vals[qp]*vals[qp];
 	        psum += fe_values.JxW(qp)*fabs(fe_values.quadrature_point(qp)[1])*( grads[qp][0]*grads[qp][0] + grads[qp][1]*grads[qp][1] + (Potential.value(fe_values.quadrature_point(qp))-m_mu)*uq + 0.5*m_gs*uq*uq ); 
         }
       }

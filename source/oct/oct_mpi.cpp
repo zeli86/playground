@@ -356,7 +356,7 @@ namespace realtime_propagation
   void MySolver<dim,no_time_steps>::save( string filename )
   {
     parallel::distributed::SolutionTransfer<dim,LA::MPI::Vector> solution_transfer(dof_handler);
-    solution_transfer.prepare_serialization(m_Psi);
+    solution_transfer.prepare_for_serialization(m_Psi);
 
     triangulation.save( filename.c_str() );
   }

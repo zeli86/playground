@@ -389,7 +389,7 @@ namespace BreedSolver
     m_workspace_1=m_solution;
 
     parallel::distributed::SolutionTransfer<2,LA::MPI::Vector> solution_transfer(dof_handler);
-    solution_transfer.prepare_serialization(m_workspace_1);
+    solution_transfer.prepare_for_serialization(m_workspace_1);
 
     triangulation.save( filename.c_str() );
   }

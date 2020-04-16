@@ -28,18 +28,17 @@ namespace LA
 #include <deal.II/lac/vector.h>
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/lac/solver_cg.h>
-#include <deal.II/lac/constraint_matrix.h>
+#include <deal.II/lac/affine_constraints.h>
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
 
-#include <deal.II/lac/petsc_parallel_sparse_matrix.h>
-#include <deal.II/lac/petsc_parallel_vector.h>
+#include <deal.II/lac/petsc_sparse_matrix.h>
+#include <deal.II/lac/petsc_vector.h>
 #include <deal.II/lac/petsc_solver.h>
 #include <deal.II/lac/petsc_precondition.h>
 
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/tria_accessor.h>
 #include <deal.II/grid/tria_iterator.h>
-#include <deal.II/grid/tria_boundary_lib.h>
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_accessor.h>
@@ -111,7 +110,7 @@ namespace BreedSolver
   class MySolver
   {
   public:
-    MySolver( const std::string );
+    explicit MySolver( const std::string );
     virtual ~MySolver();
 
     void run ();
@@ -181,7 +180,7 @@ namespace BreedSolver
     DoFHandler<dim> dof_handler;
     IndexSet locally_owned_dofs;
     IndexSet locally_relevant_dofs;
-    ConstraintMatrix constraints;
+    AffineConstraints<double> constraints;
 
     LA::MPI::SparseMatrix system_matrix;
     LA::MPI::Vector newton_update;
@@ -238,7 +237,7 @@ namespace BreedSolver
       m_dmu = m_ph.Get_Algorithm("dmu",0);
       m_epsilon = m_ph.Get_Algorithm("epsilon");
     }
-    catch( const std::string info )
+    catch( const std::string& info )
     {
       std::cerr << info << endl;
       MPI_Abort( mpi_communicator, 0 );
@@ -363,7 +362,6 @@ namespace BreedSolver
     vector<Vector<double>> vals(n_q_points,Vector<double>(2));
     vector<vector<Tensor<1,dim>>> grads(n_q_points, vector<Tensor<1,dim>>(2));
 
-    double JxW, Q1, pq, tmp;
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
     for ( ; cell!=endc; ++cell )
     {
@@ -378,8 +376,8 @@ namespace BreedSolver
 
         for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
-          JxW = fe_values.JxW(qp);
-          Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs*(vals[qp]*vals[qp]);
+          const double JxW = fe_values.JxW(qp);
+          const double Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs*(vals[qp]*vals[qp]);
 
           for ( unsigned i=0; i<dofs_per_cell; ++i )
           {
@@ -431,7 +429,6 @@ namespace BreedSolver
     vector<Vector<double>> vals(n_q_points,Vector<double>(2));
     vector<vector<Tensor<1,dim>>> grads(n_q_points, vector<Tensor<1,dim>>(2));
     
-    double JxW, Q1, pq, tmp;
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
     for ( ; cell!=endc; ++cell )
     {
@@ -445,8 +442,8 @@ namespace BreedSolver
 
         for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
-          JxW = fe_values.JxW(qp);
-          Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs*(vals[qp]*vals[qp]);
+          const double JxW = fe_values.JxW(qp);
+          const double Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs*(vals[qp]*vals[qp]);
 
           for (unsigned int i=0; i<dofs_per_cell; ++i)
             cell_rhs(i) += JxW*(grads[qp][0]*fe_values[rt].gradient(i,qp) + Q1*vals[qp][0]*fe_values[rt].value(i,qp) 
@@ -491,7 +488,6 @@ namespace BreedSolver
     vector<vector<Tensor<1,dim>>> Psi_ref_grad(n_q_points, vector<Tensor<1,dim>>(2));
     vector<Vector<double>> Psi_ref(n_q_points,Vector<double>(2));
 
-    double JxW, Pot, fak, req, imq;
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
     for ( ; cell!=endc; ++cell )
     {
@@ -505,11 +501,11 @@ namespace BreedSolver
 
         for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
-          JxW = fe_values.JxW(qp);
-	  fak = m_gs*Psi_ref[qp][0]*Psi_ref[qp][1];
-	  Pot = Potential.value(fe_values.quadrature_point(qp)) - m_mu;
-	  req = Psi_ref[qp][0]*Psi_ref[qp][0];
-	  imq = Psi_ref[qp][1]*Psi_ref[qp][1];
+          const double JxW = fe_values.JxW(qp);
+      	  const double fak = m_gs*Psi_ref[qp][0]*Psi_ref[qp][1];
+      	  const double Pot = Potential.value(fe_values.quadrature_point(qp)) - m_mu;
+      	  const double req = Psi_ref[qp][0]*Psi_ref[qp][0];
+      	  const double imq = Psi_ref[qp][1]*Psi_ref[qp][1];
 
           for (unsigned int i=0; i<dofs_per_cell; ++i)
             for (unsigned int j=0; j<dofs_per_cell; ++j)
@@ -543,7 +539,7 @@ namespace BreedSolver
     vector<Vector<double>> vals(n_q_points,Vector<double>(2));
     vector<vector<Tensor<1,dim>>> grads(n_q_points, vector<Tensor<1,dim>>(2));
 
-    double psum=0, uq;
+    double psum=0;
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
     for ( ; cell!=endc; ++cell )
     {
@@ -555,7 +551,7 @@ namespace BreedSolver
 
         for ( unsigned qp=0; qp<n_q_points; ++qp )
         {
-          uq = vals[qp]*vals[qp];
+          const double uq = vals[qp]*vals[qp];
           psum += fe_values.JxW(qp)*( grads[qp][0]*grads[qp][0] + grads[qp][1]*grads[qp][1] + (Potential.value(fe_values.quadrature_point(qp))-m_mu)*uq + 0.5*m_gs*uq*uq ); 
         }
       }
@@ -570,7 +566,6 @@ namespace BreedSolver
   {
     size_t iter=0;
     int status;
-    double size;
 
     gsl_multimin_function my_func;
     my_func.n = 2;
@@ -595,7 +590,7 @@ namespace BreedSolver
 
       if (status) break;
 
-      size = gsl_multimin_fminimizer_size (s);
+      const double size = gsl_multimin_fminimizer_size (s);
       status = gsl_multimin_test_size(size,1e-6);
     }
     while (status == GSL_CONTINUE && iter < 1000);
@@ -664,7 +659,7 @@ namespace BreedSolver
         for (unsigned int v=0; v < GeometryInfo<dim>::vertices_per_cell; ++v )
         {
           Point<dim> p = cell->vertex(v);
-	  if( fabs(Potential_fct.value(p))  < isovalues[step] )
+	        if( fabs(Potential_fct.value(p))  < isovalues[step] )
           {
             cell->set_refine_flag ();
             break;
@@ -1030,7 +1025,7 @@ namespace BreedSolver
   {
     m_workspace_1=m_Psi_ref;
     parallel::distributed::SolutionTransfer<dim,LA::MPI::Vector> solution_transfer(dof_handler);
-    solution_transfer.prepare_serialization(m_workspace_1);
+    solution_transfer.prepare_for_serialization(m_workspace_1);
     triangulation.save( filename.c_str() );
   }
 
@@ -1041,7 +1036,7 @@ namespace BreedSolver
     m_workspace_1=m_Psi_ref;
     m_workspace_1*=sqrt(1/tmp);
     parallel::distributed::SolutionTransfer<dim,LA::MPI::Vector> solution_transfer(dof_handler);
-    solution_transfer.prepare_serialization(m_workspace_1);
+    solution_transfer.prepare_for_serialization(m_workspace_1);
     triangulation.save( filename.c_str() );
   }
   

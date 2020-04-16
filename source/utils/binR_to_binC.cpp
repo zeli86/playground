@@ -202,7 +202,7 @@ namespace HelperPrograms
     MyComplexTools::MPI::Interpolate_R_to_C( mpi_communicator, dof_handler, fe, m_Psi_R_ghosted, dof_handler_2, fe_2, constraints_2, m_Psi_C_ghosted );
 
     parallel::distributed::SolutionTransfer<dim,LA::MPI::Vector> solution_transfer(dof_handler_2);
-    solution_transfer.prepare_serialization(m_Psi_C_ghosted);
+    solution_transfer.prepare_for_serialization(m_Psi_C_ghosted);
     triangulation.save( filename.c_str() );
   }  
 

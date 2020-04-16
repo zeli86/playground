@@ -436,7 +436,7 @@ namespace BreedSolver
     x_system[1] = &m_Psi_C_ghosted_f;
     
     parallel::distributed::SolutionTransfer<dim,LA::MPI::Vector> solution_transfer(dof_handler_2);
-    solution_transfer.prepare_serialization(x_system);
+    solution_transfer.prepare_for_serialization(x_system);
     triangulation.save( "oct_0.bin" );    
   }
 
@@ -475,7 +475,7 @@ namespace BreedSolver
     constraints.distribute(m_Psi);
     m_workspace_1 = m_Psi;
     parallel::distributed::SolutionTransfer<dim,LA::MPI::Vector> solution_transfer(dof_handler);
-    solution_transfer.prepare_serialization(m_workspace_1);
+    solution_transfer.prepare_for_serialization(m_workspace_1);
     triangulation.save( filename.c_str() );
   }
   
@@ -488,7 +488,7 @@ namespace BreedSolver
     m_workspace_ng*=sqrt(1/tmp);
     m_workspace_1 = m_workspace_ng; 
     parallel::distributed::SolutionTransfer<dim,LA::MPI::Vector> solution_transfer(dof_handler);
-    solution_transfer.prepare_serialization(m_workspace_1);
+    solution_transfer.prepare_for_serialization(m_workspace_1);
     triangulation.save( filename.c_str() );
   }
 } // end of namespace 

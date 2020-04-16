@@ -49,7 +49,7 @@ template <int dim, int N>
 class CBase
 {
   public:
-    CBase( const std::string& );
+    explicit CBase( const std::string& );
     virtual ~CBase() {};
     
     void find_ortho_min();
@@ -120,7 +120,7 @@ CBase<dim,N>::CBase( const std::string& xmlfilename )
     m_Ndmu = m_ph.Get_Algorithm("Ndmu",0); 
     m_dmu = m_ph.Get_Algorithm("dmu",0);
   }
-  catch( const std::string info )
+  catch( const std::string& info )
   {
     std::cerr << info << endl;
     throw;

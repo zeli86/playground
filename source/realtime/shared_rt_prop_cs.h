@@ -150,7 +150,7 @@
     x_system[1] = &m_workspace_2;
     
     parallel::distributed::SolutionTransfer<dim,LA::MPI::Vector> solution_transfer(dof_handler);
-    solution_transfer.prepare_serialization(x_system);
+    solution_transfer.prepare_for_serialization(x_system);
 
     triangulation.save( filename.c_str() );
   }
