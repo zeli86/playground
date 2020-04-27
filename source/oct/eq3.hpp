@@ -105,8 +105,7 @@
    for( int i=1; i<no_time_steps-1; i++ ) lap(i,i+1) = -1; // rechte Nebendiagonale 
    for( int i=1; i<no_time_steps-1; i++ ) lap(i,i-1) = -1; // linke Nebendiagonale
    
-   lap.compute_lu_factorization();
-   lap.apply_lu_factorization(m_grad,false);
+   lap.solve(m_grad,false);
 
    //vector<vector<double>> new_lambdas(nolam,vector<double>(no_time_steps));
 
