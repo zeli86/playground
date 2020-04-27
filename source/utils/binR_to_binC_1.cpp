@@ -21,13 +21,13 @@
 #include <deal.II/lac/generic_linear_algebra.h>
 #include <deal.II/lac/vector.h>
 #include <deal.II/lac/full_matrix.h>
-#include <deal.II/lac/constraint_matrix.h>
+#include <deal.II/lac/affine_constraints.h>
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
 
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/tria_accessor.h>
 #include <deal.II/grid/tria_iterator.h>
-#include <deal.II/grid/tria_boundary_lib.h>
+
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_accessor.h>
 #include <deal.II/dofs/dof_tools.h>
@@ -74,7 +74,7 @@ namespace HelperPrograms
     DoFHandler<dim> dof_handler;
     FESystem<dim> fe_2;
     DoFHandler<dim> dof_handler_2;
-    ConstraintMatrix constraints, constraints_2;
+    AffineConstraints<double> constraints, constraints_2;
 
     string m_bin_filename;
 
@@ -82,7 +82,6 @@ namespace HelperPrograms
     Vector<double> m_Psi_R;
 
     double m_xmin, m_xmax;
-    //double m_ymin, m_ymax;
     unsigned m_global_refinement;
   };
 
