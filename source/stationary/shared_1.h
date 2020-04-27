@@ -26,32 +26,30 @@
   {
     m_computing_timer.enter_section(__func__);
     
-    constraints.distribute(vec);
-    m_workspace_1 = vec;
+    this->m_constraints.distribute(vec);
+    this->m_Workspace[0] = vec;
     
     CPotential<dim> Potential( m_omega );
-    const QGauss<dim>  quadrature_formula(fe.degree+1);
-    FEValues<dim> fe_values (fe, quadrature_formula, update_gradients|update_values|update_JxW_values|update_quadrature_points);
+    const QGauss<dim>  quadrature_formula(this->m_FE.degree+1);
+    FEValues<dim> fe_values (this->m_FE, quadrature_formula, update_gradients|update_values|update_JxW_values|update_quadrature_points);
 
     const unsigned int n_q_points = quadrature_formula.size();
     vector<double> vec_vals(n_q_points);
     vector<Tensor<1, dim> > vec_grad(n_q_points);
 
-    double JxW, vec_val_q;
-    
-    double tmp1[3]={}, res[3]={};
-    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
+    double tmp1[]={0,0,0}, res[]={0,0,0};
+    typename DoFHandler<dim>::active_cell_iterator cell = this->m_DOF_Handler.begin_active(), endc = this->m_DOF_Handler.end();
     for ( ; cell!=endc; ++cell )
     {
       if( cell->is_locally_owned() )
       {
         fe_values.reinit (cell);
-        fe_values.get_function_values(m_workspace_1, vec_vals);
-        fe_values.get_function_gradients(m_workspace_1, vec_grad);
+        fe_values.get_function_values( this->m_Workspace[0], vec_vals);
+        fe_values.get_function_gradients( this->m_Workspace[0], vec_grad);
         for ( unsigned qp=0; qp<n_q_points; qp++ )
         {
-          JxW = fe_values.JxW(qp);
-          vec_val_q = vec_vals[qp]*vec_vals[qp];
+          const double JxW = fe_values.JxW(qp);
+          const double vec_val_q = vec_vals[qp]*vec_vals[qp];
           tmp1[0] += JxW*( vec_grad[qp]*vec_grad[qp] + Potential.value(fe_values.quadrature_point(qp))*vec_val_q );
           tmp1[1] += JxW*vec_val_q;
           tmp1[2] += JxW*vec_val_q*vec_val_q;
@@ -69,17 +67,17 @@
     m_computing_timer.enter_section(__func__);
     
     CPotential<dim> Potential( m_omega );
-    const QGauss<dim> quadrature_formula(fe.degree+1);
+    const QGauss<dim> quadrature_formula(this->m_FE.degree+1);
    
-    constraints.distribute(m_Psi_ref);
-    m_workspace_1=m_Psi_ref;
+    this->m_constraints.distribute(this->m_Psi_Ref);
+    this->m_Workspace[0]=this->m_Psi_Ref;
     
-    m_system_rhs=0;
-    m_system_matrix=0;
+    this->m_System_RHS=0;
+    this->m_System_Matrix=0;
 
-    FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_gradients|update_JxW_values|update_quadrature_points);
+    FEValues<dim> fe_values (this->m_FE, quadrature_formula, update_values|update_gradients|update_JxW_values|update_quadrature_points);
 
-    const unsigned dofs_per_cell = fe.dofs_per_cell;
+    const unsigned dofs_per_cell = this->m_FE.dofs_per_cell;
     const unsigned n_q_points = quadrature_formula.size();
 
     Vector<double> cell_rhs (dofs_per_cell);
@@ -89,7 +87,7 @@
     vector<double> vals(n_q_points);
     vector<Tensor<1,dim>> grads(n_q_points);
 
-    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
+    typename DoFHandler<dim>::active_cell_iterator cell = this->m_DOF_Handler.begin_active(), endc = this->m_DOF_Handler.end();
     for ( ; cell!=endc; ++cell )
     {
       if( cell->is_locally_owned() )
@@ -98,13 +96,13 @@
         cell_matrix=0;
 
         fe_values.reinit (cell);
-        fe_values.get_function_values(m_workspace_1, vals);
-        fe_values.get_function_gradients(m_workspace_1, grads);
+        fe_values.get_function_values( this->m_Workspace[0], vals);
+        fe_values.get_function_gradients( this->m_Workspace[0], grads);
 
         for ( unsigned qp=0; qp<n_q_points; qp++ )
         {
-          double JxW = fe_values.JxW(qp);
-          double Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs*(vals[qp]*vals[qp]);
+          const double JxW = fe_values.JxW(qp);
+          const double Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs*(vals[qp]*vals[qp]);
 
           for ( unsigned i=0; i<dofs_per_cell; i++ )
           {
@@ -114,17 +112,17 @@
           }
         }
         cell->get_dof_indices (local_dof_indices);
-        constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, m_system_matrix, m_system_rhs);
+        this->m_constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, this->m_System_Matrix, this->m_System_RHS);
       }
     }
-    m_system_rhs.compress(VectorOperation::add);   
-    m_system_matrix.compress(VectorOperation::add);   
+    this->m_System_RHS.compress(VectorOperation::add);   
+    this->m_System_Matrix.compress(VectorOperation::add);   
 
     solve();
     
-    m_workspace_1=m_newton_update;
-    VectorTools::integrate_difference ( dof_handler, m_workspace_1, ZeroFunction<dim>(2), m_error_per_cell, QGauss<dim>(fe.degree+2), VectorTools::L2_norm);    
-    const double total_local_error = m_error_per_cell.l2_norm();
+    this->m_Workspace[0]=this->m_Search_Direction;
+    VectorTools::integrate_difference ( this->m_DOF_Handler,  this->m_Workspace[0], ZeroFunction<dim>(2), this->m_error_per_cell, QGauss<dim>(this->m_FE.degree+2), VectorTools::L2_norm);    
+    const double total_local_error = this->m_error_per_cell.l2_norm();
     err = std::sqrt (Utilities::MPI::sum (total_local_error * total_local_error, MPI_COMM_WORLD));     
   
     m_computing_timer.exit_section();
@@ -143,8 +141,8 @@
     constraints.distribute (m_newton_update);
 */    
 
-    m_newton_update = 0;
-    SolverControl solver_control (m_newton_update.size(), m_res*1e-4);
+    this->m_Search_Direction = 0;
+    SolverControl solver_control (this->m_Search_Direction.size(), m_res*1e-4);
     //PETScWrappers::SolverGMRES solver (solver_control, mpi_communicator);
     PETScWrappers::SolverBicgstab solver (solver_control, mpi_communicator);
     
@@ -152,11 +150,11 @@
     //PETScWrappers::PreconditionBlockJacobi preconditioner(m_system_matrix,adata);    
     
     PETScWrappers::PreconditionParaSails::AdditionalData adata;
-    PETScWrappers::PreconditionParaSails preconditioner(m_system_matrix,adata);    
+    PETScWrappers::PreconditionParaSails preconditioner(this->m_System_Matrix,adata);    
 
     try 
     {
-      solver.solve(m_system_matrix, m_newton_update, m_system_rhs, preconditioner);
+      solver.solve(this->m_System_Matrix, this->m_Search_Direction, this->m_System_RHS, preconditioner);
     }
     catch( ExceptionBase& e )
     {
@@ -164,7 +162,7 @@
       //pcout << "Possible singular matrix!" << endl;
       return false;
     }
-    constraints.distribute (m_newton_update);
+    this->m_constraints.distribute ( this->m_Search_Direction);
 
     m_computing_timer.exit_section();
     return true;

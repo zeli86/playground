@@ -24,6 +24,8 @@
 #define STR1(x) #x
 #define STR2(x) STR1(x)
 
+#include <type_traits>
+
 #include "ref_pt_list.h"
 #include "nlopt.h"
 #include "pugixml.hpp"
@@ -49,26 +51,57 @@ template <int dim, int N>
 class CBase
 {
   public:
-    CBase( const std::string );
-    virtual ~CBase() {};
+    explicit CBase( const std::string );
+    virtual ~CBase() 
+    {
+      m_DOF_Handler.clear ();
+    };
     
     int find_ortho_min();
+
     void dump_info_xml( const string="" );
 
     double l2norm_t();
     
     virtual void compute_contributions()=0;
+
+    void setup_system();
+
+    void do_linear_superposition(); 
+
+    void update_workspace();
+
+    void save( const std::string& );
+
+    void output_guess ();
+
+    void output_results ( const std::string&, std::string = "step");
  
     MPI_Comm mpi_communicator;
   protected:
+    typedef typename std::conditional<(dim == 1), dealii::Vector<double>, dealii::LinearAlgebraPETSc::MPI::Vector>::type aVector;
+    typedef typename std::conditional<(dim == 1), dealii::SparseMatrix<double>, dealii::LinearAlgebraPETSc::MPI::SparseMatrix>::type aSparseMatrix;
+    typedef typename std::conditional<(dim == 1), dealii::Triangulation<dim>, dealii::parallel::distributed::Triangulation<dim>>::type aTriangulation;
+
+    aVector m_Psi_Ref; // non ghosted 
+    aVector m_System_RHS; // non ghosted 
+    aVector m_Search_Direction; // non ghosted 
+    aVector m_Workspace_NG;
+    dealii::Vector<double> m_error_per_cell;
+
+    std::array<aVector,N> m_Psi; // non ghosted 
+    std::array<aVector,N> m_Workspace; // ghosted 
+
+    aSparseMatrix m_System_Matrix;
+
+    AffineConstraints<double> m_constraints;
+    IndexSet m_locally_owned_dofs;
+    IndexSet m_locally_relevant_dofs;
+
     void screening();
 
     double m_t[N];
     double m_t_guess[N];
-
-    double m_xmin, m_xmax;
-    double m_ymin, m_ymax;
-    double m_zmin, m_zmax;
 
     double m_res;
     double m_res_old;
@@ -76,16 +109,16 @@ class CBase
     double m_ti;    
     double m_final_error;
     double m_N;
-    double m_mu;
-    double m_dmu;
-    double m_gs;
+    double m_mu = 0;
+    double m_dmu = 0.1;
+    double m_gs = 1;
     vector<double> m_omega;
     vector<double> m_epsilon;
 
-    int m_rank;
+    int m_rank = -1;
 
     unsigned m_counter;
-    unsigned m_maxiter;
+    unsigned m_maxiter = 500;
     unsigned m_global_refinement;
     unsigned m_total_no_cells;
     unsigned m_total_no_active_cells;    
@@ -99,8 +132,13 @@ class CBase
     bool m_root;
     ConditionalOStream pcout;
 
+    aTriangulation m_Triangulation;
+    FE_Q<dim> m_FE;
+    DoFHandler<dim> m_DOF_Handler;
+
     MyUtils::ref_pt_list<N> m_ref_pt_list;
     MyUtils::ref_pt_list<N> m_ref_pt_list_tmp;
+
 };
 
 template <int dim, int N>
@@ -111,7 +149,10 @@ CBase<dim,N>::CBase( const std::string xmlfilename  )
   m_computing_timer(mpi_communicator, m_computing_timer_log, TimerOutput::summary, TimerOutput:: cpu_and_wall_times ), 
   m_ph(xmlfilename),
   m_root(Utilities::MPI::this_mpi_process(mpi_communicator) == 0),
-  pcout (cout, m_root)
+  pcout (cout, m_root),
+  m_Triangulation (mpi_communicator, typename Triangulation<dim>::MeshSmoothing(Triangulation<dim>::limit_level_difference_at_vertices|Triangulation<dim>::eliminate_refined_inner_islands|Triangulation<dim>::smoothing_on_refinement|Triangulation<dim>::smoothing_on_coarsening)),
+  m_FE (gl_degree_fe),
+  m_DOF_Handler(m_Triangulation)
 {
   try 
   {
@@ -121,12 +162,6 @@ CBase<dim,N>::CBase( const std::string xmlfilename  )
     m_QN1[1] = int(m_ph.Get_Physics("QN1",1));
     m_QN1[2] = int(m_ph.Get_Physics("QN1",2));
 
-    m_xmin = m_ph.Get_Mesh("xrange",0);
-    m_xmax = m_ph.Get_Mesh("xrange",1);
-    m_ymin = m_ph.Get_Mesh("yrange",0);
-    m_ymax = m_ph.Get_Mesh("yrange",1);
-    m_zmin = m_ph.Get_Mesh("zrange",0);
-    m_zmax = m_ph.Get_Mesh("zrange",1);
     m_global_refinement = unsigned(m_ph.Get_Mesh("global_refinements",0));
 
     m_ti = m_ph.Get_Algorithm("ti",0);
@@ -140,7 +175,7 @@ CBase<dim,N>::CBase( const std::string xmlfilename  )
     m_Ndmu = m_ph.Get_Algorithm("Ndmu",0); 
     m_dmu = m_ph.Get_Algorithm("dmu",0);
   }
-  catch( const std::string info )
+  catch( const std::string& info )
   {
     std::cerr << info << endl;
     MPI_Abort( mpi_communicator, 0 );
@@ -149,7 +184,6 @@ CBase<dim,N>::CBase( const std::string xmlfilename  )
   MPI_Comm_rank(mpi_communicator, &m_rank);
   
   m_counter=0;
-  m_maxiter = 500;
   m_final_error=0;
 }
 
@@ -272,6 +306,123 @@ void CBase<dim,N>::dump_info_xml ( const string path )
   node.append_child(pugi::node_pcdata).set_value( STR2(GIT_SHA1) );
   
   doc.save_file(filename.c_str());
+}
+
+template <int dim, int N>
+void CBase<dim,N>::setup_system()
+{
+  m_computing_timer.enter_section(__func__);
+
+  m_DOF_Handler.distribute_dofs (m_FE);
+  
+  m_locally_owned_dofs = m_DOF_Handler.locally_owned_dofs ();
+  DoFTools::extract_locally_relevant_dofs (m_DOF_Handler, m_locally_relevant_dofs);
+
+  m_Psi_Ref.reinit (m_locally_owned_dofs, m_locally_relevant_dofs, mpi_communicator);
+  m_Search_Direction.reinit (m_locally_owned_dofs, mpi_communicator);
+  m_System_RHS.reinit(m_locally_owned_dofs, mpi_communicator);
+  m_Workspace_NG.reinit (m_locally_owned_dofs, mpi_communicator);
+  m_error_per_cell.reinit(m_Triangulation.n_active_cells());
+
+  for( int i=0; i<N; ++i )
+  {
+    m_Psi[i].reinit (m_locally_owned_dofs, mpi_communicator);
+    m_Workspace[i].reinit (m_locally_owned_dofs, m_locally_relevant_dofs, mpi_communicator);
+  }
+  
+  m_constraints.clear ();
+  m_constraints.reinit (m_locally_relevant_dofs);
+  DoFTools::make_hanging_node_constraints (m_DOF_Handler, m_constraints);
+  VectorTools::interpolate_boundary_values (m_DOF_Handler, 1, ZeroFunction<dim>(), m_constraints);
+  if( m_QN1[2] > 0 )
+    VectorTools::interpolate_boundary_values (m_DOF_Handler, 0, ZeroFunction<dim>(), m_constraints);
+  m_constraints.close ();
+
+  DynamicSparsityPattern csp (m_locally_relevant_dofs);
+  DoFTools::make_sparsity_pattern (m_DOF_Handler, csp, m_constraints, false);
+  SparsityTools::distribute_sparsity_pattern (csp, m_DOF_Handler.n_locally_owned_dofs_per_processor(), mpi_communicator, m_locally_relevant_dofs);
+  m_System_Matrix.reinit (m_locally_owned_dofs, m_locally_owned_dofs, csp, mpi_communicator);
+
+  m_computing_timer.exit_section();
+}
+
+template <int dim, int N>
+void CBase<dim,N>::do_linear_superposition()
+{
+  m_Psi_Ref=0;
+
+  for( int i=0; i<N; i++)
+  {
+    m_Psi_Ref.add(m_t[i],m_Psi[i]);
+  }
+  m_constraints.distribute (m_Psi_Ref);
+}
+
+template <int dim, int N>
+void CBase<dim,N>::update_workspace()
+{
+  for( int i=0; i<N; i++)
+  {
+    m_constraints.distribute(m_Psi[i]);
+    m_Workspace[i] = m_Psi[i];
+  }
+}
+
+template <int dim, int N>
+void CBase<dim,N>::save( const std::string& filename )
+{
+  m_constraints.distribute(m_Psi_Ref);    
+  parallel::distributed::SolutionTransfer<dim,LA::MPI::Vector> solution_transfer(m_DOF_Handler);
+  solution_transfer.prepare_for_serialization(m_Psi_Ref);
+
+  m_Triangulation.save( filename.c_str() );
+}
+
+template <int dim, int N>
+void CBase<dim,N>::output_results ( const std::string& path, std::string prefix )
+{
+  m_computing_timer.enter_section(__func__);
+
+  string filename;
+
+  Vector<float> subdomain (m_Triangulation.n_active_cells());
+  for (unsigned int i=0; i<subdomain.size(); ++i)
+    subdomain(i) = m_Triangulation.locally_owned_subdomain();
+
+  DataOut<dim> data_out;
+  data_out.attach_dof_handler (m_DOF_Handler);
+  data_out.add_data_vector (m_Psi_Ref, "Psi_sol");
+  data_out.add_data_vector (m_error_per_cell, "error per cell");
+  data_out.add_data_vector (subdomain, "subdomain");
+  data_out.build_patches ();
+
+  filename = path + prefix + "-" + Utilities::int_to_string (m_counter,5) + ".vtu";
+  data_out.write_vtu_in_parallel (filename.c_str(), mpi_communicator);
+
+  m_computing_timer.exit_section();    
+}
+
+template <int dim, int N>
+void CBase<dim,N>::output_guess ()
+{
+  m_computing_timer.enter_section(__func__);
+  
+  this->update_workspace();
+  
+  // CPotential Potential_fct ( m_omega, m_QN1[2] );
+  // VectorTools::interpolate (this->m_DOF_Handler, Potential_fct, this->m_Workspace_NG );
+  // this->m_constraints.distribute(this->m_Workspace_NG);
+  // this->m_Psi_Ref=this->m_Workspace_NG;
+  
+  DataOut<dim> data_out;
+  data_out.attach_dof_handler (this->m_DOF_Handler);
+  data_out.add_data_vector (this->m_Workspace[0], "Psi_0"); // todo : loop
+  data_out.add_data_vector (this->m_Workspace[1], "Psi_1");
+  // data_out.add_data_vector (this->m_Psi_Ref, "m_Potential");
+  data_out.build_patches ();
+  data_out.write_vtu_in_parallel ("guess.vtu",mpi_communicator);
+
+  m_computing_timer.exit_section();
 }
 
 #endif
