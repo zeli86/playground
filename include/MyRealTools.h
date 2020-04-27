@@ -63,7 +63,6 @@ namespace MyRealTools
     vector<double> d(n_q_points);
     vector<Tensor<1,dim>> u_grad(n_q_points);
     vector<Tensor<1,dim>> d_grad(n_q_points);
-    vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
 
     double total_int[4] = {};
     
