@@ -139,7 +139,7 @@ template <int dim>
 class CPotential : public Function<dim>
 {
   public:
-    CPotential ( std::vector<double> a ) : Function<dim>() { m_fakx=a[0]; m_faky=a[1]; m_fakz=a[2];  }
+    explicit CPotential ( std::vector<double> a ) : Function<dim>() { m_fakx=a[0]; m_faky=a[1]; m_fakz=a[2];  }
     virtual double value ( const Point<dim> &p, const unsigned component = 0) const;
 
     double m_fakx;

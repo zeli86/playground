@@ -29,7 +29,7 @@
 class MyParameterHandler
 {
 public:
-  MyParameterHandler( const std::string );
+  explicit MyParameterHandler( const std::string );
   virtual ~MyParameterHandler(){};
   
   std::string Get_Parameter( const std::string );
