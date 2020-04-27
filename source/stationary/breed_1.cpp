@@ -221,8 +221,7 @@ namespace BreedSolver_1
     const QGauss<dim>  quadrature_formula(fe.degree + 1);
     FEValues<dim> fe_values (fe, quadrature_formula, update_gradients | update_values | update_JxW_values | update_quadrature_points);
 
-    const unsigned dofs_per_cell = fe.dofs_per_cell;
-    const unsigned n_q_points    = quadrature_formula.size();
+    const unsigned n_q_points = quadrature_formula.size();
 
     vector<double> Psi_1(n_q_points);
     vector<double> Psi_2(n_q_points);
