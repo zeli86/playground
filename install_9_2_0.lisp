@@ -12,15 +12,16 @@
                       (uiop:getenv "CXX")))
 
 (defvar *packages*
-  '((:name openmpi :version "4.0.3"
-     :url "https://download.open-mpi.org/release/open-mpi/v4.0/openmpi-4.0.3.tar.gz")
-    (:name boost :version "1.72.0"
-     :url "https://dl.bintray.com/boostorg/release/1.72.0/source/boost_1_72_0.tar.gz")
-    (:name nlopt :version "2.6.1"
-     :url "https://github.com/stevengj/nlopt/archive/v2.6.1.tar.gz"
-     :path "nlopt-2.6.1")
-    (:name lapack :version "3.8.0"
-     :url "http://www.netlib.org/lapack/lapack-3.8.0.tar.gz")
+  '((:name openmpi :version "4.0.5"
+     :url "https://download.open-mpi.org/release/open-mpi/v4.0/openmpi-4.0.5.tar.gz")
+    (:name boost :version "1.74.0"
+     :url "https://dl.bintray.com/boostorg/release/1.74.0/source/boost_1_74_0.tar.gz")
+    (:name nlopt :version "2.6.2"
+     :url "https://github.com/stevengj/nlopt/archive/v2.6.2.tar.gz"
+     :path "nlopt-2.6.2")
+    (:name lapack :version "3.9.0"
+     :url "https://github.com/Reference-LAPACK/lapack/archive/v3.9.0.tar.gz"
+     :path "lapack-3.9.0")
     (:name gsl :version "2.6"
      :url "ftp://ftp.gnu.org/gnu/gsl/gsl-2.6.tar.gz")
     (:name muparser :version "2.2.6.1"
@@ -28,11 +29,11 @@
      :path "muparser-2.2.6.1")  
     (:name p4est :version "2.2"
      :url "https://p4est.github.io/release/p4est-2.2.tar.gz")
-    (:name petsc :version "3.10.2"
-     :url "http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.12.1.tar.gz"
-     :path "petsc-3.12.1")
-    (:name deal.ii :version "9.1.1"
-     :url "https://github.com/dealii/dealii/releases/download/v9.1.1/dealii-9.1.1.tar.gz")
+    (:name petsc :version "3.13.6"
+     :url "http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.13.6.tar.gz"
+     :path "petsc-3.13.6")
+    (:name deal.ii :version "9.2.0"
+     :url "https://github.com/dealii/dealii/releases/download/v9.2.0/dealii-9.2.0.tar.gz")
     (:name atus-pro :version "git"))
   "List of installable packages")
 
@@ -216,7 +217,14 @@ Otherwise returns nil. Test is done via equal."
   "Install method for muparser"
   (let* ((name (string-downcase (symbol-name sw-name)))
          (full-name (format nil "~a-~a" name version)))
-    (run (format nil "./configure --prefix=~a~a" *install-dir* full-name))
+    (uiop:chdir (uiop:ensure-pathname (format nil "~abuild/" (uiop:getcwd))
+                                      :ensure-directory t
+                                      :ensure-directories-exist t))
+    (run (format nil "cmake ~@[-DCMAKE_C_COMPILER=~a~] ~@[-DCMAKE_CXX_COMPILER=~a~] -DCMAKE_INSTALL_PREFIX=~a~a .."
+                 *CC*
+                 *CXX*
+                 *install-dir*
+                 full-name))
     (run "make clean")
     (run "make CFLAGS=\"-march=native -O3\"")
     (run "make install")

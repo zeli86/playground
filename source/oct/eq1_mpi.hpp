@@ -20,7 +20,7 @@
   template <int dim, int no_time_steps>
   void MySolver<dim,no_time_steps>::rt_propagtion_forward( const int ex )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     
     m_Psi = m_all_Psi[0];
     for( int i=1; i<no_time_steps; i++ )
@@ -53,13 +53,13 @@
 
     output_vec( "Psi_f_" + to_string(ex) + ".vtu", m_sol );
       
-    m_computing_timer.exit_section();
+    
   }
       
   template <int dim, int no_time_steps>
   void MySolver<dim,no_time_steps>::solve_eq1 ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     m_sol = 0;
     SolverControl solver_control (m_sol.size(), 1e-15);
@@ -80,13 +80,13 @@
     solver.solve(system_matrix, m_sol, system_rhs);
     constraints.distribute (m_sol);
 */
-    m_computing_timer.exit_section();
+    
   }
 
   template <int dim, int no_time_steps>
   void MySolver<dim,no_time_steps>::solve_cg ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     m_sol=0;
     PETScWrappers::PreconditionBlockJacobi::AdditionalData adata;
@@ -100,6 +100,6 @@
     constraints.distribute (m_sol);
     m_Psi = m_sol;
 
-    m_computing_timer.exit_section();
+    
   }
   

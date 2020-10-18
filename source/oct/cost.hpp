@@ -20,9 +20,9 @@
   template <int dim, int no_time_steps, int no_lam>
   void MySolver<dim,no_time_steps,no_lam>::compute_all_lambdas_t()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
-    m_computing_timer.exit_section();
+    
   }
   
   template <int dim, int no_time_steps, int no_lam>

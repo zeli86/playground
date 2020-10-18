@@ -23,7 +23,7 @@
   template <int dim>
   void MySolver<dim>::make_grid ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "make grid");
 
     Point<dim,double> pt1;
     Point<dim,double> pt2;
@@ -38,14 +38,12 @@
     }
 
     GridGenerator::hyper_rectangle(triangulation, pt2, pt1);
-
-    m_computing_timer.exit_section();
   }
   
   template<int dim>
   double MySolver<dim>::Particle_Number( LA::MPI::Vector& vec )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "compute particle number");
     double tmp1=0;
     
     const QGauss<dim>  quadrature_formula(fe.degree+1);
@@ -72,14 +70,14 @@
     tmp1 *= 2*M_PI;
     double retval;
     MPI_Allreduce( &tmp1, &retval, 1, MPI_DOUBLE, MPI_SUM, mpi_communicator);
-    m_computing_timer.exit_section();
   return retval;
   }
 
   template <int dim>
   void MySolver<dim>::setup_system( const bool initial_step )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "setup system");
+
     if( initial_step )
     {
       dof_handler.distribute_dofs (fe);
@@ -119,7 +117,6 @@
     SparsityTools::distribute_sparsity_pattern (dsp, dof_handler.n_locally_owned_dofs_per_processor(), mpi_communicator, locally_relevant_dofs);
 
     system_matrix.reinit (locally_owned_dofs, locally_owned_dofs, dsp, mpi_communicator);
-    m_computing_timer.exit_section();
   }
   
   template<int dim>
@@ -177,7 +174,8 @@
   template <int dim>
   void MySolver<dim>::output_results ( string path ) 
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "output results");
+
     string filename;
     ComputeIntensity<dim> intensities( "Intensity Psi" ) ;
     ComputeIntensity<dim> intensities2( "Intensity Psi_0" ) ;
@@ -214,14 +212,13 @@
     times_and_names.push_back (pair<double,string> (m_t, filename));
     ofstream pvd_output ("solution.pvd");
     data_out.write_pvd_record (pvd_output, times_and_names);    
-
-    m_computing_timer.exit_section();
   } 
   
   template<int dim>
   void MySolver<dim>::Expectation_value_position( LA::MPI::Vector& vec, double* retval )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "<x>");
+
     double tmp[] = {0,0,0}, JxWxn;
     
     constraints.distribute(vec);
@@ -254,13 +251,13 @@
       }
     }
     MPI_Allreduce( tmp, retval, 3, MPI_DOUBLE, MPI_SUM, mpi_communicator);
-    m_computing_timer.exit_section();
   }  
 
   template<int dim>
   void MySolver<dim>::Expectation_value_momentum( LA::MPI::Vector& vec, double* retval )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "<p>");
+
     double tmp[] = {0,0,0}, JxW;
     
     constraints.distribute(vec);
@@ -294,5 +291,4 @@
       }
     }
     MPI_Allreduce( tmp, retval, 3, MPI_DOUBLE, MPI_SUM, mpi_communicator);
-    m_computing_timer.exit_section();
   }

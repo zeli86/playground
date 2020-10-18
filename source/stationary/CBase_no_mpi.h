@@ -180,7 +180,7 @@ void CBase<dim,N>::screening()
     delete [] x;
     nlopt_destroy(opt);
   }
-  m_ref_pt_list_tmp.remove_zero_ref_points();  
+  m_ref_pt_list_tmp.condense();  
 }
 
 template <int dim, int N>
@@ -197,8 +197,7 @@ void CBase<dim,N>::find_ortho_min()
 
   CBase<dim,N>::screening();
 
-  m_ref_pt_list_tmp.remove_zero_ref_points();
-  m_ref_pt_list_tmp.remove_duplicates();
+  m_ref_pt_list_tmp.condense();
   
   for( auto it : m_ref_pt_list_tmp.m_list )
   {

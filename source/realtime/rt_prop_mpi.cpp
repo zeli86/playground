@@ -206,7 +206,8 @@ namespace realtime_propagation
   template <int dim>
   void MySolver<dim>::assemble_system ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "assemble system");
+
     const QGauss<dim> quadrature_formula(fe.degree+1);
 
     CPotential<dim> Potential ( m_omega );
@@ -242,7 +243,7 @@ namespace realtime_propagation
 
         fe_values.reinit (cell);
         fe_values.get_function_values(m_Psi, Psi);
-        fe_values.get_function_gradients(m_Psi, Psi_grad);
+        //fe_values.get_function_gradients(m_Psi, Psi_grad);
         fe_values.get_function_values(m_Psi_t, Psi_t);
         fe_values.get_function_gradients(m_Psi_t, Psi_t_grad);
 
@@ -277,13 +278,12 @@ namespace realtime_propagation
       }
     }
     system_matrix.compress(VectorOperation::add);
-    m_computing_timer.exit_section();
   }
 
   template <int dim>
   void MySolver<dim>::assemble_rhs ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "assemble rhs");
     const QGauss<dim> quadrature_formula(fe.degree+1);
 
     CPotential<dim> Potential ( m_omega );
@@ -347,13 +347,12 @@ namespace realtime_propagation
     }
     system_rhs.compress(VectorOperation::add);
     m_res = system_rhs.l2_norm();
-    m_computing_timer.exit_section();
   }
   
   template <int dim>
   void MySolver<dim>::solve ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "solve");
 
     SolverControl solver_control;
     PETScWrappers::SparseDirectMUMPS solver(solver_control, mpi_communicator);
@@ -361,13 +360,12 @@ namespace realtime_propagation
     solver.solve(system_matrix, newton_update, system_rhs);
 
     constraints.distribute (newton_update);
-    m_computing_timer.exit_section();
   }
   
   template<int dim> 
   void MySolver<dim>::DoIter()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "DoIter");
 
     m_Psi_t = m_Psi;
     m_res = 0;
@@ -390,7 +388,6 @@ namespace realtime_propagation
     m_t += m_dt;
 
     m_Psi = m_Psi_t;
-    m_computing_timer.exit_section();
   }
 
   template <int dim>

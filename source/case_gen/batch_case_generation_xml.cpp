@@ -126,11 +126,11 @@ int main( int argc, char *argv[] )
   
   auto result = options.parse(argc, argv);
 
-  if (result.count("") == 0)
-  {
-    std::cout << options.help({""}) << std::endl;
-    return EXIT_FAILURE;
-  }
+  // if (result.count("") == 0)
+  // {
+  //   std::cout << options.help({""}) << std::endl;
+  //   return EXIT_FAILURE;
+  // }
 
   int N = result["N"].as<int>();
   int dim = result["dim"].as<int>();

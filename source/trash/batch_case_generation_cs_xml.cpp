@@ -18,9 +18,6 @@
 // along with atus-pro testing.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-/*
-Želimir Marojević
-*/
 
 #include <stdlib.h>
 #include <stdio.h>

@@ -243,7 +243,7 @@ namespace realtime_propagation
   template <int dim, int no_time_steps>
   void MySolver<dim,no_time_steps>::make_grid ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     Point<dim,double> pt1;
     Point<dim,double> pt2;
 
@@ -257,13 +257,13 @@ namespace realtime_propagation
     }
 
     GridGenerator::hyper_rectangle(triangulation, pt2, pt1);
-    m_computing_timer.exit_section();
+    
   }
   
   template <int dim, int no_time_steps>
   void MySolver<dim,no_time_steps>::setup_system()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     dof_handler.distribute_dofs (fe);
     
     //DoFRenumbering::component_wise (dof_handler);
@@ -301,13 +301,13 @@ namespace realtime_propagation
     DoFTools::make_sparsity_pattern (dof_handler, dsp, constraints, false);
     SparsityTools::distribute_sparsity_pattern (dsp, dof_handler.n_locally_owned_dofs_per_processor(), mpi_communicator, locally_relevant_dofs);
     system_matrix.reinit (locally_owned_dofs, locally_owned_dofs, dsp, mpi_communicator);
-    m_computing_timer.exit_section();
+    
   }  
 
   template <int dim, int no_time_steps>
   void MySolver<dim,no_time_steps>::output_results ( std::string filename ) 
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     vector<std::string> solution_names;
     vector<std::string> solution_names_2;
@@ -330,13 +330,13 @@ namespace realtime_propagation
     //filename = path + "solution-" + to_string(m_timeindex) + ".vtu";
     data_out.write_vtu_in_parallel ( filename.c_str(), mpi_communicator );
 
-    m_computing_timer.exit_section();
+    
   }   
 
   template <int dim, int no_time_steps>
   void MySolver<dim,no_time_steps>::output_vec ( string filename, LA::MPI::Vector& vec ) 
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     
     vector<string> solution_names;
     m_workspace_3 = vec;
@@ -349,7 +349,7 @@ namespace realtime_propagation
     data_out.build_patches ();
     data_out.write_vtu_in_parallel ( filename.c_str(), mpi_communicator );
 
-    m_computing_timer.exit_section();
+    
   }     
   
   template <int dim, int no_time_steps>
@@ -384,7 +384,7 @@ namespace realtime_propagation
   template <int dim, int no_time_steps>
   void MySolver<dim,no_time_steps>::solve ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     LA::MPI::Vector tmp_vec(locally_owned_dofs, mpi_communicator);
     SolverControl solver_control;
     
@@ -394,7 +394,7 @@ namespace realtime_propagation
 
     constraints.distribute (tmp_vec);
     m_Psi = tmp_vec;
-    m_computing_timer.exit_section();
+    
   }
 
   template <int dim, int no_time_steps>

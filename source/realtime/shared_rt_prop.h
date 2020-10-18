@@ -22,7 +22,7 @@
   template <int dim>
   void MySolver<dim>::make_grid ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     Point<dim,double> pt1;
     Point<dim,double> pt2;
 
@@ -41,13 +41,13 @@
 //     tmp1[1] = triangulation.n_active_cells();
 //     MPI_Allreduce( tmp1, tmp2, 2, MPI_UNSIGNED, MPI_SUM, mpi_communicator);
 
-    m_computing_timer.exit_section();
+    
   }
   
   template <int dim>
   void MySolver<dim>::setup_system( const bool initial_step )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     if( initial_step )
     {
       dof_handler.distribute_dofs (fe);
@@ -83,13 +83,13 @@
     SparsityTools::distribute_sparsity_pattern (dsp, dof_handler.n_locally_owned_dofs_per_processor(), mpi_communicator, locally_relevant_dofs);
 
     system_matrix.reinit (locally_owned_dofs, locally_owned_dofs, dsp, mpi_communicator);
-    m_computing_timer.exit_section();
+    
   }  
 
   template <int dim>
   void MySolver<dim>::output_results ( string path ) 
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     string filename;
     ComputeIntensity<dim> intensities;
     ComputePhase<dim> phase;
@@ -112,7 +112,7 @@
     filename = path + "solution-" + to_string(m_t) + ".vtu";
     data_out.write_vtu_in_parallel ( filename.c_str(), mpi_communicator );
 
-    m_computing_timer.exit_section();
+    
   }   
 
   template<int dim>

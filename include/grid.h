@@ -21,7 +21,7 @@
   template <int dim>
   void MySolver<dim>::make_grid ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     Point<dim,double> pt1;
     Point<dim,double> pt2;
@@ -46,13 +46,13 @@
 
     m_total_no_cells = tmp2[0];
     m_total_no_active_cells = tmp2[1];
-    m_computing_timer.exit_section();
+    
   }
   
   template <int dim>
   void MySolver<dim>::make_grid_custom ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     CPotential<dim> Potential_fct ( m_omega );
     
@@ -104,5 +104,5 @@
 
     m_total_no_cells = tmp2[0];
     m_total_no_active_cells = tmp2[1];
-    m_computing_timer.exit_section();
+    
   }

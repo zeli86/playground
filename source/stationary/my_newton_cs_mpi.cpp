@@ -18,55 +18,7 @@
 // along with atus-pro testing.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#include <deal.II/lac/generic_linear_algebra.h>
-
-namespace LA
-{
-  using namespace dealii::LinearAlgebraPETSc;
-}
-
-#include <deal.II/lac/vector.h>
-#include <deal.II/lac/full_matrix.h>
-#include <deal.II/lac/solver_cg.h>
-#include <deal.II/lac/affine_constraints.h>
-#include <deal.II/lac/dynamic_sparsity_pattern.h>
-#include <deal.II/lac/petsc_sparse_matrix.h>
-#include <deal.II/lac/petsc_vector.h>
-#include <deal.II/lac/petsc_solver.h>
-#include <deal.II/lac/petsc_precondition.h>
-
-#include <deal.II/grid/grid_generator.h>
-#include <deal.II/grid/tria_accessor.h>
-#include <deal.II/grid/tria_iterator.h>
-#include <deal.II/grid/grid_out.h>
-
-#include <deal.II/dofs/dof_handler.h>
-#include <deal.II/dofs/dof_accessor.h>
-#include <deal.II/dofs/dof_tools.h>
-
-#include <deal.II/fe/fe_system.h>
-#include <deal.II/fe/fe_values.h>
-#include <deal.II/fe/fe_q.h>
-
-#include <deal.II/numerics/vector_tools.h>
-#include <deal.II/numerics/data_out.h>
-#include <deal.II/numerics/error_estimator.h>
-#include <deal.II/numerics/derivative_approximation.h>
-#include <deal.II/numerics/fe_field_function.h>
-
-#include <deal.II/base/quadrature_lib.h>
-#include <deal.II/base/function.h>
-#include <deal.II/base/utilities.h>
-#include <deal.II/base/conditional_ostream.h>
-#include <deal.II/base/index_set.h>
-#include <deal.II/base/timer.h>
-#include <deal.II/base/function_parser.h>
-
-#include <deal.II/lac/sparsity_tools.h>
-
-#include <deal.II/distributed/tria.h>
-#include <deal.II/distributed/grid_refinement.h>
-#include <deal.II/distributed/solution_transfer.h>
+#include "default_includes.h"
 
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_multimin.h>
@@ -98,10 +50,10 @@ namespace BreedSolver
   using namespace std;
   using namespace dealii;
 
-  #include "CBase.h"
+  #include "cBaseMPI.h"
 
   template <int dim>
-  class MySolver : public CBase<dim,2>
+  class MySolver : public cBaseMPI<dim,2>
   {
   public:
     explicit MySolver( const std::string );
@@ -128,32 +80,32 @@ namespace BreedSolver
     MyTable m_table;
     MyTable m_results;
 
-    using CBase<dim,2>::mpi_communicator;
-    using CBase<dim,2>::m_root;
-    using CBase<dim,2>::m_rank;
-    using CBase<dim,2>::m_t;
-    using CBase<dim,2>::m_ti;
-    using CBase<dim,2>::m_N;
-    using CBase<dim,2>::m_omega;
-    using CBase<dim,2>::m_mu;
-    using CBase<dim,2>::m_gs;
-    using CBase<dim,2>::m_counter;
-    using CBase<dim,2>::pcout;
-    using CBase<dim,2>::m_computing_timer;
-    using CBase<dim,2>::m_ph;
-    using CBase<dim,2>::m_final_error;
-    using CBase<dim,2>::m_NA;
-    using CBase<dim,2>::m_Ndmu;
-    using CBase<dim,2>::m_dmu;
-    using CBase<dim,2>::m_QN1;
-    using CBase<dim,2>::m_res;
-    using CBase<dim,2>::m_resp;
-    using CBase<dim,2>::m_res_old;
-    using CBase<dim,2>::m_epsilon;
-    using CBase<dim,2>::m_maxiter;
-    using CBase<dim,2>::m_total_no_cells;
-    using CBase<dim,2>::m_total_no_active_cells;
-    using CBase<dim,2>::m_global_refinement;    
+    using cBaseMPI<dim,2>::mpi_communicator;
+    using cBaseMPI<dim,2>::m_root;
+    using cBaseMPI<dim,2>::m_rank;
+    using cBaseMPI<dim,2>::m_t;
+    using cBaseMPI<dim,2>::m_ti;
+    using cBaseMPI<dim,2>::m_N;
+    using cBaseMPI<dim,2>::m_omega;
+    using cBaseMPI<dim,2>::m_mu;
+    using cBaseMPI<dim,2>::m_gs;
+    using cBaseMPI<dim,2>::m_counter;
+    using cBaseMPI<dim,2>::pcout;
+    using cBaseMPI<dim,2>::m_computing_timer;
+    using cBaseMPI<dim,2>::m_ph;
+    using cBaseMPI<dim,2>::m_final_error;
+    using cBaseMPI<dim,2>::m_NA;
+    using cBaseMPI<dim,2>::m_Ndmu;
+    using cBaseMPI<dim,2>::m_dmu;
+    using cBaseMPI<dim,2>::m_QN1;
+    using cBaseMPI<dim,2>::m_res;
+    using cBaseMPI<dim,2>::m_resp;
+    using cBaseMPI<dim,2>::m_res_old;
+    using cBaseMPI<dim,2>::m_epsilon;
+    using cBaseMPI<dim,2>::m_maxiter;
+    using cBaseMPI<dim,2>::m_total_no_cells;
+    using cBaseMPI<dim,2>::m_total_no_active_cells;
+    using cBaseMPI<dim,2>::m_global_refinement;    
   };
 
 /*************************************************************************************************/
@@ -162,14 +114,14 @@ namespace BreedSolver
  */
 
   template <int dim>
-  MySolver<dim>::MySolver ( const std::string xmlfilename ) : CBase<dim,2>(xmlfilename)
+  MySolver<dim>::MySolver ( const std::string xmlfilename ) : cBaseMPI<dim,2>(xmlfilename)
   {
   }
 
   template <int dim>
   void MySolver<dim>::compute_E_lin( LA::MPI::Vector& vec, double& T, double& N, double& W )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     
     this->m_constraints.distribute(vec);
     this->m_Workspace[0] = vec;
@@ -211,13 +163,13 @@ namespace BreedSolver
     MPI_Allreduce( &T1, &T, 1, MPI_DOUBLE, MPI_SUM, mpi_communicator);
     MPI_Allreduce( &N1, &N, 1, MPI_DOUBLE, MPI_SUM, mpi_communicator);
     MPI_Allreduce( &W1, &W, 1, MPI_DOUBLE, MPI_SUM, mpi_communicator);
-    m_computing_timer.exit_section();
+    
   }
 
   template<int dim>
   double MySolver<dim>::Particle_Number( LA::MPI::Vector& vec )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     double tmp1=0, retval=0;
     
     this->m_constraints.distribute(vec);
@@ -244,14 +196,14 @@ namespace BreedSolver
     tmp1 *= _FAKTOR_;
     
     MPI_Allreduce( &tmp1, &retval, 1, MPI_DOUBLE, MPI_SUM, mpi_communicator);
-    m_computing_timer.exit_section();
+    
   return retval;
   }
   
   template <int dim>
   void MySolver<dim>::estimate_error ( double& err )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     CPotential Potential( m_omega, m_QN1[2] );
     const QGauss<dim> quadrature_formula(this->m_FE.degree+1);
@@ -312,14 +264,14 @@ namespace BreedSolver
     VectorTools::integrate_difference ( this->m_DOF_Handler, this->m_Workspace[0], ZeroFunction<dim>(), this->m_error_per_cell, QGauss<dim>(this->m_FE.degree+2), VectorTools::L2_norm);    
     const double total_local_error = this->m_error_per_cell.l2_norm();
     err = std::sqrt (Utilities::MPI::sum (total_local_error * total_local_error, MPI_COMM_WORLD)); 
-    m_computing_timer.exit_section();
+    
   }
   
   
   template <int dim>
   void MySolver<dim>::assemble_rhs ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     CPotential Potential( m_omega, m_QN1[2] );
     const QGauss<dim> quadrature_formula(this->m_FE.degree+1);
@@ -363,13 +315,13 @@ namespace BreedSolver
     this->m_System_RHS.compress(VectorOperation::add);   
     m_res = this->m_System_RHS.l2_norm();
     
-    m_computing_timer.exit_section();
+    
   }
 
   template <int dim>
   void MySolver<dim>::assemble_system ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     CPotential Potential( m_omega, m_QN1[2] );
     const QGauss<dim> quadrature_formula(this->m_FE.degree+1);
@@ -412,13 +364,13 @@ namespace BreedSolver
       }
     }
     this->m_System_Matrix.compress(VectorOperation::add);
-    m_computing_timer.exit_section();
+    
   }
   
   template <int dim>
   void MySolver<dim>::solve ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     pcout << "Solving..." << endl;
     
     SolverControl solver_control;
@@ -427,13 +379,13 @@ namespace BreedSolver
     solver.set_symmetric_mode(false);
     solver.solve(this->m_System_Matrix, this->m_Search_Direction, this->m_System_RHS);
     this->m_constraints.distribute (this->m_Search_Direction);
-    m_computing_timer.exit_section();
+    
   }
   
   template <int dim>
   void MySolver<dim>::make_grid_custom ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     Point<dim,double> pt1(0,0); 
     Point<dim,double> pt2(m_ph.Get_Mesh("xrange",1),m_ph.Get_Mesh("yrange",1));
     
@@ -488,14 +440,14 @@ namespace BreedSolver
 */
     m_total_no_cells = tmp2[0];
     m_total_no_active_cells = tmp2[1];
-    m_computing_timer.exit_section();
+    
   }
   
 
   template <int dim>
   void MySolver<dim>::compute_contributions()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     this->update_workspace();
     
@@ -549,7 +501,7 @@ namespace BreedSolver
     for( int i=0; i<8; ++i ) locint[i] *= _FAKTOR_;
     
     MPI_Allreduce( locint, m_I, 8, MPI_DOUBLE, MPI_SUM, mpi_communicator);
-    m_computing_timer.exit_section();
+    
   }
 
 

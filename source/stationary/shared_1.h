@@ -24,7 +24,7 @@
   template <int dim>
   void MySolver<dim>::compute_E_lin( LA::MPI::Vector& vec, double& T, double& N, double& W )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     
     this->m_constraints.distribute(vec);
     this->m_Workspace[0] = vec;
@@ -58,13 +58,13 @@
     }
     MPI_Allreduce( tmp1, res, 3, MPI_DOUBLE, MPI_SUM, mpi_communicator);
     T=res[0]; N=res[1]; W=res[2];
-    m_computing_timer.exit_section();
+    
   }
 
   template <int dim>
   void MySolver<dim>::estimate_error ( double& err )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     
     CPotential<dim> Potential( m_omega );
     const QGauss<dim> quadrature_formula(this->m_FE.degree+1);
@@ -125,13 +125,13 @@
     const double total_local_error = this->m_error_per_cell.l2_norm();
     err = std::sqrt (Utilities::MPI::sum (total_local_error * total_local_error, MPI_COMM_WORLD));     
   
-    m_computing_timer.exit_section();
+    
   }
  
   template <int dim>
   bool MySolver<dim>::solve ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     pcout << "Solving..." << endl;
 /*        
     SolverControl solver_control;
@@ -164,7 +164,7 @@
     }
     this->m_constraints.distribute ( this->m_Search_Direction);
 
-    m_computing_timer.exit_section();
+    
     return true;
   }
 

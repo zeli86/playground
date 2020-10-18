@@ -189,7 +189,7 @@ namespace BreedSolver
   template <int dim>
   void MySolver<dim>::make_grid_custom ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     Point<dim,double> pt1;
     Point<dim,double> pt2;
@@ -222,13 +222,13 @@ namespace BreedSolver
         }
       triangulation.execute_coarsening_and_refinement ();
     }
-    m_computing_timer.exit_section();
+    
   }
 
   template <int dim>
   void MySolver<dim>::setup_system()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     dof_handler.distribute_dofs (fe);
 
@@ -272,13 +272,13 @@ namespace BreedSolver
     VectorTools::interpolate_boundary_values (dof_handler_2, 0, ZeroFunction<dim>(2), constraints_2);
     constraints_2.close ();
 
-    m_computing_timer.exit_section();
+    
   }
 
   template <int dim>
   void MySolver<dim>::output_results ( string path, string prefix )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     constraints.distribute(m_Psi);
     m_workspace_1=m_Psi;
@@ -299,13 +299,13 @@ namespace BreedSolver
     filename = path + prefix + "-" + Utilities::int_to_string (m_counter,5) + ".vtu";
     data_out.write_vtu_in_parallel (filename.c_str(), mpi_communicator);
 
-    m_computing_timer.exit_section();    
+        
   }
 
   template <int dim>
   void MySolver<dim>::output_vector ( LA::MPI::Vector& vec, string filename )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     constraints.distribute(vec);
     m_workspace_1=vec;
@@ -316,7 +316,7 @@ namespace BreedSolver
     data_out.build_patches ();
     data_out.write_vtu_in_parallel (filename.c_str(), mpi_communicator);
 
-    m_computing_timer.exit_section();    
+        
   }  
 
   template <int dim>
@@ -443,7 +443,7 @@ namespace BreedSolver
   template <int dim>
   void MySolver<dim>::solve ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     pcout << "Solving..." << endl;
     
     SolverControl solver_control;
@@ -453,20 +453,20 @@ namespace BreedSolver
     solver.solve(m_system_matrix, m_newton_update, m_system_rhs);
     constraints.distribute (m_newton_update);
 
-    m_computing_timer.exit_section();
+    
   }  
   
   template<int dim>
   void MySolver<dim>::Interpolate_R_to_C( LA::MPI::Vector& retval )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     constraints.distribute(m_Psi);
     m_workspace_1=m_Psi;
 
     MyComplexTools::MPI::Interpolate_R_to_C( mpi_communicator, dof_handler, fe, m_workspace_1, dof_handler_2, fe_2, constraints_2, retval );
 
-    m_computing_timer.exit_section();    
+        
   }  
 
   template<int dim>

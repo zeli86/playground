@@ -49,7 +49,7 @@
   template <int dim, int no_time_steps>
   void MySolver<dim,no_time_steps>::compute_correction( const int ex )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     
     const int nolam = m_potential.get_no_lambdas();
     
@@ -164,6 +164,6 @@
       }
     }    
 */
-    m_computing_timer.exit_section();
+    
   }
 

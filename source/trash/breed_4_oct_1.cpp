@@ -181,7 +181,7 @@ namespace BreedSolver
   template <int dim>
   void MySolver<dim>::make_grid ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     Point<dim,double> pt1( m_xmin );
     Point<dim,double> pt2( m_xmax );
 
@@ -196,13 +196,13 @@ namespace BreedSolver
     m_total_no_cells = triangulation.n_cells();
     m_total_no_active_cells = triangulation.n_active_cells();
     
-    m_computing_timer.exit_section();
+    
   }
   
   template <int dim>
   void MySolver<dim>::make_grid_custom ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     Point<1,double> pt1( m_xmin );
     Point<1,double> pt2( m_xmax );
@@ -237,7 +237,7 @@ namespace BreedSolver
     cout << "min_cell_diameter = " << min_cell_diameter << "\n";
     cout << "max_cell_diameter = " << max_cell_diameter << "\n";
     
-    m_computing_timer.exit_section();
+    
   }
 
   template<int dim>
@@ -266,7 +266,7 @@ namespace BreedSolver
   template <int dim>
   void MySolver<dim>::compute_E_lin( Vector<double>& vec, double& T, double& N, double& W )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     
     map<string,double> constants;
     constants["pi"] = numbers::PI;
@@ -302,13 +302,13 @@ namespace BreedSolver
     T = T1;
     N = N1;
     W = W1;
-    m_computing_timer.exit_section();
+    
   }
   
   template <int dim>
   void MySolver<dim>::compute_contributions()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     map<string,double> constants;
     constants["pi"] = numbers::PI;
@@ -360,13 +360,13 @@ namespace BreedSolver
         m_W[4] += JxW*p2q*p12;
       }  
     }
-    m_computing_timer.exit_section();
+    
   }
 
   template <int dim>
   void MySolver<dim>::setup_system()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     dof_handler.distribute_dofs (fe);
 
@@ -383,13 +383,13 @@ namespace BreedSolver
 
     sparsity_pattern.copy_from(c_sparsity);
     system_matrix.reinit (sparsity_pattern);
-    m_computing_timer.exit_section();
+    
   }
 
   template <int dim>
   void MySolver<dim>::assemble_system ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     vector<bool> boundary_dofs (dof_handler.n_dofs());
     DoFTools::extract_boundary_dofs (dof_handler, ComponentMask(), boundary_dofs);
@@ -453,13 +453,13 @@ namespace BreedSolver
     VectorTools::interpolate_boundary_values (dof_handler, 0, ZeroFunction<dim>(), boundary_values);
     MatrixTools::apply_boundary_values (boundary_values, system_matrix, newton_update, system_rhs);
 
-    m_computing_timer.exit_section();
+    
   }
 
   template <int dim>
   void MySolver<dim>::assemble_rhs ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     vector<bool> boundary_dofs (dof_handler.n_dofs());
     DoFTools::extract_boundary_dofs (dof_handler, ComponentMask(), boundary_dofs);
@@ -511,7 +511,7 @@ namespace BreedSolver
     VectorTools::interpolate_boundary_values (dof_handler, 0, ZeroFunction<dim>(), boundary_values);
     MatrixTools::apply_boundary_values (boundary_values, system_matrix, newton_update, system_rhs);
 
-    m_computing_timer.exit_section();
+    
 
     m_workspace = system_rhs;
     VectorTools::integrate_difference ( dof_handler,  m_workspace, ZeroFunction<dim>(), m_error_per_cell,  QGauss<dim>(fe.degree+2), VectorTools::L2_norm);
@@ -521,7 +521,7 @@ namespace BreedSolver
   template <int dim>
   void MySolver<dim>::solve ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     SparseDirectUMFPACK  A_direct;
     A_direct.initialize(system_matrix);
@@ -536,7 +536,7 @@ namespace BreedSolver
 
     solver.solve(system_matrix, newton_update, system_rhs, preconditioner);
     */
-    m_computing_timer.exit_section();
+    
   }
 
   template <int dim>
@@ -724,7 +724,7 @@ namespace BreedSolver
   template <int dim>
   void MySolver<dim>::output_guess ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     string filename = "guess.gnuplot";
 
     map<string,double> constants;
@@ -743,13 +743,13 @@ namespace BreedSolver
 
     ofstream output (filename.c_str());
     data_out.write_gnuplot (output);
-    m_computing_timer.exit_section();
+    
   }
   
   template <int dim>
   void MySolver<dim>::output_results ( string path, string prefix )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     string filename = path + prefix + "-" + Utilities::int_to_string (m_counter,5) + ".gnuplot";
 
     DataOut<dim> data_out;
@@ -760,7 +760,7 @@ namespace BreedSolver
 
     ofstream output (filename.c_str());
     data_out.write_gnuplot (output);
-    m_computing_timer.exit_section();
+    
   }
   
   template<int dim>

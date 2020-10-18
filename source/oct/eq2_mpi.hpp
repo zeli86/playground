@@ -20,7 +20,7 @@
   template <int dim, int no_time_steps>
   void MySolver<dim,no_time_steps>::rt_propagtion_backward( const int ex )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     m_workspace_ng = m_Psi_d;
     m_workspace_ng -= m_all_Psi[no_time_steps-1];
@@ -60,13 +60,13 @@
       //double N = MyComplexTools::MPI::Particle_Number( mpi_communicator, dof_handler, fe, m_Psi );
       //if(m_root) printf( "b: %g %g\n", double(i)*m_dt, N );
     }
-    m_computing_timer.exit_section();
+    
   }
 
   template <int dim, int no_time_steps>
   void MySolver<dim,no_time_steps>::assemble_system ( const int idx )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     m_potential.set_time( double(idx)*m_dt );
 
@@ -137,5 +137,5 @@
     }
     system_matrix.compress(VectorOperation::add);
     system_rhs.compress(VectorOperation::add);
-    m_computing_timer.exit_section();
+    
   }

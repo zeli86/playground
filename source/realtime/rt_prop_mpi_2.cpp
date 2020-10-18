@@ -198,7 +198,7 @@ namespace realtime_propagation
   template <int dim>
   void MySolver<dim>::make_grid ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     Point<dim,double> pt1;
     Point<dim,double> pt2;
     
@@ -213,13 +213,13 @@ namespace realtime_propagation
 
     GridGenerator::hyper_rectangle(triangulation, pt2, pt1);
    
-    m_computing_timer.exit_section();
+    
   }
   
   template <int dim>
   void MySolver<dim>::setup_system()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     dof_handler.distribute_dofs (fe);
    
@@ -241,13 +241,13 @@ namespace realtime_propagation
     SparsityTools::distribute_sparsity_pattern (dsp, dof_handler.n_locally_owned_dofs_per_processor(), mpi_communicator, locally_relevant_dofs);
     system_matrix.reinit (locally_owned_dofs, locally_owned_dofs, dsp, mpi_communicator);
 
-    m_computing_timer.exit_section();
+    
   }  
 
   template <int dim>
   void MySolver<dim>::output_results ( string path ) 
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     string filename;
     
     vector<std::string> solution_names;
@@ -262,7 +262,7 @@ namespace realtime_propagation
     filename = path + "solution-" + to_string(m_t) + ".vtu";
     data_out.write_vtu_in_parallel ( filename.c_str(), mpi_communicator );
 
-    m_computing_timer.exit_section();
+    
   }   
 
   template<int dim>
@@ -291,7 +291,7 @@ namespace realtime_propagation
   template<int dim> 
   void MySolver<dim>::Do_NL_Step()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     pcout << "Computing nonlinear step, t = " << m_dt << endl;
 
@@ -305,13 +305,13 @@ namespace realtime_propagation
     constraints.distribute (sol);
     m_Psi = sol;
 
-    m_computing_timer.exit_section();   
+       
   }
   
   template<int dim> 
   void MySolver<dim>::Do_Lin_Step( const double dt )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     pcout << "Computing linear step (" << dt << "), t = " << m_t << endl;
 
     CPotential<dim> Potential ( m_omega );
@@ -326,14 +326,14 @@ namespace realtime_propagation
     m_Psi = sol;    
 
     m_t += dt;
-    m_computing_timer.exit_section();   
+       
   }
   
 /* 
   template <int dim>
   void MySolver<dim>::solve ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     SolverControl solver_control;
     
     sol=0;
@@ -343,7 +343,7 @@ namespace realtime_propagation
 
     constraints.distribute (sol);
     m_Psi = sol;
-    m_computing_timer.exit_section();
+    
   }
 */
  

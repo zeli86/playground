@@ -291,7 +291,7 @@ namespace BreedSolver
   template <int dim>
   void MySolver<dim>::setup_system()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     dof_handler.distribute_dofs (fe);
 
@@ -351,13 +351,13 @@ namespace BreedSolver
     SparsityTools::distribute_sparsity_pattern (csp_2, dof_handler_2.n_locally_owned_dofs_per_processor(), mpi_communicator, locally_relevant_dofs_2);
     m_system_matrix_2.reinit (locally_owned_dofs_2, locally_owned_dofs_2, csp_2, mpi_communicator);    
 
-    m_computing_timer.exit_section();
+    
   }
 
   template <int dim>
   void MySolver<dim>::output_guess ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     
     constraints.distribute(m_Psi_1);
     constraints.distribute(m_Psi_2);
@@ -378,13 +378,13 @@ namespace BreedSolver
     data_out.build_patches ();
     data_out.write_vtu_in_parallel ("guess.vtu", mpi_communicator );
 
-    m_computing_timer.exit_section();
+    
   }
 
   template <int dim>
   void MySolver<dim>::output_results ( string path, string prefix )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     constraints.distribute(m_Psi_ref);
     m_workspace_1=m_Psi_ref;
@@ -405,13 +405,13 @@ namespace BreedSolver
     filename = path + prefix + "-" + Utilities::int_to_string (m_counter,5) + ".vtu";
     data_out.write_vtu_in_parallel (filename.c_str(), mpi_communicator);
 
-    m_computing_timer.exit_section();    
+        
   }
 
   template <int dim>
   void MySolver<dim>::compute_contributions()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     compute_U( m_Psi_1, m_Psi_1, m_U1 );
     compute_U( m_Psi_1, m_Psi_2, m_U12 );
@@ -503,13 +503,13 @@ namespace BreedSolver
     for( int i=0; i<9; ++i )
       pcout << "V2[" << to_string(i+1) << "] := " << m_V2[i] << ";" << endl;
 
-    m_computing_timer.exit_section();
+    
   }
   /*
   template <int dim>
   void MySolver<dim>::compute_J( double& retval )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     do_superposition();
     do_superposition_U();
@@ -546,7 +546,7 @@ namespace BreedSolver
     }
     psum *= 0.5;
     MPI_Allreduce( &psum, &retval, 1, MPI_DOUBLE, MPI_SUM, mpi_communicator);
-    m_computing_timer.exit_section();
+    
   }
   */
   /*
@@ -869,7 +869,7 @@ namespace BreedSolver
   template<int dim>
   void MySolver<dim>::Interpolate_R_to_C( string filename )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     const QGauss<dim> quadrature_formula(fe.degree+1);
     const FEValuesExtractors::Scalar rt (0);
@@ -948,7 +948,7 @@ namespace BreedSolver
     string filename = "C_final.vtu";
     data_out.write_vtu_in_parallel (filename.c_str(), mpi_communicator);    
 */   
-    m_computing_timer.exit_section();    
+        
   }  
 
   template<int dim>
@@ -975,7 +975,7 @@ namespace BreedSolver
   template <int dim>
   void MySolver<dim>::compute_E_lin( LA::MPI::Vector& vec, double& T, double& N, double& W, double& V2 )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     
     do_superposition();
     compute_U(m_Psi_1,m_Psi_1,m_U);
@@ -1018,13 +1018,13 @@ namespace BreedSolver
     }
     MPI_Allreduce( tmp1, res, 4, MPI_DOUBLE, MPI_SUM, mpi_communicator);
     T=res[0]; N=res[1]; W=res[2]; V2=res[3];
-    m_computing_timer.exit_section();
+    
   }
 
   template<int dim>
   double MySolver<dim>::Particle_Number( LA::MPI::Vector& vec )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     double tmp1=0, retval=0;
     
     constraints.distribute(vec);
@@ -1049,14 +1049,14 @@ namespace BreedSolver
       }
     }
     MPI_Allreduce( &tmp1, &retval, 1, MPI_DOUBLE, MPI_SUM, mpi_communicator);
-    m_computing_timer.exit_section();
+    
   return retval;
   }
   
   template <int dim>
   void MySolver<dim>::assemble_system ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     CPotential<dim> Potential( m_omega );
     const QGauss<dim> quadrature_formula(fe.degree+1);
@@ -1107,13 +1107,13 @@ namespace BreedSolver
       }
     }
     m_system_matrix.compress(VectorOperation::add);
-    m_computing_timer.exit_section();
+    
   }
 
   template <int dim>
   void MySolver<dim>::assemble_rhs ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     CPotential<dim> Potential( m_omega );
     const QGauss<dim> quadrature_formula(fe.degree+1);
@@ -1166,13 +1166,13 @@ namespace BreedSolver
     }
     m_system_rhs.compress(VectorOperation::add);   
     m_res = m_system_rhs.l2_norm();
-    m_computing_timer.exit_section();
+    
   }
 
   template <int dim>
   void MySolver<dim>::estimate_error ( double& err )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     
     CPotential<dim> Potential( m_omega );
     const QGauss<dim> quadrature_formula(fe.degree+1);
@@ -1236,13 +1236,13 @@ namespace BreedSolver
     const double total_local_error = m_error_per_cell.l2_norm();
     err = std::sqrt (Utilities::MPI::sum (total_local_error * total_local_error, MPI_COMM_WORLD));     
   
-    m_computing_timer.exit_section();
+    
   }
 
   template <int dim>
   void MySolver<dim>::compute_U ( LA::MPI::Vector& vec1, LA::MPI::Vector& vec2, LA::MPI::Vector& U )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     
     CPotential<dim> Potential( m_omega );
     const QGauss<dim> quadrature_formula(fe.degree+1);
@@ -1316,13 +1316,13 @@ namespace BreedSolver
     solver.solve(m_system_matrix, U, m_system_rhs);
     constraints.distribute (U);
 
-    m_computing_timer.exit_section();
+    
   }
  
   template <int dim>
   void MySolver<dim>::solve ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     pcout << "Solving..." << endl;
     
     SolverControl solver_control;
@@ -1332,13 +1332,13 @@ namespace BreedSolver
     solver.solve(m_system_matrix, m_newton_update, m_system_rhs);
     constraints.distribute (m_newton_update);
 
-    m_computing_timer.exit_section();
+    
   }
 
   template <int dim>
   void MySolver<dim>::make_grid_custom ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     CPotential<dim> Potential_fct ( m_omega );
     
@@ -1387,7 +1387,7 @@ namespace BreedSolver
 
     m_total_no_cells = tmp2[0];
     m_total_no_active_cells = tmp2[1];
-    m_computing_timer.exit_section();
+    
   }
 } // end of namespace 
 

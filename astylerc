@@ -3,16 +3,21 @@
 
 --convert-tabs
 --indent-preprocessor
+--indent-preproc-block 
 --indent=spaces=2
 --indent-namespaces
 --min-conditional-indent=0
 --pad-header
 --pad-oper
+--pad-comma
+--unpad-paren
+#--pad-first-paren-out
 --close-templates
 --exclude=*.txt
+--add-braces
 
 # write things as 'char *p'
---align-pointer=name
---align-reference=name
+--align-pointer=type
+--align-reference=type
 --suffix=none
 --quiet

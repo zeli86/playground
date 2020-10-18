@@ -18,44 +18,7 @@
 // along with atus-pro testing.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#include <deal.II/lac/generic_linear_algebra.h>
-
-namespace LA
-{
-  using namespace dealii::LinearAlgebraPETSc;
-}
-
-#include <deal.II/lac/vector.h>
-#include <deal.II/lac/full_matrix.h>
-#include <deal.II/lac/solver_cg.h>
-#include <deal.II/lac/affine_constraints.h>
-#include <deal.II/lac/dynamic_sparsity_pattern.h>
-#include <deal.II/lac/sparsity_tools.h>
-#include <deal.II/lac/petsc_sparse_matrix.h>
-#include <deal.II/lac/petsc_vector.h>
-#include <deal.II/lac/petsc_solver.h>
-#include <deal.II/lac/petsc_precondition.h>
-
-#include <deal.II/base/quadrature_lib.h>
-#include <deal.II/base/function.h>
-#include <deal.II/base/utilities.h>
-#include <deal.II/base/conditional_ostream.h>
-#include <deal.II/base/index_set.h>
-#include <deal.II/base/timer.h>
-
-#include <deal.II/grid/grid_generator.h>
-#include <deal.II/grid/tria_accessor.h>
-#include <deal.II/grid/tria_iterator.h>
-#include <deal.II/dofs/dof_handler.h>
-#include <deal.II/dofs/dof_accessor.h>
-#include <deal.II/dofs/dof_tools.h>
-#include <deal.II/fe/fe_values.h>
-#include <deal.II/fe/fe_q.h>
-#include <deal.II/numerics/vector_tools.h>
-#include <deal.II/numerics/data_out.h>
-#include <deal.II/distributed/tria.h>
-#include <deal.II/distributed/grid_refinement.h>
-#include <deal.II/distributed/solution_transfer.h>
+#include "default_includes.h"
 
 #include <fstream>
 #include <iostream>
@@ -216,7 +179,7 @@ namespace BreedSolver
   template <int dim>
   void MySolver<dim>::compute_E_lin( LA::MPI::Vector& vec, double& T, double& N, double& W )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     
     constraints.distribute(vec);
     m_workspace_1 = vec;
@@ -255,13 +218,13 @@ namespace BreedSolver
     N=res[1];
     W=res[2];
     
-    m_computing_timer.exit_section();
+    
   }
 
   template<int dim>
   void MySolver<dim>::Project_gradient()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     double tmp1[]={0,0}, sum[]={0,0};
    
     constraints.distribute(m_Psi_sob);
@@ -303,13 +266,13 @@ namespace BreedSolver
     
     m_sob_grad.add( -sum[0]/sum[1], m_Psi_sob );
     
-    m_computing_timer.exit_section();
+    
   }
   
   template <int dim>
   void MySolver<dim>::estimate_error ( double& err )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     
     compute_mu();
     
@@ -371,13 +334,13 @@ namespace BreedSolver
     VectorTools::integrate_difference ( dof_handler, m_workspace_1, ZeroFunction<dim>(2), m_error_per_cell, QGauss<dim>(fe.degree+2), VectorTools::L2_norm);    
     const double total_local_error = m_error_per_cell.l2_norm();
     err = std::sqrt (Utilities::MPI::sum (total_local_error * total_local_error, MPI_COMM_WORLD)); 
-    m_computing_timer.exit_section();
+    
   }
   
   template <int dim>
   void MySolver<dim>::assemble_rhs ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     CPotential<dim> Potential( m_omega );
     const QGauss<dim> quadrature_formula(fe.degree+1);
@@ -422,14 +385,14 @@ namespace BreedSolver
       }
     }
     m_system_rhs.compress(VectorOperation::add);   
-    m_computing_timer.exit_section();
+    
   }
 
 
   template <int dim>
   void MySolver<dim>::assemble_system ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     CPotential<dim> Potential( m_omega );
     const QGauss<dim> quadrature_formula(fe.degree+1);
@@ -466,14 +429,14 @@ namespace BreedSolver
       }
     }
     m_system_matrix.compress(VectorOperation::add);
-    m_computing_timer.exit_section();
+    
   }
 
 
   template <int dim>
   void MySolver<dim>::compute_Psi_sob ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     const QGauss<dim> quadrature_formula(fe.degree+1);
     
@@ -542,13 +505,13 @@ namespace BreedSolver
 
     cg.solve (m_system_matrix, m_Psi_sob, m_system_rhs, preconditioner);    
 */    
-    m_computing_timer.exit_section();
+    
   }
   
   template <int dim>
   void MySolver<dim>::compute_mu()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     CPotential<dim> Potential( m_omega );
     const QGauss<dim>  quadrature_formula(fe.degree+1);
@@ -579,14 +542,14 @@ namespace BreedSolver
       }
     }    
     MPI_Allreduce( &psum, &m_mu, 1, MPI_DOUBLE, MPI_SUM, mpi_communicator);
-    m_computing_timer.exit_section();
+    
   }
   
   
   template <int dim>
   void MySolver<dim>::solve ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     pcout << "Solving..." << endl;
     
     SolverControl solver_control;
@@ -595,7 +558,7 @@ namespace BreedSolver
     solver.set_symmetric_mode(false);
     solver.solve(m_system_matrix, m_sob_grad, m_system_rhs);
     constraints.distribute (m_sob_grad);
-    m_computing_timer.exit_section();
+    
   }
   
   /*
@@ -617,7 +580,7 @@ namespace BreedSolver
   template <int dim>
   void MySolver<dim>::make_grid_custom ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     Point<dim,double> pt1(0,m_ymin); 
     Point<dim,double> pt2(m_xmax,m_ymax);
     
@@ -660,26 +623,26 @@ namespace BreedSolver
 */
     m_total_no_cells = tmp2[0];
     m_total_no_active_cells = tmp2[1];
-    m_computing_timer.exit_section();
+    
   }
 
   template <int dim>
   void MySolver<dim>::make_grid ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     Point<dim,double> pt1(0,m_ymin); 
     Point<dim,double> pt2(m_xmax,m_ymax);
     
     GridGenerator::hyper_rectangle(triangulation, pt2, pt1);
     triangulation.refine_global(1);
     
-    m_computing_timer.exit_section();
+    
   }
   
   template <int dim>
   void MySolver<dim>::setup_system ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     dof_handler.distribute_dofs (fe);
       
@@ -709,13 +672,13 @@ namespace BreedSolver
     SparsityTools::distribute_sparsity_pattern (dsp, dof_handler.n_locally_owned_dofs_per_processor(), mpi_communicator, locally_relevant_dofs);
     m_system_matrix.reinit (locally_owned_dofs, locally_owned_dofs, dsp, mpi_communicator);    
 
-    m_computing_timer.exit_section();
+    
   }
 
   template <int dim>
   void MySolver<dim>::output_guess ()
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
     
     constraints.distribute(m_Psi);
     m_workspace_1=m_Psi;
@@ -726,13 +689,13 @@ namespace BreedSolver
     data_out.build_patches ();
     data_out.write_vtu_in_parallel ("guess.vtu",mpi_communicator);
 
-    m_computing_timer.exit_section();
+    
   }
 
   template <int dim>
   void MySolver<dim>::output_results ( string path, string prefix )
   {
-    m_computing_timer.enter_section(__func__);
+    TimerOutput::Scope timing_section(m_computing_timer, "");
 
     string filename;
 
@@ -753,7 +716,7 @@ namespace BreedSolver
     filename = path + prefix + "-" + Utilities::int_to_string (m_counter,5) + ".vtu";
     data_out.write_vtu_in_parallel (filename.c_str(), mpi_communicator);
 
-    m_computing_timer.exit_section();    
+        
   }
 
   template <int dim>
