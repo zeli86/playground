@@ -480,7 +480,7 @@ setenv DEAL_II_DIR ~a~a
       (format t "    Debug Mode: ON~%" ))
 
 
-  (unless (uiop:file-exists-p "install_9_1_1.lisp")
+  (unless (uiop:file-exists-p "install_9_2_0.lisp")
     (error "Wrong working directory: Please restart script inside atus-pro directory."))
 
   (handler-case
