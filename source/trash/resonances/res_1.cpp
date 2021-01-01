@@ -763,7 +763,7 @@ namespace BreedSolver
     }
 
     ofstream ofs("log.txt");
-    ofs << m_table;
+    //ofs << m_table;
   }
 
   void MySolver::run2b ()

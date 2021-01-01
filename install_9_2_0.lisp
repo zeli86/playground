@@ -12,13 +12,13 @@
                       (uiop:getenv "CXX")))
 
 (defvar *packages*
-  '((:name openmpi :version "4.0.5"
-     :url "https://download.open-mpi.org/release/open-mpi/v4.0/openmpi-4.0.5.tar.gz")
+  '((:name openmpi :version "4.1.0"
+     :url "https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.0.tar.gz")
     (:name boost :version "1.74.0"
      :url "https://dl.bintray.com/boostorg/release/1.74.0/source/boost_1_74_0.tar.gz")
-    (:name nlopt :version "2.6.2"
-     :url "https://github.com/stevengj/nlopt/archive/v2.6.2.tar.gz"
-     :path "nlopt-2.6.2")
+    (:name nlopt :version "2.7.0"
+     :url "https://github.com/stevengj/nlopt/archive/v2.7.0.tar.gz"
+     :path "nlopt-2.7.0")
     (:name lapack :version "3.9.0"
      :url "https://github.com/Reference-LAPACK/lapack/archive/v3.9.0.tar.gz"
      :path "lapack-3.9.0")
@@ -29,9 +29,9 @@
      :path "muparser-2.2.6.1")  
     (:name p4est :version "2.2"
      :url "https://p4est.github.io/release/p4est-2.2.tar.gz")
-    (:name petsc :version "3.13.6"
-     :url "http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.13.6.tar.gz"
-     :path "petsc-3.13.6")
+    (:name petsc :version "3.14.2"
+     :url "http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.14.2.tar.gz"
+     :path "petsc-3.14.2")
     (:name deal.ii :version "9.2.0"
      :url "https://github.com/dealii/dealii/releases/download/v9.2.0/dealii-9.2.0.tar.gz")
     (:name atus-pro :version "git"))
@@ -165,7 +165,7 @@ Otherwise returns nil. Test is done via equal."
          (full-name (format nil "~a-~a" name version)))
     (uiop:chdir (uiop:getcwd))
     (run "./bootstrap.sh" )
-    (run (format nil "./b2 link=shared --prefix=~a~a --without-python ~@[-j ~a~] install" *install-dir* full-name *make-threads*))
+    (run (format nil "./b2 release --without-mpi --without-python architecture=x86 address-model=64 link=shared,static runtime-link=shared threading=multi toolset=gcc --prefix=~a~a ~@[-j ~a~] install" *install-dir* full-name *make-threads*))
     (install-module name *install-dir* version *module-dir*)
     (export-variables full-name)))
 

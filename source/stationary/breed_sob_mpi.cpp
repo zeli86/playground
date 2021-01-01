@@ -103,7 +103,7 @@ namespace BreedSolver
 
     ofstream m_computing_timer_log;
     TimerOutput m_computing_timer;    
-    MyParameterHandler m_ph;
+    MyParameterHandler m_oPropertyHandler;
     ConditionalOStream pcout;
     parallel::distributed::Triangulation<dim> triangulation;
     FE_Q<dim> fe;
@@ -818,7 +818,7 @@ namespace BreedSolver
     if( m_root )
     {
       ofstream ofs("log.txt");
-      ofs << m_table;
+      //ofs << m_table;
     }
   }
  

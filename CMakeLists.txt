@@ -6,20 +6,20 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 execute_process(COMMAND sh -c "module list")
 
-FIND_PACKAGE(deal.II 9.1.1 HINTS ${deal.II_DIR} ${DEAL_II_DIR} ../ ../../ $ENV{DEAL_II_DIR})
-IF(NOT ${deal.II_FOUND})
-  MESSAGE(FATAL_ERROR "\n"
+find_package(deal.II HINTS ${deal.II_DIR} ${DEAL_II_DIR} ../ ../../ $ENV{DEAL_II_DIR})
+if(NOT ${deal.II_FOUND})
+  message(FATAL_ERROR "\n"
     "*** Could not locate a (sufficiently recent) version of deal.II. ***\n\n"
     "You may want to either pass a flag -DDEAL_II_DIR=/path/to/deal.II to cmake\n"
     "or set an environment variable \"DEAL_II_DIR\" that contains this path."
     )
-ENDIF ()
+endif ()
 
 #
 # Are all dependencies fulfilled?
 #
-IF(NOT DEAL_II_WITH_PETSC OR DEAL_II_PETSC_WITH_COMPLEX) # keep in one line
-  MESSAGE(FATAL_ERROR "
+if(NOT DEAL_II_WITH_PETSC OR DEAL_II_PETSC_WITH_COMPLEX) # keep in one line
+  message(FATAL_ERROR "
 Error! This tutorial requires a deal.II library that was configured with the following options:
     DEAL_II_WITH_PETSC = ON
     DEAL_II_PETSC_WITH_COMPLEX = OFF
@@ -28,17 +28,26 @@ However, the deal.II library found at ${DEAL_II_PATH} was configured with these 
     DEAL_II_PETSC_WITH_COMPLEX = ${DEAL_II_PETSC_WITH_COMPLEX}
 which conflict with the requirements."
     )
-ENDIF()
+endif()
 
 DEAL_II_INITIALIZE_CACHED_VARIABLES()
 
-PROJECT (atus-playground)
+include(${DEAL_II_FEATURE_CONFIG})
 
-INCLUDE(${DEAL_II_FEATURE_CONFIG})
+message("${DEAL_II_FEATURE_CONFIG}")
 
+project(atus-playground)
+
+### nlopt
 find_package(NLOPT REQUIRED)
+
+### doxygen
 find_package(Doxygen)
-#find_package(Boost REQUIRED)
+
+### Boost
+set(Boost_VERBOSE ON)
+find_package(Boost REQUIRED COMPONENTS program_options filesystem HINTS ${DEAL_II_BOOST_DIR})
+include_directories( ${DEAL_II_BOOST_INCLUDE_DIRS} )
 
 include(GetGitRevisionDescription)
 get_git_head_revision(GIT_REFSPEC GIT_SHA1)
@@ -52,53 +61,48 @@ option( BUILD_DOCUMENTATION "Create and install the HTML based API documentation
 #set(CMAKE_CXX_FLAGS_RELEASE "-std=gnu++14 -march=native -O3 -fopenmp -mieee-fp -funroll-loops -ftree-vectorize -w -s")
 #set(CMAKE_CXX_FLAGS_DEBUG "-std=gnu++14 -g -march=native -fopenmp -mieee-fp -fsanitize=address")
 
-#IF(NOT CMAKE_BUILD_TYPE)
-#  SET(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options are: Debug Release." FORCE)
-#  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Release" "Debug" )
-#ENDIF(NOT CMAKE_BUILD_TYPE)
-
 set( HOME $ENV{HOME} CACHE STRING INTERNAL )
 set( DIR_INC ${PROJECT_SOURCE_DIR}/include CACHE STRING INTERNAL )
 set( DIR_INC_2 ${PROJECT_SOURCE_DIR}/source/lib CACHE STRING INTERNAL )
 
-SET( EXECUTABLE_OUTPUT_PATH  ${HOME}/bin )
-SET( LIBRARY_OUTPUT_PATH  ${HOME}/bin/lib )
+set( EXECUTABLE_OUTPUT_PATH  ${HOME}/out/bin )
+set( LIBRARY_OUTPUT_PATH  ${HOME}/out/bin/lib )
 #SET( EXECUTABLE_INSTALL_PATH  ${HOME}/bin )
 
 # set include dirs
 include_directories( ${DIR_INC} ${DIR_INC_2} ${NLOPT_INCLUDE_DIR} ${DEAL_II_MUPARSER_INCLUDE_DIRS} ${DEAL_II_GSL_INCLUDE_DIRS} ${DEAL_II_INCLUDE_DIRS} )
 
-IF( BUILD_HTRAP )
-  ADD_DEFINITIONS( -DPOTENTIAL=1 )
-  MESSAGE(STATUS "*** Building harmonic trap" )
-ELSE()
-  ADD_DEFINITIONS( -DPOTENTIAL=2 )
-  MESSAGE(STATUS "*** Building gravito optical trap" )
-ENDIF()
+if( BUILD_HTRAP )
+  add_definitions( -DPOTENTIAL=1 )
+  message(STATUS "*** Building harmonic trap" )
+else()
+add_definitions( -DPOTENTIAL=2 )
+  message(STATUS "*** Building gravito optical trap" )
+endif()
 
-IF( BUILD_3D )
-  ADD_DEFINITIONS( -DSPATIAL_DIM=3 )
-  MESSAGE(STATUS "*** Building 3D" )
-ELSE()
-  ADD_DEFINITIONS( -DSPATIAL_DIM=2 )
-  MESSAGE(STATUS "*** Building 2D" )
-ENDIF()
+if( BUILD_3D )
+  add_definitions( -DSPATIAL_DIM=3 )
+  message(STATUS "*** Building 3D" )
+else()
+  add_definitions( -DSPATIAL_DIM=2 )
+  message(STATUS "*** Building 2D" )
+endif()
 
 if( BUILD_NEHARI )
   add_definitions( -DNEHARI )
 endif()
 
-ADD_SUBDIRECTORY( source/lib )
-ADD_SUBDIRECTORY( source/groundstates )
-ADD_SUBDIRECTORY( source/realtime )
-ADD_SUBDIRECTORY( source/oct )
-ADD_SUBDIRECTORY( source/utils )
-ADD_SUBDIRECTORY( source/case_gen )
-ADD_SUBDIRECTORY( source/stationary )
+add_subdirectory( source/lib )
+add_subdirectory( source/case_gen )
+add_subdirectory( source/groundstates )
+##ADD_SUBDIRECTORY( source/realtime )
+##ADD_SUBDIRECTORY( source/oct )
+##ADD_SUBDIRECTORY( source/utils )
+##ADD_SUBDIRECTORY( source/stationary )
 #ADD_SUBDIRECTORY( source/resonances )
 #ADD_SUBDIRECTORY( source/trash )
 #ADD_SUBDIRECTORY( source/belen )
-ADD_SUBDIRECTORY( source/edu )
+##ADD_SUBDIRECTORY( source/edu )
 #ADD_SUBDIRECTORY( source/cont )
 
 
@@ -116,7 +120,7 @@ add_custom_target(doc
     VERBATIM)
 endif()
 
-enable_testing()
+# enable_testing()
 # serial progs
 #add_test( NAME CASEGENTEST1 COMMAND ${EXECUTABLE_OUTPUT_PATH}/batch_case_generation_xml --dim 1 -f test1d -N 2 --Ndmu 2)
 #add_test( NAME CASEGENTEST2 COMMAND ${EXECUTABLE_OUTPUT_PATH}/batch_case_generation_xml --dim 2 -f test2d -N 1 --Ndmu 2)

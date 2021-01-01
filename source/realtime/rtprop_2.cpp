@@ -58,11 +58,12 @@
 #include <iostream>
 #include <stdlib.h>
 
+#include "boost/program_options.hpp"
+
 #include "global.h"
 #include "MyParameterHandler.h"
 #include "MyComplexTools.h"
 #include "my_table.h"
-#include "cxxopts.hpp"
 
 ///namespace realtime_propagation
 namespace realtime_propagation
@@ -73,7 +74,7 @@ namespace realtime_propagation
   class MySolver
   {
   public:
-    MySolver( const std::string& );
+    explicit MySolver( const std::string& );
     ~MySolver();
 
     void run ( const std::string& );
@@ -292,33 +293,28 @@ int main ( int argc, char *argv[] )
   using namespace dealii;
   deallog.depth_console (0);
 
-  cxxopts::Options options("rt_prop_1", "real time propagation 1D");
+  boost::program_options::options_description oOptionsDesc{"Options"};
   
-  options.add_options()
-  ("i,input", "input initial wave function" , cxxopts::value<std::string>()->default_value("Cfinal.bin") )
-  ("p,params", "input parameter xml file" , cxxopts::value<std::string>()->default_value("params.xml") )
-  ("help","Print help")
-  ;
+  oOptionsDesc.add_options()
+  ("i,input" , boost::program_options::value<std::string>()->default_value("Cfinal.bin"), "input initial wave function" )
+  ("p,params" , boost::program_options::value<std::string>()->default_value("params.xml"), "input parameter xml file")
+  ("help","Print help");
   
-  auto result = options.parse(argc, argv);
-
-  if (result.count("") == 0)
-  {
-    std::cout << options.help({""}) << std::endl;
-    return EXIT_FAILURE;
-  }
+  boost::program_options::variables_map oVarMap;
+  boost::program_options::store(boost::program_options::parse_command_line(argc, argv, oOptionsDesc), oVarMap);
+  boost::program_options::notify(oVarMap);
 
   std::string bin_filename, params_filename;
-  try
-  {
-    bin_filename = result["i"].as<std::string>(); 
-    params_filename = result["p"].as<std::string>();
-  }
-  catch (const cxxopts::OptionException& e)
-  {
-    std::cout << "error parsing options: " << e.what() << std::endl;
-    return EXIT_FAILURE;
-  }
+  // try
+  // {
+    bin_filename = oVarMap["i"].as<std::string>(); 
+    params_filename = oVarMap["p"].as<std::string>();
+  // }
+  // catch (const cxxopts::OptionException& e)
+  // {
+  //   std::cout << "error parsing options: " << e.what() << std::endl;
+  //   return EXIT_FAILURE;
+  // }
 
   realtime_propagation::MySolver solver(params_filename);
   solver.run(bin_filename);

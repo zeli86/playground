@@ -34,7 +34,7 @@ Interpoliert aus den gamma von mu Kurven zu den gegebenen gammas 10 20 usw den z
 #include <vector>
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_spline.h>
-#include "strtk.hpp"
+//#include "strtk.hpp"
  
 using namespace std; 
 

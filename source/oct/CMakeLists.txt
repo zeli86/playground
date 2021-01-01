@@ -1,7 +1,7 @@
 
 ADD_EXECUTABLE( oct oct.cpp )
 DEAL_II_SETUP_TARGET( oct )
-TARGET_LINK_LIBRARIES( oct myatus )
+TARGET_LINK_LIBRARIES( oct myatus Boost::headers Boost::program_options)
 
 #ADD_EXECUTABLE( oct_mpi oct_mpi.cpp )
 #DEAL_II_SETUP_TARGET( oct )

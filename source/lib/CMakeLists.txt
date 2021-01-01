@@ -1,7 +1,6 @@
 
-ADD_LIBRARY( myatus MyParameterHandler.cpp my_table.cpp mmio.c pugiconfig.hpp pugixml.hpp pugixml.cpp )
-TARGET_LINK_LIBRARIES( myatus m gomp )
+set(TARGET myatus )
 
-ADD_EXECUTABLE( testread_xml testread_xml.cpp )
-TARGET_LINK_LIBRARIES( testread_xml myatus m gomp )
+ADD_LIBRARY( ${TARGET} MyParameterHandler.cpp MyTable.cpp mmio.c )
+TARGET_LINK_LIBRARIES( ${TARGET} m gomp Boost::headers)
 

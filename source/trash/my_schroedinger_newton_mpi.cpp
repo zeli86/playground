@@ -781,7 +781,7 @@ namespace BreedSolver
     if( m_root )
     {
       ofstream ofs("log.txt");
-      ofs << m_table;
+      //ofs << m_table;
     }
   }
   

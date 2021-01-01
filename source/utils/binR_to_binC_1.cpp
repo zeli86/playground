@@ -41,13 +41,14 @@
 #include <deal.II/numerics/vector_tools.h>
 //#include <deal.II/tria.h>
 
+#include "boost/program_options.hpp"
+
 #include <fstream>
 #include <iostream>
 
 #include "global.h"
 #include "MyParameterHandler.h"
 #include "MyComplexTools.h"
-#include "cxxopts.hpp"
 #include "muParser.h"
 
 namespace HelperPrograms
@@ -59,18 +60,18 @@ namespace HelperPrograms
   class binR_to_binC
   {
   public:
-    binR_to_binC( MyParameterHandler &, const string );
+    explicit binR_to_binC( MyParameterHandler &, const string& );
     ~binR_to_binC();
 
     void run ();
 
   protected:
-    void make_grid();
-    void setup_system();
+    void MakeGrid();
+    void SetupSystem();
 
-    MyParameterHandler &m_ph;
-    Triangulation<dim> triangulation;
-    FE_Q<dim> fe;
+    MyParameterHandler &m_oParameterHandler;
+    Triangulation<dim> m_oTriangulation;
+    FE_Q<dim> m_FE;
     DoFHandler<dim> dof_handler;
     FESystem<dim> fe_2;
     DoFHandler<dim> dof_handler_2;
@@ -91,21 +92,21 @@ namespace HelperPrograms
    * Constructor
    */
   template <int dim>
-  binR_to_binC<dim>::binR_to_binC ( MyParameterHandler &ph, const string fn )
+  binR_to_binC<dim>::binR_to_binC ( MyParameterHandler &ph, const string& fn )
     :
-    m_ph(ph),
-    triangulation ( typename Triangulation<dim>::MeshSmoothing(Triangulation<dim>::limit_level_difference_at_vertices | Triangulation<dim>::eliminate_refined_inner_islands | Triangulation<dim>::smoothing_on_refinement | Triangulation<dim>::smoothing_on_coarsening)),
-    fe (gl_degree_fe),
-    dof_handler (triangulation),
+    m_oParameterHandler(ph),
+    m_oTriangulation ( typename Triangulation<dim>::MeshSmoothing(Triangulation<dim>::limit_level_difference_at_vertices | Triangulation<dim>::eliminate_refined_inner_islands | Triangulation<dim>::smoothing_on_refinement | Triangulation<dim>::smoothing_on_coarsening)),
+    m_FE (gl_degree_fe),
+    dof_handler (m_oTriangulation),
     fe_2 (FE_Q<dim>(gl_degree_fe), 2),
-    dof_handler_2 (triangulation),
+    dof_handler_2 (m_oTriangulation),
     m_bin_filename(fn)
   {
-    m_xmin = m_ph.Get_Mesh("xrange", 0);
-    m_xmax = m_ph.Get_Mesh("xrange", 1);
+    m_xmin = m_oParameterHandler.Get_Mesh("xrange", 0);
+    m_xmax = m_oParameterHandler.Get_Mesh("xrange", 1);
     //m_ymin = m_ph.Get_Mesh("yrange",0);
     //m_ymax = m_ph.Get_Mesh("yrange",1);
-    m_global_refinement = unsigned(m_ph.Get_Mesh("global_refinements", 0));
+    m_global_refinement = unsigned(m_oParameterHandler.Get_Mesh("global_refinements", 0));
   }
 
   template <int dim>
@@ -116,7 +117,7 @@ namespace HelperPrograms
   }
 
   template <int dim>
-  void binR_to_binC<dim>::make_grid ()
+  void binR_to_binC<dim>::MakeGrid ()
   {
     Point<dim, double> pt1, pt2;
 
@@ -129,15 +130,15 @@ namespace HelperPrograms
       pt2(i) = max[i];
     }
 
-    GridGenerator::hyper_rectangle(triangulation, pt2, pt1);
-    triangulation.refine_global(m_global_refinement);
+    GridGenerator::hyper_rectangle(m_oTriangulation, pt2, pt1);
+    m_oTriangulation.refine_global(m_global_refinement);
   }
 
   template <int dim>
-  void binR_to_binC<dim>::setup_system()
+  void binR_to_binC<dim>::SetupSystem()
   {
     // stuff for the first dof handler
-    dof_handler.distribute_dofs (fe);
+    dof_handler.distribute_dofs (m_FE);
 
     m_Psi_R.reinit (dof_handler.n_dofs());
 
@@ -160,8 +161,8 @@ namespace HelperPrograms
   template <int dim>
   void binR_to_binC<dim>::run()
   {
-    make_grid();
-    setup_system();
+    MakeGrid();
+    SetupSystem();
 
     ifstream in(m_bin_filename);
     m_Psi_R.block_read(in);
@@ -184,42 +185,42 @@ namespace HelperPrograms
 
 int main ( int argc, char *argv[] )
 {
-  cxxopts::Options options("binR_to_binC_1", "Converts real 1D deal.ii binary format to complex deal.ii binary format.");
+  boost::program_options::options_description oOptionsDesc{"Options"};
   
-  options.add_options()
-  ("p,params",  "parameter xml file" , cxxopts::value<std::string>()->default_value("params.xml") )
-  ("positional", "Positional arguments: these are the arguments that are entered without an option", cxxopts::value<std::vector<std::string>>())
-  ("help","Print help")
-  ;
+  oOptionsDesc.add_options()
+  ("p,params", boost::program_options:value<std::string>()->default_value("params.xml"),  "parameter xml file" )
+  ("positional", , boost::program_options::value<std::vector<std::string>>(), "Positional arguments: these are the arguments that are entered without an option")
+  ("help","Print help");
   
-  options.parse_positional({"positional"});
-  auto result = options.parse(argc, argv);
+  boost::program_options::variables_map oVarMap;
+  boost::program_options::store(boost::program_options::parse_command_line(argc, argv, oOptionsDesc), oVarMap);
+  boost::program_options::notify(oVarMap);
 
   std::string bin_filename, params_filename;
-  try
-  {
-   if (result.count("") == 0)
+  // try
+  // {
+   if (oVarMap.count("") == 0)
     {
-      std::cout << options.help({""}) << std::endl;
+      std::cout << oVarMap.help({""}) << std::endl;
       return EXIT_FAILURE;
     }
 
-    if( result.count("positional") > 0 )
+    if( oVarMap.count("positional") > 0 )
     {
-      bin_filename = result["positional"].as<std::vector<std::string>>()[0]; 
+      bin_filename = oVarMap["positional"].as<std::vector<std::string>>()[0]; 
     }
     else
     {        
-      std::cout << options.help({""}) << std::endl;
+      std::cout << oVarMap.help({""}) << std::endl;
       return EXIT_FAILURE;
     }
-    params_filename = result["p"].as<std::string>();
-  }
-  catch (const cxxopts::OptionException& e)
-  {
-    std::cout << "error parsing options: " << e.what() << std::endl;
-    return EXIT_FAILURE;
-  }
+    params_filename = oVarMap["p"].as<std::string>();
+  // }
+  // catch (const cxxopts::OptionException& e)
+  // {
+  //   std::cout << "error parsing options: " << e.what() << std::endl;
+  //   return EXIT_FAILURE;
+  // }
 
   MyParameterHandler params(params_filename);
   int dim = 0;

@@ -17,21 +17,15 @@ The PLAYGROUND package is a collection of C++ programs designed to solve the non
 
 The following packages are required and will be installed via the install script:
 
-* openmpi 4.0.2 (https://www.open-mpi.org/)
-* boost 1.72.0 (https://www.boost.org/)
+* openmpi 4.0.5 (https://www.open-mpi.org/)
+* boost 1.74.0 (https://www.boost.org/)
 * gnu gsl 2.6 (https://www.gnu.org/software/gsl/)
 * nlopt 2.6.1 (http://ab-initio.mit.edu/nlopt) 
 * muparser 2.2.6.1 (http://beltoforion.de/article.php?a=muparser)
-* lapack 3.8.0 (http://www.netlib.org/lapack/)
+* lapack 3.9.0 (http://www.netlib.org/lapack/)
 * p4est 2.2 (http://p4est.org/)
-* petsc 3.10.12 (http://www.mcs.anl.gov/petsc/) 
-* deal.ii 9.1.1 (http://www.dealii.org/) 
-
-The following third party packages are included in the source tree:
-
-* pugixml 1.10 (https://pugixml.org/)
-* String Toolkit (https://www.partow.net/programming/strtk/index.html)
-* CXXOPTS (https://github.com/jarro2783/cxxopts)
+* petsc 3.13.6 (http://www.mcs.anl.gov/petsc/) 
+* deal.ii 9.2.0 (http://www.dealii.org/) 
 
 ## **Installation**
 

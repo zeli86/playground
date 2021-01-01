@@ -671,7 +671,7 @@ namespace BreedSolver
     }
 
     ofstream ofs("log.txt");
-    ofs << m_table;
+    //ofs << m_table;
     
     m_Potential_str = "0.5*(x-3)^2";
     m_guess_str = "exp(-0.5*(x-3)^2)";    

@@ -624,7 +624,7 @@ namespace BreedSolver_1
     }
 
     ofstream ofs("log.txt");
-    ofs << m_table;
+    //ofs << m_table;
   }
 
   template <int dim> 

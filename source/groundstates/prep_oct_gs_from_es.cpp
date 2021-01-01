@@ -63,6 +63,9 @@ namespace LA
 #include <deal.II/distributed/grid_refinement.h>
 #include <deal.II/distributed/solution_transfer.h>
 
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
+
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_multimin.h>
 #include <gsl/gsl_sf.h>
@@ -81,7 +84,7 @@ namespace LA
 #include "mpi.h"
 #include "functions.h"
 #include "MyParameterHandler.h"
-#include "my_table.h"
+#include "MyTable.h"
 #include "MyComplexTools.h"
 
 #define STR1(x) #x
@@ -152,7 +155,10 @@ namespace BreedSolver
 
     ofstream m_computing_timer_log;
     TimerOutput m_computing_timer;    
-    MyParameterHandler m_ph;
+
+    //MyParameterHandler m_oPropertyHandler;
+    boost::property_tree::ptree m_oPropertyTree;
+
     ConditionalOStream pcout;
     parallel::distributed::Triangulation<dim> triangulation;
     FE_Q<dim> fe;
@@ -196,7 +202,6 @@ namespace BreedSolver
     mpi_communicator(MPI_COMM_WORLD), 
     m_computing_timer_log("benchmark.txt"),
     m_computing_timer(mpi_communicator, m_computing_timer_log, TimerOutput::summary, TimerOutput:: cpu_and_wall_times ), 
-    m_ph(xmlfilename),
     pcout (cout, (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)),
     triangulation (mpi_communicator, typename Triangulation<dim>::MeshSmoothing(Triangulation<dim>::limit_level_difference_at_vertices|Triangulation<dim>::eliminate_refined_inner_islands|Triangulation<dim>::smoothing_on_refinement|Triangulation<dim>::smoothing_on_coarsening)),
     fe (gl_degree_fe),
@@ -206,18 +211,20 @@ namespace BreedSolver
   {
     try
     {
-      m_omega = m_ph.Get_Physics("omega");
-      m_gs = m_ph.Get_Physics("gs_1",0);
-      
-      m_xmin = m_ph.Get_Mesh("xrange",0);
-      m_xmax = m_ph.Get_Mesh("xrange",1);
-      m_ymin = m_ph.Get_Mesh("yrange",0);
-      m_ymax = m_ph.Get_Mesh("yrange",1);
-      m_zmin = m_ph.Get_Mesh("zrange",0);
-      m_zmax = m_ph.Get_Mesh("zrange",1);
+      boost::property_tree::read_xml ( xmlfilename,m_oPropertyTree );
 
-      m_NA = m_ph.Get_Algorithm("NA",0);
-      m_epsilon = m_ph.Get_Algorithm("epsilon");
+      // m_omega = m_oPropertyHandler.Get_Physics("omega");
+      // m_gs = m_ph.Get_Physics("gs_1",0);
+      
+      // m_xmin = m_ph.Get_Mesh("xrange",0);
+      // m_xmax = m_ph.Get_Mesh("xrange",1);
+      // m_ymin = m_ph.Get_Mesh("yrange",0);
+      // m_ymax = m_ph.Get_Mesh("yrange",1);
+      // m_zmin = m_ph.Get_Mesh("zrange",0);
+      // m_zmax = m_ph.Get_Mesh("zrange",1);
+
+      // m_NA = m_ph.Get_Algorithm("NA",0);
+      // m_epsilon = m_ph.Get_Algorithm("epsilon");
     }
     catch( const std::string info )
     {
@@ -280,9 +287,7 @@ namespace BreedSolver
     MPI_Allreduce( tmp, res, 3, MPI_DOUBLE, MPI_SUM, mpi_communicator);
     T=res[0]; 
     N=res[1];
-    W=res[2];
-    
-    
+    W=res[2];    
   }
 
   template<int dim>
@@ -360,9 +365,7 @@ namespace BreedSolver
     }
     MPI_Allreduce( tmp1, sum, 2, MPI_DOUBLE, MPI_SUM, mpi_communicator);
     
-    m_sob_grad.add( -sum[0]/sum[1], m_Psi_sob );
-    
-    
+    m_sob_grad.add( -sum[0]/sum[1], m_Psi_sob );    
   }
   
   template <int dim>
@@ -615,8 +618,7 @@ namespace BreedSolver
     preconditioner.initialize(m_system_matrix, data);    
 
     cg.solve (m_system_matrix, m_Psi_sob, m_system_rhs, preconditioner);    
-*/    
-    
+*/        
   }
   
   template <int dim>
@@ -768,9 +770,7 @@ namespace BreedSolver
     constraints_2.reinit (locally_relevant_dofs_2);
     DoFTools::make_hanging_node_constraints (dof_handler_2, constraints_2);
     VectorTools::interpolate_boundary_values (dof_handler_2, 0, ZeroFunction<dim>(2), constraints_2, ComponentMask(mask));
-    constraints_2.close ();
-
-    
+    constraints_2.close ();   
   }
 
   template <int dim>
@@ -785,9 +785,7 @@ namespace BreedSolver
     data_out.attach_dof_handler (dof_handler);
     data_out.add_data_vector (m_workspace_1, "m_Psi");
     data_out.build_patches ();
-    data_out.write_vtu_in_parallel ("guess.vtu",mpi_communicator);
-
-    
+    data_out.write_vtu_in_parallel ("guess.vtu",mpi_communicator);    
   }
 
   template <int dim>
@@ -849,17 +847,17 @@ namespace BreedSolver
 
       if( m_counter % m_NA == 0 ) output_results(path);
 
-      columns& cols = m_table.new_line();
-      m_table.insert( cols, MyTable::COUNTER, double(m_counter) );
-      m_table.insert( cols, MyTable::RES, m_res );
-      m_table.insert( cols, MyTable::RESP, m_resp );
-      m_table.insert( cols, MyTable::MU, m_mu );
-      m_table.insert( cols, MyTable::GS, m_gs );
-      m_table.insert( cols, MyTable::PARTICLE_NUMBER, m_N );
-      //m_table.insert( cols, MyTable::total_no_cells, double(m_total_no_cells) );
-      //m_table.insert( cols, MyTable::total_no_active_cells, double(m_total_no_active_cells) );
+      // columns& cols = m_table.new_line();
+      // m_table.insert( cols, MyTable::COUNTER, double(m_counter) );
+      // m_table.insert( cols, MyTable::RES, m_res );
+      // m_table.insert( cols, MyTable::RESP, m_resp );
+      // m_table.insert( cols, MyTable::MU, m_mu );
+      // m_table.insert( cols, MyTable::GS, m_gs );
+      // m_table.insert( cols, MyTable::PARTICLE_NUMBER, m_N );
+      // m_table.insert( cols, MyTable::total_no_cells, double(m_total_no_cells) );
+      // m_table.insert( cols, MyTable::total_no_active_cells, double(m_total_no_active_cells) );
 
-      if( m_root ) cout << m_table;
+      // if( m_root ) cout << m_table;
       if( m_res < m_epsilon[1] ) { retval=Status::SUCCESS; break; }
 
       m_counter++;
@@ -869,8 +867,8 @@ namespace BreedSolver
     
     if( m_N < 1e-5 ) retval = Status::ZERO_SOL;
     
-    string filename = path + "log.csv";
-    if( m_root ) m_table.dump_2_file(filename);
+    //string filename = path + "log.csv";
+    //if( m_root ) m_table.dump_2_file(filename);
     
     return retval;
   }
@@ -920,7 +918,7 @@ namespace BreedSolver
     if( m_root )
     {
       ofstream ofs("log.txt");
-      ofs << m_table;
+      //ofs << m_table;
     }
   }
     
@@ -958,27 +956,27 @@ namespace BreedSolver
   template <int dim>
   void MySolver<dim>::dump_info_xml ( const string path )
   {
-    string filename = path + "info.xml";
+  //   string filename = path + "info.xml";
 
-    wofstream fs2;
-    fs2.open(filename);
+  //   wofstream fs2;
+  //   fs2.open(filename);
 
-    locale utf8_locale("en_US.UTF8");
-    fs2.imbue(utf8_locale); 
-    fs2 << L"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<INFO>\n";
-    fs2 << L"<MU>" << m_mu << L"</MU>\n";
-    fs2 << L"<GS>" << m_gs << L"</GS>\n";
-    fs2 << L"<N>" << m_N << "L</N>\n";
-    fs2 << L"<XMIN>" << m_xmin << L"</XMIN>\n";
-    fs2 << L"<XMAX>" << m_xmax << L"</XMAX>\n";
-    fs2 << L"<YMIN>" << m_ymin << L"</YMIN>\n";
-    fs2 << L"<YMAX>" << m_ymax << L"</YMAX>\n";
-    fs2 << L"<ZMIN>" << m_zmin << L"</ZMIN>\n";
-    fs2 << L"<ZMAX>" << m_zmax << L"</ZMAX>\n";
-    fs2 << L"<FINAL_ERROR>" << m_final_error << L"</FINAL_ERROR>\n";
-    fs2 << L"<REVISION>" << STR2(GIT_SHA1) << L"</REVISION>\n";
-    fs2 << L"</INFO>\n";
-    fs2.close();
+  //   locale utf8_locale("en_US.UTF8");
+  //   fs2.imbue(utf8_locale); 
+  //   fs2 << L"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<INFO>\n";
+  //   fs2 << L"<MU>" << m_mu << L"</MU>\n";
+  //   fs2 << L"<GS>" << m_gs << L"</GS>\n";
+  //   fs2 << L"<N>" << m_N << "L</N>\n";
+  //   fs2 << L"<XMIN>" << m_xmin << L"</XMIN>\n";
+  //   fs2 << L"<XMAX>" << m_xmax << L"</XMAX>\n";
+  //   fs2 << L"<YMIN>" << m_ymin << L"</YMIN>\n";
+  //   fs2 << L"<YMAX>" << m_ymax << L"</YMAX>\n";
+  //   fs2 << L"<ZMIN>" << m_zmin << L"</ZMIN>\n";
+  //   fs2 << L"<ZMAX>" << m_zmax << L"</ZMAX>\n";
+  //   fs2 << L"<FINAL_ERROR>" << m_final_error << L"</FINAL_ERROR>\n";
+  //   fs2 << L"<REVISION>" << STR2(GIT_SHA1) << L"</REVISION>\n";
+  //   fs2 << L"</INFO>\n";
+  //   fs2.close();
   }  
 } // end of namespace 
 

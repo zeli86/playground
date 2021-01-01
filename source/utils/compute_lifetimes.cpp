@@ -33,7 +33,7 @@
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_fit.h>
 #include <gsl/gsl_math.h>
-#include "strtk.hpp"
+//#include "strtk.hpp"
 #include "pugixml.hpp"
  
 using namespace std; 

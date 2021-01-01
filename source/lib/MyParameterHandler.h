@@ -17,59 +17,30 @@
  * along with atus-pro testing.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __class_MyParameterHandler__
-#define __class_MyParameterHandler__
+#pragma once 
 
-#include "pugixml.hpp"
+#include <iostream>
 #include <string>
 #include <vector>
 #include <map>
-//#include <list>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
+#include <boost/tokenizer.hpp>
 
 class MyParameterHandler
 {
 public:
-  explicit MyParameterHandler( const std::string );
+  explicit MyParameterHandler( const std::string& );
   virtual ~MyParameterHandler(){};
   
-  std::string Get_Parameter( const std::string );
-
-  void Set_Physics( const std::string, const std::vector<double>& );
-  double Get_Physics( const std::string, const int );
-  std::vector<double> Get_Physics( const std::string );
-
-  double Get_Mesh( const std::string, const int );
-  std::vector<double> Get_Mesh( const std::string );
-
-  double Get_Algorithm( const std::string, const int );
-  std::vector<double> Get_Algorithm( const std::string );
-
-  std::string Get_String( const std::string, const int=0 );
-  std::vector<std::string> Get_AllStrings( const std::string );
-
-  double Get_Constant( const std::string );
-  std::map<std::string,double> Get_Constants_Map();
-
-  void SaveXMLFile( const std::string& );
-
-  int Get_NA(); 
-  int Get_NK(); 
+  std::vector<double> GetOmega();
 
   //void Setup_muParser( mu::Parser& );
 protected:
-  void populate_vconstants( const std::string, std::map<std::string,std::vector<double>>& );
-  void populate_constants();
-  void populate_parameter();
-  void populate_stringlists();
+ 
+  void PopulatePropertyTree(const std::string&);
   
-  pugi::xml_document m_xml_doc;
-  
-  std::map<std::string,double> m_map_constants;
-  std::map<std::string,std::vector<double>> m_map_physics;
-  std::map<std::string,std::vector<double>> m_map_mesh;
-  std::map<std::string,std::vector<double>> m_map_algorithm;
-  std::map<std::string,std::vector<std::string>> m_map_strings;
-  std::map<std::string,std::string> m_map_parameter;
+  boost::property_tree::ptree m_oPropertyTree;
 };
 
-#endif
+
