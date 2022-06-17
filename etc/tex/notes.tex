@@ -1,0 +1,44 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\author{Želimir Marojević}
+\begin{document}
+
+\section{linear contributions}
+
+\begin{align}
+&\left( t_0 \nabla \bar{u}_0 + t_1 \nabla \bar{u}_1 \right) \left( t_0 \nabla u_0 + t_1 \nabla u_1 \right) = \\
+&t_0^2 \vert u_0 \vert^2 + t_0 t_1 \nabla \bar{u}_0 \nabla u_1  + t_0 t_1 \nabla u_0 \nabla \bar{u}_1 + t_1^2 \vert u_1 \vert^2 = \\
+&t_0^2 \vert u_0 \vert^2 + 2 t_0 t_1 ( \Re(\nabla u_0) \Re(\nabla u_1) + \Im(\nabla u_0) \Im(\nabla u_1) ) + t_1^2 \vert u_1 \vert^2 
+\end{align}
+
+
+\section{non linear contributions}
+
+\begin{align}
+&\left( t_0 \bar{u}_0 + t_1 \bar{u}_1 \right)^2 \left( t_0 u_0 + t_1 u_1 \right)^2 = \\
+&\left( t_0 \bar{u}_0 + 2 t_0 t_1 \bar{u}_0 \bar{u}_1 + t_1 \bar{u}_1 \right) \left( t_0 u_0 + 2 t_0 t_1 u_0 u_1 + t_1 u_1 \right)
+\end{align}
+
+\begin{align}
+&t_0^4 \vert u_0 \vert^4 \\
+&2 t_0^3 t_1 \vert u_0 \vert^2 ( \bar{u}_0  u_1 + u_0 \bar{u}_1 ) \\
+&t_0^2 t_1^2 ( \bar{u}_0^2 u_1^2 + u_0^2 \bar{u}_1^2 ) \\
+&4 t_0^2 t_1^2 \vert u_0 \vert^2 \vert u_1 \vert^2 \\
+&2 t_0 t_1^3 \vert u_1 \vert^2 ( \bar{u}_0 u_1 + u_0 \bar{u}_1 ) \\
+&t_0^2 t_1^2 u_0^2 \bar{u_1}^2 \\
+& t_0^4 \vert u_1 \vert^4
+\end{align}
+
+\begin{align}
+&t_0^4 \vert u_0 \vert^4 \\
+&4 t_0^3 t_1 \vert u_0 \vert^2 ( \Re(u_0) \Re(u_1) + \Im(u_0) \Im(u_1) ) \\
+&2 t_0^2 t_1^2 ( (\Re(u_0)^2 - \Im(u_0)^2) (\Re(u_1)^2 - \Im(u_1)^2)  + 4 \Re(u_0) \Im(u_0) \Re(u_1)  \Im(u_1) )\\
+&4 t_0^2 t_1^2 \vert u_0 \vert^2 \vert u_1 \vert^2 \\
+&4 t_0 t_1^3 \vert u_1 \vert^2 ( \Re(u_0) \Re(u_1) + \Im(u_0) \Im(u_1) ) \\
+& t_0^4 \vert u_1 \vert^4
+\end{align}
+
+\end{document}

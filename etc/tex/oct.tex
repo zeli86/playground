@@ -1,0 +1,129 @@
+%%% Zelimir Marojevic
+
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[german]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[fleqn]{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage[left=2cm,right=2cm,top=2cm,bottom=2cm]{geometry}
+\usepackage{bbm}
+\newcommand{\iu}{\ensuremath{\mathbbm{i}}}
+\newcommand{\ci}{\ensuremath{\mathbbm{i}}}
+\usepackage{physics}
+%\newcommand{\iu}{\ensuremath{\mathbbm{i}}}
+%%\newcommand{\rn}{\ensuremath{\mathbbm{R}}}
+%\newcommand{\cn}{\ensuremath{\mathbbm{C}}}
+
+\newcommand{\intT}{\ensuremath{\int_0^T dt\,}}
+\newcommand{\intV}{\ensuremath{\int_{\Omega} dV\,}}
+\newcommand{\intTV}{\ensuremath{\int_0^T d\tau\,\int_{\Omega} dV\,}}
+\newcommand{\skalarprodukt}[2]{\left< #1 \vert #2 \right>}
+\newcommand{\An}{a^{n+1}}
+\newcommand{\Aa}{a^n}
+\newcommand{\Bn}{b^{n+1}}
+\newcommand{\Ba}{b^n}
+\newcommand{\Hlam}{\ensuremath{H_{\lambda}}}
+
+\begin{document}
+
+\section{Functional}
+
+\begin{equation}
+\Hlam := -\nabla^2 + V(x;\lambda)
+\end{equation}
+
+\begin{align}
+J_1 &= \frac{1}{2} \intT \left( 1 - \vert\skalarprodukt{\Psi_d}{\Psi}\vert^2 \right) \delta(t-T) + \frac{\alpha}{2} \intT \left( \partial_{\tau} \lambda(\tau) \right)^2 \\
+&= \frac{1}{2} \intT \left( 1 - \braket{\Psi_d}{\Psi}\braket{\Psi}{\Psi_d} \right) \delta(t-T) + \frac{\alpha}{2} \intT \left( \partial_{\tau} \lambda(\tau) \right)^2 \\
+J_2 &= \frac{1}{2} \intT \Vert\Psi_d-\Psi\Vert^2 \delta(t-T) + \frac{\alpha}{2} \intT \left( \partial_{\tau} \lambda(\tau) \right)^2 \\
+F &= \intT \iu \braket{p}{\partial_t\Psi} - \braket{p}{\Hlam\Psi} - \gamma \braket{p \Psi}{\Psi^2} \\
+F^* &= \intT -\iu \braket{\partial_t\Psi}{p} - \braket{\Hlam\Psi}{p} - \gamma \braket{\Psi^2}{p \Psi} \\
+F^{\dagger *} &= \iu \braket{p}{\Psi}\vert_{0}^{T} - \intT \iu \braket{\partial_t p}{\Psi} - \braket{\Hlam p}{\Psi} - \gamma \braket{p \Psi}{\Psi^2} \\
+F^{\dagger} &= -\iu \braket{\Psi}{p}\vert_{0}^{T} + \intT \iu \braket{\Psi}{\partial_t p} - \braket{\Psi}{\Hlam p} - \gamma \braket{\Psi^2}{p \Psi}
+\end{align}
+
+total functional
+
+\begin{equation}
+L_X := J_X + \Re{F}
+\end{equation}
+
+\begin{align}
+\fdv{L_X}{\Psi^*} h^* &\stackrel{!}{=} 0 \\
+\fdv{L_X}{p^*} h^* &\stackrel{!}{=} 0 \\
+\fdv{L_X}{\lambda} h^* &\stackrel{!}{=} 0 
+\end{align}
+
+\subsection{Eq. for $p$}
+
+\begin{equation}
+\fdv{\Re{F}}{p^*} = \frac{1}{2} \fdv{F}{\Psi^*} h^* + \frac{1}{2} \fdv{F^*}{\Psi^*} h^*
+\end{equation}
+
+\begin{align}
+\fdv{J_1}{\Psi^*} h^* &= -\intT \braket{\Psi_d}{\Psi}\braket{h}{\Psi_d} \delta(t-T) = -\braket{\Psi_d}{\Psi(T)}\braket{h}{\Psi_d} \\
+\fdv{J_2}{\Psi^*} h^* &= \intT \braket{h}{\Psi_d-\Psi} \delta(t-T) = \braket{h}{\Psi_d-\Psi(T)} \\
+\fdv{F^{\dagger*}}{\Psi^*} h^* &= -\intT\gamma \braket{p h}{\Psi^2} \\
+\fdv{F^{\dagger}}{\Psi^*} h^* &= -\iu \braket{h}{p}\vert_{0}^{T} + \intT \braket{h}{\iu \partial_t p} - \braket{h}{\Hlam p} - 2 \gamma \braket{\Psi}{ p \Psi}
+\end{align}
+
+therefore
+
+\begin{equation}
+\iu \partial_t p = \left( -\laplacian + V_{\lambda} + 2 \gamma \vert \Psi \vert^2 \right) p + \gamma \Psi^2 p^*
+\end{equation}
+
+with 
+
+\begin{equation}
+\iu p(T) = -\braket{\Psi_d}{\Psi(T)} \Psi_d
+\end{equation}
+
+or
+
+\begin{equation}
+\iu p(T) = \Psi_d - \Psi(T)
+\end{equation}
+
+\subsection{Eq. for $\Psi$}
+
+\begin{equation}
+\fdv{\Re{F}}{p^*} = \frac{1}{2} \fdv{F}{p^*} h^* + \frac{1}{2} \fdv{F^*}{p^*} h^*
+\end{equation}
+
+\begin{align}
+\fdv{J_X}{p^*} h^* &= 0 \\
+\fdv{F}{p^*} h^* &= \intT \iu \braket{h}{\partial_t\Psi} - \braket{h}{\left( -\laplacian + V_{\lambda} + \gamma \vert \Psi \vert^2 \right)\Psi} \\
+\fdv{F^*}{p^*} h^* &= 0
+\end{align}
+
+therefore
+
+\begin{equation}
+\iu \partial_t\Psi = \left( -\laplacian + V_{\lambda} + \gamma \vert \Psi \vert^2 \right)\Psi, \, \Psi(t=0):=\Psi_0
+\end{equation}
+
+
+\subsection{Eq. for $\lambda$}
+
+\begin{align}
+\fdv{J_1}{\lambda} h &= \frac{\alpha}{2} \intT \left. \pdv{\epsilon} \left( \partial_t \lambda + \epsilon h \right)^2 \right\vert_{\epsilon=0} \\ 
+&= \alpha \intT \left. \left( \partial_t \lambda + \epsilon h \right) \partial_t h \right\vert_{\epsilon=0} \\
+&= \alpha \intT \partial_t \lambda \partial_t h \\ 
+&= -\alpha \intT (\partial_t^2 \lambda ) h\\
+\fdv{J_2}{\lambda} h &= \fdv{J_1}{\lambda} h\\
+\fdv{F^*}{\lambda} h^* &= -\intT \Re{\braket{\partial_{\lambda} V_{\lambda} \Psi h}{p}}
+\end{align}
+
+therefore 
+
+\begin{equation}
+-\alpha \partial_t^2 \lambda - \Re{\mel{p}{\partial_{\lambda} V_{\lambda}}{\Psi}} = 0, \, \lambda(0)=\lambda_0, \, \lambda(T)=\lambda_1
+\end{equation}
+
+
+
+
+\end{document}
