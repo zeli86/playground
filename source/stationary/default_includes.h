@@ -37,7 +37,6 @@ namespace LA
 #include <deal.II/numerics/data_out.h>
 //#include <deal.II/numerics/error_estimator.h>
 //#include <deal.II/numerics/derivative_approximation.h>
-//#include <deal.II/numerics/fe_field_function.h>
 
 #include <deal.II/base/utilities.h>
 #include <deal.II/base/conditional_ostream.h>

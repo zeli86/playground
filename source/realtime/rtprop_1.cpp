@@ -63,7 +63,6 @@
 #include "global.h"
 #include "MyParameterHandler.h"
 #include "MyComplexTools.h"
-#include "my_table.h"
 
 ///namespace realtime_propagation
 namespace realtime_propagation

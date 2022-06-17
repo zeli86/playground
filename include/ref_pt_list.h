@@ -24,6 +24,8 @@
 #include <algorithm>
 #include <mpi.h>
 
+//#include "boost/log/trivial.hpp"
+
 namespace MyUtils
 {
   template<int dim>

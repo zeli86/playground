@@ -24,38 +24,51 @@
 #include <iostream>
 #include <string>
 #include <regex>
-#include <stdexcept> 
+#include <stdexcept>
 
-MyParameterHandler::MyParameterHandler( const std::string& sXMLFilename )
+MyParameterHandler::MyParameterHandler(const std::string& sXMLFilename)
 {
   PopulatePropertyTree(sXMLFilename);
 }
 
 
-void MyParameterHandler::PopulatePropertyTree( const std::string& sXMLFilename)
+void MyParameterHandler::PopulatePropertyTree(const std::string& sXMLFilename)
 {
-  boost::property_tree::read_xml(sXMLFilename,m_oPropertyTree);
+  boost::property_tree::read_xml(sXMLFilename, m_oPropertyTree);
 }
 
-
-std::vector<double> MyParameterHandler::GetOmega()
+void MyParameterHandler::GetParameter(const std::string sXMLNodeName, std::vector<double>& vRetval)
 {
-  m_oPropertyTree.get<std::string>("");
+  vRetval = m_oPropertyTree.get<std::vector<double>>(std::string("atus.parameter.") + sXMLNodeName);
 }
 
+void MyParameterHandler::GetParameter(const std::string sXMLNodeName, std::vector<int>& vRetval)
+{
+  vRetval = m_oPropertyTree.get<std::vector<int>>(std::string("atus.parameter.") + sXMLNodeName);
+}
+
+void MyParameterHandler::GetParameter(const std::string sXMLNodeName, double& rRetval)
+{
+  rRetval = m_oPropertyTree.get<double>(std::string("atus.parameter.") + sXMLNodeName);
+}
+
+void MyParameterHandler::GetParameter(const std::string sXMLNodeName, int& iRetval)
+{
+  iRetval = m_oPropertyTree.get<int>(std::string("atus.parameter.") + sXMLNodeName);
+}
 
 /*
 void MyParameterHandler::Setup_muParser( mu::Parser& mup )
 {
   mup.ClearConst();
   //mup.ClearFun();
-  
+
   for( auto i : m_map_constants )
-  {  
+  {
     //std::cout << i.first << ", " << i.second << std::endl;
     mup.DefineConst( i.first.c_str(), i.second );
   }
-  
+
   mup.DefineFun("Heaviside", Heaviside, false);
   mup.DefineFun("rect", rect, false);
   mup.DefineFun("sign", sign, false);

@@ -19,47 +19,8 @@
 
 #pragma once
 
+#include <boost/log/trivial.hpp>
 #include <stdio.h>
-
-  template <int dim>
-  void MySolver<dim>::compute_E_lin( LA::MPI::Vector& vec, double& T, double& N, double& W )
-  {
-    TimerOutput::Scope timing_section(m_computing_timer, "");
-    
-    this->m_constraints.distribute(vec);
-    this->m_Workspace[0] = vec;
-    
-    CPotential<dim> Potential( m_omega );
-    const QGauss<dim>  quadrature_formula(this->m_FE.degree+1);
-    FEValues<dim> fe_values (this->m_FE, quadrature_formula, update_gradients|update_values|update_JxW_values|update_quadrature_points);
-
-    const unsigned int n_q_points = quadrature_formula.size();
-    vector<double> vec_vals(n_q_points);
-    vector<Tensor<1, dim> > vec_grad(n_q_points);
-
-    double tmp1[]={0,0,0}, res[]={0,0,0};
-    typename DoFHandler<dim>::active_cell_iterator cell = this->m_DOF_Handler.begin_active(), endc = this->m_DOF_Handler.end();
-    for ( ; cell!=endc; ++cell )
-    {
-      if( cell->is_locally_owned() )
-      {
-        fe_values.reinit (cell);
-        fe_values.get_function_values( this->m_Workspace[0], vec_vals);
-        fe_values.get_function_gradients( this->m_Workspace[0], vec_grad);
-        for ( unsigned qp=0; qp<n_q_points; qp++ )
-        {
-          const double JxW = fe_values.JxW(qp);
-          const double vec_val_q = vec_vals[qp]*vec_vals[qp];
-          tmp1[0] += JxW*( vec_grad[qp]*vec_grad[qp] + Potential.value(fe_values.quadrature_point(qp))*vec_val_q );
-          tmp1[1] += JxW*vec_val_q;
-          tmp1[2] += JxW*vec_val_q*vec_val_q;
-        }
-      }
-    }
-    MPI_Allreduce( tmp1, res, 3, MPI_DOUBLE, MPI_SUM, mpi_communicator);
-    T=res[0]; N=res[1]; W=res[2];
-    
-  }
 
   template <int dim>
   void MySolver<dim>::estimate_error ( double& err )
@@ -124,15 +85,13 @@
     VectorTools::integrate_difference ( this->m_DOF_Handler,  this->m_Workspace[0], ZeroFunction<dim>(2), this->m_error_per_cell, QGauss<dim>(this->m_FE.degree+2), VectorTools::L2_norm);    
     const double total_local_error = this->m_error_per_cell.l2_norm();
     err = std::sqrt (Utilities::MPI::sum (total_local_error * total_local_error, MPI_COMM_WORLD));     
-  
-    
   }
  
   template <int dim>
   bool MySolver<dim>::solve ()
   {
     TimerOutput::Scope timing_section(m_computing_timer, "");
-    pcout << "Solving..." << endl;
+    BOOST_LOG_TRIVIAL(info) << "Solving..." << endl;
 /*        
     SolverControl solver_control;
     PETScWrappers::SparseDirectMUMPS solver(solver_control, mpi_communicator);
@@ -158,13 +117,12 @@
     }
     catch( ExceptionBase& e )
     {
-      pcout << e.what() << endl;
+      BOOST_LOG_TRIVIAL(error) << e.what() << endl;
       //pcout << "Possible singular matrix!" << endl;
       return false;
     }
     this->m_constraints.distribute ( this->m_Search_Direction);
 
-    
     return true;
   }
 

@@ -20,6 +20,7 @@
 
 #include "default_includes.h"
 
+#include <boost/log/trivial.hpp>
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_multimin.h>
 
@@ -38,11 +39,8 @@
 #include "mpi.h"
 #include "functions.h"
 #include "MyParameterHandler.h"
-#include "my_table.h"
 #include "MyRealTools.h"
-
-#define STR1(x) #x
-#define STR2(x) STR1(x)
+#include "MyLogging.h"
 
 namespace BreedSolver
 {
@@ -72,7 +70,7 @@ namespace BreedSolver
 
   protected:
 
-    dealii::FE_Q<dim> m_FEQ;
+    dealii::FE_Q<dim> m_FEQ{gl_degree_fe};
 
     using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::mpi_communicator;
     using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_root;
@@ -84,7 +82,6 @@ namespace BreedSolver
     using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_mu;
     using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_gs;
     using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_counter;
-    using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::pcout;
     using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_computing_timer;
     using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_ph;
     using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_final_error;
@@ -109,16 +106,12 @@ namespace BreedSolver
     void make_grid_custom();
 
     bool solve();
-    void compute_E_lin(LA::MPI::Vector&, double&, double&, double&);
     void find_min_J();
 
     void compute_contributions();
 
     string m_guess_str;
-    MyTable m_table;
-    MyTable m_results;
   };
-
 
 #include "shared_1.h"
 #include "grid.h"
@@ -128,31 +121,12 @@ namespace BreedSolver
    * Constructor
    */
   template <int dim>
-  MySolver<dim>::MySolver(const string xmlfilename) : m_FEQ(gl_degree_fe), cBaseMPI<dim, 2, dealii::FE_Q<dim>> (xmlfilename, m_FEQ)
+  MySolver<dim>::MySolver(const string xmlfilename) : cBaseMPI<dim, 2, dealii::FE_Q<dim>> (xmlfilename, m_FEQ)
   {
-    try
+    if( m_root )
     {
-      m_omega = m_ph.Get_Physics("omega");
-      m_gs = m_ph.Get_Physics("gs_1", 0);
-      m_QN1[0] = int (m_ph.Get_Physics("QN1", 0));
-      m_QN1[1] = int (m_ph.Get_Physics("QN1", 1));
-      m_QN1[2] = int (m_ph.Get_Physics("QN1", 2));
-
-      m_ti = m_ph.Get_Algorithm("ti", 0);
-      m_t[0] = m_ti;
-      m_t[1] = m_ti;
-      m_NA = int (m_ph.Get_Algorithm("NA", 0));
-      m_Ndmu = m_ph.Get_Algorithm("Ndmu", 0);
-      m_dmu = m_ph.Get_Algorithm("dmu", 0);
-      m_epsilon = m_ph.Get_Algorithm("epsilon");
+      disableLogging();
     }
-    catch (const std::string& info)
-    {
-      std::cerr << info << endl;
-      MPI_Abort(mpi_communicator, 0);
-    }
-
-    MPI_Comm_rank(mpi_communicator, &m_rank);
   }
 
   template <int dim>
@@ -214,11 +188,11 @@ namespace BreedSolver
     this->m_coeffs["t0^2"]      = 0.5 * total_contributions[5];
     this->m_coeffs["t0_t1"]     = total_contributions[7];
     this->m_coeffs["t1^2"]      = 0.5 * total_contributions[6];
-    this->m_coeffs["t0^4"]      = 0.25 * m_gs * total_contributions[0];
-    this->m_coeffs["t0^1_t1^3"] = 0.25 * m_gs * 4 * total_contributions[4];
-    this->m_coeffs["t0^2_t1^2"] = 0.25 * m_gs * 6 * total_contributions[2];
-    this->m_coeffs["t0^3_t1^1"] = 0.25 * m_gs * 4 * total_contributions[3];
-    this->m_coeffs["t1^4"]      = 0.25 * m_gs * total_contributions[1];
+    this->m_coeffs["t0^4"]      = 0.25 * m_gs.at(0) * total_contributions[0];
+    this->m_coeffs["t0^1_t1^3"] = 0.25 * m_gs.at(0) * 4 * total_contributions[4];
+    this->m_coeffs["t0^2_t1^2"] = 0.25 * m_gs.at(0) * 6 * total_contributions[2];
+    this->m_coeffs["t0^3_t1^1"] = 0.25 * m_gs.at(0) * 4 * total_contributions[3];
+    this->m_coeffs["t1^4"]      = 0.25 * m_gs.at(0) * total_contributions[1];
   }
 
 
@@ -247,7 +221,7 @@ namespace BreedSolver
     try
     {
       nlopt::result result = opt.optimize(t, minf);
-      // std::cout << "found minimum at f(" << t[0] << "," << t[1] << ") = " << std::setprecision(10) << minf << std::endl;
+      BOOST_LOG_TRIVIAL(debug) << "found minimum at f(" << t[0] << "," << t[1] << ") = " << std::setprecision(10) << minf;
       // std::cout << "result " << result << std::endl;
     }
     catch (std::exception& e)
@@ -265,8 +239,6 @@ namespace BreedSolver
   {
     int retval = Status::SUCCESS;
 
-    m_table.clear();
-
     m_t[0] = m_ti;
     m_t[1] = m_ti;
 
@@ -274,18 +246,18 @@ namespace BreedSolver
 
     this->do_linear_superposition();
     this->m_Workspace[0] = this->m_Psi_Ref;
-    MyRealTools::MPI::AssembleRHS_L2gradient<dim> (this->m_DOF_Handler, this->m_FE, this->m_constraints, this->m_Workspace[0], Potential, m_mu, m_gs, m_res, this->m_System_RHS);
+    MyRealTools::MPI::AssembleRHS_L2gradient<dim> (this->m_DOF_Handler, this->m_FE, this->m_constraints, this->m_Workspace[0], Potential, m_mu, m_gs.at(0), m_res, this->m_System_RHS);
     m_res_old = m_res;
     m_counter = 0;
     bool bempty;
 
     do
     {
-      pcout << "--------------------------------------------------------------------------------" << endl;
-      pcout << "- " << path << " - " << m_counter << endl;
+      BOOST_LOG_TRIVIAL(info) << std::string('-',80);
+      BOOST_LOG_TRIVIAL(info) << "- " << path << " - " << m_counter;
 
       this->m_Workspace[0] = this->m_Psi_Ref;
-      MyRealTools::MPI::AssembleSystem_Jacobian<dim> (this->m_DOF_Handler, this->m_FE, this->m_constraints, this->m_Workspace[0], Potential, m_mu, m_gs, this->m_System_Matrix);
+      MyRealTools::MPI::AssembleSystem_Jacobian<dim> (this->m_DOF_Handler, this->m_FE, this->m_constraints, this->m_Workspace[0], Potential, m_mu, m_gs.at(0), this->m_System_Matrix);
       bool bsucc = solve();
       if (!bsucc)
       {
@@ -294,7 +266,7 @@ namespace BreedSolver
 
       double tau = -0.5;
       this->m_Workspace[1] = this->m_Search_Direction;
-      //MyRealTools::MPI::compute_stepsize(mpi_communicator, this->m_DOF_Handler, this->m_FE, Potential, this->m_Workspace[0], this->m_Workspace[1], m_mu, m_gs, tau);
+      MyRealTools::MPI::compute_stepsize(mpi_communicator, this->m_DOF_Handler, this->m_FE, Potential, this->m_Workspace[0], this->m_Workspace[1], m_mu, m_gs.at(0), tau);
 
       this->m_Psi[1].add(tau * m_t[1] / fabs(m_t[1]), this->m_Search_Direction);
       this->m_constraints.distribute(this->m_Psi[1]);
@@ -308,32 +280,32 @@ namespace BreedSolver
 
       this->do_linear_superposition();
       this->m_Workspace[0] = this->m_Psi_Ref;
-      MyRealTools::MPI::AssembleRHS_L2gradient<dim> (this->m_DOF_Handler, this->m_FE, this->m_constraints, this->m_Workspace[0], Potential, m_mu, m_gs, m_res, this->m_System_RHS);
+      MyRealTools::MPI::AssembleRHS_L2gradient<dim> (this->m_DOF_Handler, this->m_FE, this->m_constraints, this->m_Workspace[0], Potential, m_mu, m_gs.at(0), m_res, this->m_System_RHS);
 
       m_resp = m_res_old - m_res;
       m_res_old = m_res;
 
       // if (m_counter % m_NA == 0)
       // {
-      this->output_results(path);
+      //this->output_results(path);
       // }
 
-      columns& cols = m_table.new_line();
-      m_table.insert(cols, MyTable::COUNTER, double (m_counter));
-      m_table.insert(cols, MyTable::RES, m_res);
-      m_table.insert(cols, MyTable::RESP, m_resp);
-      m_table.insert(cols, MyTable::STEPSIZE, tau);
-      m_table.insert(cols, MyTable::MU, m_mu);
-      m_table.insert(cols, MyTable::GS, m_gs);
-      m_table.insert(cols, MyTable::t1, m_t[0]);
-      m_table.insert(cols, MyTable::t2, m_t[1]);
-      m_table.insert(cols, MyTable::l2norm_t, this->l2norm_t());
+      // columns& cols = m_table.new_line();
+      // m_table.insert(cols, MyTable::COUNTER, double (m_counter));
+      // m_table.insert(cols, MyTable::RES, m_res);
+      // m_table.insert(cols, MyTable::RESP, m_resp);
+      // m_table.insert(cols, MyTable::STEPSIZE, tau);
+      // m_table.insert(cols, MyTable::MU, m_mu);
+      // m_table.insert(cols, MyTable::GS, m_gs);
+      // m_table.insert(cols, MyTable::t1, m_t[0]);
+      // m_table.insert(cols, MyTable::t2, m_t[1]);
+      // m_table.insert(cols, MyTable::l2norm_t, this->l2norm_t());
 
       m_counter++;
-      if (m_root)
-      {
-        cout << m_table;
-      }
+      // if (m_root)
+      // {
+      //   cout << m_table;
+      // }
       if (m_res < m_epsilon[0])
       {
         retval = Status::SUCCESS;
@@ -361,11 +333,11 @@ namespace BreedSolver
     // Standard Newton
     do
     {
-      pcout << "--------------------------------------------------------------------------------" << endl;
-      pcout << "-- " << path << " - " << m_counter << endl;
+      BOOST_LOG_TRIVIAL(info) << std::string('-',80);
+      BOOST_LOG_TRIVIAL(info) << "-- " << path << " - " << m_counter << endl;
 
       this->m_Workspace[0] = this->m_Psi_Ref;
-      MyRealTools::MPI::AssembleSystem_Jacobian<dim> (this->m_DOF_Handler, this->m_FE, this->m_constraints, this->m_Workspace[0], Potential, m_mu, m_gs, this->m_System_Matrix);
+      MyRealTools::MPI::AssembleSystem_Jacobian<dim> (this->m_DOF_Handler, this->m_FE, this->m_constraints, this->m_Workspace[0], Potential, m_mu, m_gs.at(0), this->m_System_Matrix);
       bool bsucc = solve();
       if (!bsucc)
       {
@@ -374,14 +346,14 @@ namespace BreedSolver
 
       double tau = 0.1;
       this->m_Workspace[1] = this->m_Search_Direction;
-      MyRealTools::MPI::compute_stepsize(mpi_communicator, this->m_DOF_Handler, this->m_FE, Potential, this->m_Workspace[0], this->m_Workspace[1], m_mu, m_gs, tau);
+      MyRealTools::MPI::compute_stepsize(mpi_communicator, this->m_DOF_Handler, this->m_FE, Potential, this->m_Workspace[0], this->m_Workspace[1], m_mu, m_gs.at(0), tau);
 
       this->m_Psi_Ref.add(tau * m_t[1] / fabs(m_t[1]), this->m_Search_Direction);
       this->m_Psi_Ref.add(tau, this->m_Search_Direction);
       this->m_constraints.distribute(this->m_Psi_Ref);
 
       this->m_Workspace[0] = this->m_Psi_Ref;
-      MyRealTools::MPI::AssembleRHS_L2gradient<dim> (this->m_DOF_Handler, this->m_FE, this->m_constraints, this->m_Workspace[0], Potential, m_mu, m_gs, m_res, this->m_System_RHS);
+      MyRealTools::MPI::AssembleRHS_L2gradient<dim> (this->m_DOF_Handler, this->m_FE, this->m_constraints, this->m_Workspace[0], Potential, m_mu, m_gs.at(0), m_res, this->m_System_RHS);
 
       m_resp = m_res_old - m_res;
       m_res_old = m_res;
@@ -391,24 +363,20 @@ namespace BreedSolver
         this->output_results(path);
       }
 
-      columns& cols = m_table.new_line();
-      m_table.insert(cols, MyTable::COUNTER, double (m_counter));
-      m_table.insert(cols, MyTable::RES, m_res);
-      m_table.insert(cols, MyTable::RESP, m_resp);
-      m_table.insert(cols, MyTable::STEPSIZE, tau);
-      m_table.insert(cols, MyTable::MU, m_mu);
-      m_table.insert(cols, MyTable::GS, m_gs);
-      m_table.insert(cols, MyTable::t1, m_t[0]);
-      m_table.insert(cols, MyTable::t2, m_t[1]);
-      m_table.insert(cols, MyTable::l2norm_t, this->l2norm_t());
-      m_table.insert(cols, MyTable::PARTICLE_NUMBER, m_N);
+      // columns& cols = m_table.new_line();
+      // m_table.insert(cols, MyTable::COUNTER, double (m_counter));
+      // m_table.insert(cols, MyTable::RES, m_res);
+      // m_table.insert(cols, MyTable::RESP, m_resp);
+      // m_table.insert(cols, MyTable::STEPSIZE, tau);
+      // m_table.insert(cols, MyTable::MU, m_mu);
+      // m_table.insert(cols, MyTable::GS, m_gs);
+      // m_table.insert(cols, MyTable::t1, m_t[0]);
+      // m_table.insert(cols, MyTable::t2, m_t[1]);
+      // m_table.insert(cols, MyTable::l2norm_t, this->l2norm_t());
+      // m_table.insert(cols, MyTable::PARTICLE_NUMBER, m_N);
 
       m_counter++;
 
-      if (m_root)
-      {
-        cout << m_table;
-      }
       if (m_res < m_epsilon[1])
       {
         retval = Status::SUCCESS;
@@ -434,13 +402,6 @@ namespace BreedSolver
     {
       retval = Status::ZERO_SOL;
     }
-
-    string filename = path + "log.csv";
-    if (m_root)
-    {
-      m_table.dump_2_file(filename);
-    }
-
     return retval;
   }
 
@@ -459,16 +420,18 @@ namespace BreedSolver
     CEigenfunctions<dim> Ef1(m_QN1, m_omega);
     VectorTools::interpolate(this->m_DOF_Handler, Ef1, this->m_Psi[0]);
 
+    CPotential<dim> Potential(m_omega);
+
     this->m_Workspace[0] = this->m_Psi[0];
     this->m_Psi[0] *= 1.0 / sqrt(MyRealTools::MPI::Particle_Number(mpi_communicator, this->m_DOF_Handler, this->m_FE, this->m_Workspace[0]));
     this->m_Psi[1] = 0;
 
-    compute_E_lin(this->m_Psi[0], T, N, W);
+    this->m_Workspace[0] = this->m_Psi[0];
+    MyRealTools::MPI::Compute_E_lin(mpi_communicator, this->m_DOF_Handler, this->m_FE, this->m_constraints, Potential, this->m_Workspace[0], T, N, W);
     double m_mu_0 = T / N;
-    m_mu = ceil(10.0 * m_mu_0) / 10.0 + m_gs / fabs(m_gs) * m_dmu;
+    m_mu = ceil(10.0 * m_mu_0) / 10.0 + m_gs.at(0) / fabs(m_gs.at(0)) * m_dmu;
 
     this->output_guess();
-    m_results.clear();
     for (int i = 0; i < m_Ndmu; ++i)
     {
       sprintf(shellcmd, "mkdir %.4d/", i);
@@ -480,30 +443,27 @@ namespace BreedSolver
       path = shellcmd;
 
       // nehari
-      //m_ti = sqrt((m_mu*N-T)/(4.0*m_gs*W)); // if m_Psi_2 == m_Psi_1
-      m_ti = sqrt((m_mu * N - T) / (m_gs * W));
+      m_ti = sqrt((m_mu * N - T) / (m_gs.at(0) * W));
 
-      pcout << "T = " << T << endl;
-      pcout << "N = " << N << endl;
-      pcout << "W = " << W << endl;
-      pcout << "m_mu = " << m_mu << endl;
-      pcout << "m_ti = " << m_ti << endl;
+      BOOST_LOG_TRIVIAL(info) << "T = " << T;
+      BOOST_LOG_TRIVIAL(info) << "N = " << N;
+      BOOST_LOG_TRIVIAL(info) << "W = " << W;
+      BOOST_LOG_TRIVIAL(info) << "m_mu = " << m_mu;
+      BOOST_LOG_TRIVIAL(info) << "m_ti = " << m_ti;
 
       status = DoIter(path);
 
-      columns& cols = m_results.new_line();
-      m_results.insert(cols, MyTable::MU, m_mu);
-      m_results.insert(cols, MyTable::GS, m_gs);
-      m_results.insert(cols, MyTable::PARTICLE_NUMBER, m_N);
-      m_results.insert(cols, MyTable::COUNTER, double (m_counter));
-      m_results.insert(cols, MyTable::STATUS, double (status));
+      // columns& cols = m_results.new_line();
+      // m_results.insert(cols, MyTable::MU, m_mu);
+      // m_results.insert(cols, MyTable::GS, m_gs);
+      // m_results.insert(cols, MyTable::PARTICLE_NUMBER, m_N);
+      // m_results.insert(cols, MyTable::STATUS, double (status));
 
       if (status == Status::SUCCESS)
       {
         this->output_results(path, "final");
         string filename = path + "final.bin";
         this->save(filename);
-        this->dump_info_xml(path);
         this->m_Psi[0] = this->m_Psi_Ref;
         this->m_Psi[1] = 0;
       }
@@ -515,12 +475,9 @@ namespace BreedSolver
       {
         break;
       }
-      compute_E_lin(this->m_Psi_Ref, T, N, W);    // TODO: kommentier mich aus, falls ich kein nehari reset habe
-      m_mu += m_gs / fabs(m_gs) * m_dmu;
-    }
-    if (m_root)
-    {
-      m_results.dump_2_file("results.csv");
+    this->m_Workspace[0] = this->m_Psi[0];
+    MyRealTools::MPI::Compute_E_lin(mpi_communicator, this->m_DOF_Handler, this->m_FE, this->m_constraints, Potential, this->m_Workspace[0], T, N, W);
+      m_mu += m_gs.at(0) / fabs(m_gs.at(0)) * m_dmu;
     }
   }
 } // end of namespace
@@ -530,6 +487,8 @@ int main(int argc, char* argv[])
 {
   using namespace dealii;
   deallog.depth_console(0);
+
+  initLogging("log.txt");
 
   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv);
   {

@@ -29,9 +29,9 @@
      :path "muparser-2.2.6.1")  
     (:name p4est :version "2.2"
      :url "https://p4est.github.io/release/p4est-2.2.tar.gz")
-    (:name petsc :version "3.14.2"
-     :url "http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.14.2.tar.gz"
-     :path "petsc-3.14.2")
+    (:name petsc :version "3.14.6"
+     :url "http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.14.6.tar.gz"
+     :path "petsc-3.14.6")
     (:name deal.ii :version "9.2.0"
      :url "https://github.com/dealii/dealii/releases/download/v9.2.0/dealii-9.2.0.tar.gz")
     (:name atus-pro :version "git"))
@@ -165,7 +165,7 @@ Otherwise returns nil. Test is done via equal."
          (full-name (format nil "~a-~a" name version)))
     (uiop:chdir (uiop:getcwd))
     (run "./bootstrap.sh" )
-    (run (format nil "./b2 release --without-mpi --without-python architecture=x86 address-model=64 link=shared,static runtime-link=shared threading=multi toolset=gcc --prefix=~a~a ~@[-j ~a~] install" *install-dir* full-name *make-threads*))
+    (run (format nil "./b2 release --disable-icu --without-mpi --without-python architecture=x86 address-model=64 link=shared,static runtime-link=shared threading=multi toolset=gcc --prefix=~a~a ~@[-j ~a~] install" *install-dir* full-name *make-threads*))
     (install-module name *install-dir* version *module-dir*)
     (export-variables full-name)))
 

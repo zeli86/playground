@@ -27,7 +27,6 @@
 
 #include "ref_pt_list.h"
 #include "nlopt.hpp"
-#include "pugixml.hpp"
 
 template <int dim>
 class MySolver;
@@ -178,24 +177,24 @@ cBase<dim, N>::cBase(const std::string& xmlfilename)
 {
   try
   {
-    m_omega = m_ph.Get_Physics("omega");
-    m_gs = m_ph.Get_Physics("gs_1", 0);
-    m_QN1[0] = int(m_ph.Get_Physics("QN1", 0));
-    m_QN1[1] = int(m_ph.Get_Physics("QN1", 1));
-    m_QN1[2] = int(m_ph.Get_Physics("QN1", 2));
+    // m_omega = m_ph.Get_Physics("omega");
+    // m_gs = m_ph.Get_Physics("gs_1", 0);
+    // m_QN1[0] = int(m_ph.Get_Physics("QN1", 0));
+    // m_QN1[1] = int(m_ph.Get_Physics("QN1", 1));
+    // m_QN1[2] = int(m_ph.Get_Physics("QN1", 2));
 
-    m_global_refinement = unsigned(m_ph.Get_Mesh("global_refinements", 0));
+    // m_global_refinement = unsigned(m_ph.Get_Mesh("global_refinements", 0));
 
-    m_ti = m_ph.Get_Algorithm("ti", 0);
-    m_epsilon = m_ph.Get_Algorithm("epsilon");
-    m_t[0] = m_ti;
-    m_t[1] = m_ti;
-    m_t_guess[0] = m_ti;
-    m_t_guess[1] = m_ti;
+    // m_ti = m_ph.Get_Algorithm("ti", 0);
+    // m_epsilon = m_ph.Get_Algorithm("epsilon");
+    // m_t[0] = m_ti;
+    // m_t[1] = m_ti;
+    // m_t_guess[0] = m_ti;
+    // m_t_guess[1] = m_ti;
 
-    m_NA = int(m_ph.Get_Algorithm("NA", 0));
-    m_Ndmu = m_ph.Get_Algorithm("Ndmu", 0);
-    m_dmu = m_ph.Get_Algorithm("dmu", 0);
+    // m_NA = int(m_ph.Get_Algorithm("NA", 0));
+    // m_Ndmu = m_ph.Get_Algorithm("Ndmu", 0);
+    // m_dmu = m_ph.Get_Algorithm("dmu", 0);
   }
   catch (const std::string& info)
   {

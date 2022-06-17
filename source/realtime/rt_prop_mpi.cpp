@@ -80,11 +80,12 @@ namespace LA
 
 #include "global.h"
 #include "mpi.h"
-#include "my_table.h"
 #include "functions.h"
 #include "MyParameterHandler.h"
 #include "MyComplexTools.h"
 #include "muParser.h"
+
+#include "MyLogging.h"
 
 namespace realtime_propagation
 {
@@ -131,7 +132,6 @@ namespace realtime_propagation
     LA::MPI::Vector m_workspace;
     Vector<double> m_error_per_cell;
 
-    ConditionalOStream pcout;
     ofstream m_computing_timer_log;
     TimerOutput m_computing_timer;    
 
@@ -165,7 +165,6 @@ namespace realtime_propagation
     triangulation (mpi_communicator, typename Triangulation<dim>::MeshSmoothing(Triangulation<dim>::smoothing_on_refinement|Triangulation<dim>::smoothing_on_coarsening)),
     fe (FE_Q<dim>(gl_degree_fe), 2),
     dof_handler (triangulation),
-    pcout (cout, (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)),
     m_computing_timer_log("benchmark.txt"),
     m_computing_timer(mpi_communicator, m_computing_timer_log, TimerOutput::summary, TimerOutput:: cpu_and_wall_times )
   {
@@ -249,16 +248,15 @@ namespace realtime_propagation
 
         for( unsigned qp=0; qp<n_q_points; ++qp )
         {
-          double JxW = fe_values.JxW(qp);
-          double pot = Potential.value(fe_values.quadrature_point(qp)); 
-  
-          double sum_re = Psi[qp][0]+Psi_t[qp][0];
-          double sum_im = Psi[qp][1]+Psi_t[qp][1];
-          double sum_req = sum_re*sum_re;
-          double sum_imq = sum_im*sum_im;
-          double tmp1a = fak8*(sum_req + 3*sum_imq);
-          double tmp1b = fak8*(sum_imq + 3*sum_req);
-          double tmp2 = fak4*sum_re*sum_im;
+          const double JxW = fe_values.JxW(qp);
+          const double pot = Potential.value(fe_values.quadrature_point(qp)); 
+          const double sum_re = Psi[qp][0]+Psi_t[qp][0];
+          const double sum_im = Psi[qp][1]+Psi_t[qp][1];
+          const double sum_req = sum_re*sum_re;
+          const double sum_imq = sum_im*sum_im;
+          const double tmp1a = fak8*(sum_req + 3*sum_imq);
+          const double tmp1b = fak8*(sum_imq + 3*sum_req);
+          const double tmp2 = fak4*sum_re*sum_im;
   
           for( unsigned i=0; i<dofs_per_cell; ++i )
           {
@@ -370,7 +368,7 @@ namespace realtime_propagation
     m_Psi_t = m_Psi;
     m_res = 0;
     assemble_rhs();
-    pcout << "m_res = " << m_res << endl;       
+    BOOST_LOG_TRIVIAL(info) << "m_res = " << m_res;
     do
     {
       assemble_system();
@@ -382,7 +380,7 @@ namespace realtime_propagation
       m_Psi_t = system_rhs;   
 
       assemble_rhs();
-      pcout << "m_res = " << m_res << endl;       
+      BOOST_LOG_TRIVIAL(info) << "m_res = " << m_res;
     }
     while( m_res >  1e-16 ); 
     m_t += m_dt;
@@ -402,23 +400,23 @@ namespace realtime_propagation
     output_results("");
 
     double N = MyComplexTools::MPI::Particle_Number( mpi_communicator, dof_handler, fe, m_Psi );
-    pcout << "N == " << N << endl;
+    BOOST_LOG_TRIVIAL(info) << "N == " << N << endl;
     
     MyComplexTools::MPI::Expectation_value_position( mpi_communicator, dof_handler, fe, m_Psi, pos );
     MyComplexTools::MPI::Expectation_value_width( mpi_communicator, dof_handler, fe, m_Psi, pos, var );
     MyComplexTools::MPI::Expectation_value_position( mpi_communicator, dof_handler, fe, m_Psi, p );
 
-    pcout << "t == " << m_t << endl;
-    pcout << "N == " << N << endl;
-    pcout << "p == " << p[0]/N << ", " << p[1]/N << ", " << p[2]/N << endl;
-    pcout << "pos == " << pos[0]/N << ", " << pos[1]/N << ", " << pos[2]/N << endl;
-    pcout << "var == " << var[0]/N << ", " << var[1]/N << ", " << var[2]/N << endl;
+    BOOST_LOG_TRIVIAL(info) << "t == " << m_t;
+    BOOST_LOG_TRIVIAL(info) << "N == " << N;
+    BOOST_LOG_TRIVIAL(info) << "p == " << p[0]/N << ", " << p[1]/N << ", " << p[2]/N;
+    BOOST_LOG_TRIVIAL(info) << "pos == " << pos[0]/N << ", " << pos[1]/N << ", " << pos[2]/N;
+    BOOST_LOG_TRIVIAL(info) << "var == " << var[0]/N << ", " << var[1]/N << ", " << var[2]/N;
 
     for( unsigned i=1; i<=m_NA; ++i )
     {
       for( unsigned j=1; j<=m_NK; ++j )
       {
-        pcout << "t == " << m_t << endl;
+        BOOST_LOG_TRIVIAL(info) << "t == " << m_t << endl;
         DoIter();
       }
       
@@ -427,10 +425,10 @@ namespace realtime_propagation
       MyComplexTools::MPI::Expectation_value_width( mpi_communicator, dof_handler, fe, m_Psi, pos, var );
       MyComplexTools::MPI::Expectation_value_position( mpi_communicator, dof_handler, fe, m_Psi, p );
 
-      pcout << "N == " << N << endl;
-      pcout << "p == " << p[0]/N << ", " << p[1]/N << ", " << p[2]/N << endl;
-      pcout << "pos == " << pos[0]/N << ", " << pos[1]/N << ", " << pos[2]/N << endl;
-      pcout << "var == " << var[0]/N << ", " << var[1]/N << ", " << var[2]/N << endl;
+      BOOST_LOG_TRIVIAL(info) << "N == " << N;
+      BOOST_LOG_TRIVIAL(info) << "p == " << p[0]/N << ", " << p[1]/N << ", " << p[2]/N;
+      BOOST_LOG_TRIVIAL(info) << "pos == " << pos[0]/N << ", " << pos[1]/N << ", " << pos[2]/N;
+      BOOST_LOG_TRIVIAL(info) << "var == " << var[0]/N << ", " << var[1]/N << ", " << var[2]/N;
 
       output_results("");
     }

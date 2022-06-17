@@ -18,9 +18,9 @@ ADD_EXECUTABLE( rbreed_mpi rbreed_minj_mpi.cpp )
 DEAL_II_SETUP_TARGET( rbreed_mpi )
 TARGET_LINK_LIBRARIES( rbreed_mpi myatus ${NLOPT_LIBRARY})
 
-# ADD_EXECUTABLE( breed_sob_mpi breed_sob_mpi.cpp )
-# DEAL_II_SETUP_TARGET( breed_sob_mpi )
-# TARGET_LINK_LIBRARIES( breed_sob_mpi myatus )
+ADD_EXECUTABLE( breed_sob_mpi breed_sob_mpi.cpp )
+DEAL_II_SETUP_TARGET( breed_sob_mpi )
+TARGET_LINK_LIBRARIES( breed_sob_mpi myatus )
 
 # ADD_EXECUTABLE( breed_1 breed_1.cpp )
 # DEAL_II_SETUP_TARGET( breed_1 )

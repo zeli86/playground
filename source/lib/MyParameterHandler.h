@@ -17,29 +17,97 @@
  * along with atus-pro testing.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once 
+#pragma once
 
 #include <iostream>
 #include <string>
 #include <vector>
+#include <list>
 #include <map>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/tokenizer.hpp>
 
+namespace mylib
+{
+  namespace xml_translators
+  {
+
+    template<typename T> struct container
+    {
+      // types
+      typedef T internal_type;
+      typedef T external_type;
+
+      boost::optional<T> get_value(const std::string& str) const
+      {
+        if (str.empty())
+        {
+          return boost::none;
+        }
+
+        T values;
+        std::stringstream ss(str);
+
+        typename T::value_type temp_value;
+        while (ss >> temp_value)
+        {
+          values.insert(values.end(), temp_value);
+        }
+
+        return boost::make_optional(values);
+      }
+
+      boost::optional<std::string> put_value(const T& b)
+      {
+        std::stringstream ss;
+        size_t i = 0;
+        for (auto v : b)
+        {
+          ss << (i++ ? " " : "") << v;
+        }
+        return ss.str();
+      }
+    };
+
+  }
+}
+
+namespace boost
+{
+  namespace property_tree
+  {
+    template<typename ch, typename traits, typename alloc, typename T>
+    struct translator_between<std::basic_string<ch, traits, alloc>, std::vector<T>>
+    {
+      typedef mylib::xml_translators::container<std::vector<T>> type;
+    };
+
+    template<typename ch, typename traits, typename alloc, typename T>
+    struct translator_between<std::basic_string<ch, traits, alloc>, std::list<T>>
+    {
+      typedef mylib::xml_translators::container<std::list<T>> type;
+    };
+  }
+}
+
 class MyParameterHandler
 {
 public:
-  explicit MyParameterHandler( const std::string& );
-  virtual ~MyParameterHandler(){};
-  
-  std::vector<double> GetOmega();
+  explicit MyParameterHandler(const std::string&);
+  virtual ~MyParameterHandler() {};
+
+  void GetParameter(const std::string, std::vector<double>&);
+  void GetParameter(const std::string, std::vector<int>&);
+  void GetParameter(const std::string, double&);
+  void GetParameter(const std::string, int&);
+
 
   //void Setup_muParser( mu::Parser& );
 protected:
- 
+
   void PopulatePropertyTree(const std::string&);
-  
+
   boost::property_tree::ptree m_oPropertyTree;
 };
 

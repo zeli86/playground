@@ -46,6 +46,20 @@ class CEigenfunctions : public Function<dim>
 
       m_faky=a[1]; m_fakz=a[2]; 
     }
+
+    CEigenfunctions ( const std::vector<int>& QN, std::vector<double> a ) : Function<dim>() 
+    { 
+      m_QNx=QN[0]; m_QNy=QN[1]; m_QNz=QN[2]; 
+
+      #if POTENTIAL==1
+        m_fakx=a[0];
+      #endif
+      #if POTENTIAL==2
+        m_fakx=pow(a[0],2.0/3.0);
+      #endif
+
+      m_faky=a[1]; m_fakz=a[2]; 
+    }
     virtual double value ( const Point<dim> &p, const unsigned component = 0) const;
     virtual Tensor<1,dim> gradient (const Point<2> &p, const unsigned component=0) const;
   

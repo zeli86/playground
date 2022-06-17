@@ -24,81 +24,70 @@
 #include <cstdint>
 
 #include <boost/config.hpp>
-#include <boost/utility.hpp>
-#include <boost/call_traits.hpp>
+//#include <boost/utility.hpp>
+//#include <boost/call_traits.hpp>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/composite_key.hpp>
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 
+template <int iNoOfComponents>
 class MyTableRow
 {
-  public:
-    uint64_t m_iIndex = 0;
-    double m_rResidum = 0;
-    double m_rResidum2 = 0;
-    double m_rMu = 0;
-    double m_rMu2 = 0;
+public:
+  uint64_t m_iIndex = 0;
+  double m_rEigenvalue[iNoOfComponents] = {};
+  double m_rNonlinearity[iNoOfComponents] = {};
+  double m_rResidue[iNoOfComponents] = {};
+  double m_rParticleNumber[iNoOfComponents] = {};
+  double m_rExpectationValuePositionX[iNoOfComponents] = {};
+  double m_rExpectationValuePositionY[iNoOfComponents] = {};
+  double m_rExpectationValuePositionZ[iNoOfComponents] = {};
+  double m_rExpectationValueMomentumX[iNoOfComponents] = {};
+  double m_rExpectationValueMomentumY[iNoOfComponents] = {};
+  double m_rExpectationValueMomentumZ[iNoOfComponents] = {};
+  double m_rExpectationValueEnergyX[iNoOfComponents] = {};
+  double m_rExpectationValueEnergyY[iNoOfComponents] = {};
+  double m_rExpectationValueEnergyZ[iNoOfComponents] = {};
+  double m_rL2Norm[iNoOfComponents] = {};
+  double m_rInfNorm[iNoOfComponents] = {};
 };
 
-using tTable = boost::multi_index::multi_index_container<MyTableRow,
-  boost::multi_index::indexed_by<
-  boost::multi_index::ordered_unique<BOOST_MULTI_INDEX_MEMBER(MyTableRow,uint64_t,m_iIndex)>
->>;
+template <int iNoOfComponents>
+class tTable : public boost::multi_index::multi_index_container<MyTableRow<iNoOfComponents>,
+  boost::multi_index::indexed_by<boost::multi_index::ordered_unique<BOOST_MULTI_INDEX_MEMBER(MyTableRow<iNoOfComponents>, uint64_t, m_iIndex)>>>
+  {};
 
-class MyTable
+template <int iNoOfComponents>
+std::ostream& operator<<( std::ostream& oOutput, MyTableRow<iNoOfComponents>& oRow )
 {
-  public:
-    MyTable() = default;
-    ~MyTable();
+   oOutput << oRow.m_iIndex;
+   for( int32_t i=0; i<iNoOfComponents; ++i )
+   {
+     oOutput << '\t' << oRow.m_rEigenvalue[i];
+     oOutput << '\t' << oRow.m_rNonlinearity[i];
+     oOutput << '\t' << oRow.m_rResidue[i];
+     oOutput << '\t' << oRow.m_rParticleNumber[i];
+     oOutput << '\t' << oRow.m_rExpectationValuePositionX[i];
+     oOutput << '\t' << oRow.m_rExpectationValuePositionY[i];
+     oOutput << '\t' << oRow.m_rExpectationValuePositionZ[i];
+     oOutput << '\t' << oRow.m_rExpectationValueMomentumX[i];
+     oOutput << '\t' << oRow.m_rExpectationValueMomentumY[i];
+     oOutput << '\t' << oRow.m_rExpectationValueMomentumZ[i];
+     oOutput << '\t' << oRow.m_rExpectationValueEnergyX[i];
+     oOutput << '\t' << oRow.m_rExpectationValueEnergyY[i];
+     oOutput << '\t' << oRow.m_rExpectationValueEnergyZ[i];
+     oOutput << '\t' << oRow.m_rL2Norm[i];
+     oOutput << '\t' << oRow.m_rInfNorm[i];    
+   }
+   oOutput << '\n';
+}
 
-    //friend ostream& operator<<( ostream&, MyTable& );
-
-    void clear();
-    void load( const std::string& );
-
-    void insert( const MyTableRow& );
-
-    static const std::string COUNTER;
-    static const std::string RES;
-    static const std::string RESP;
-    static const std::string RES_OVER_RESP;
-    static const std::string RES_2;
-    static const std::string RESP_2;
-    static const std::string RES_OVER_RESP_2;
-    static const std::string L2_NORM_PSI_REF;
-    static const std::string INF_NORM_PSI_REF;
-    static const std::string PARTICLE_NUMBER;
-    static const std::string PARTICLE_NUMBER2;
-    static const std::string MU;
-    static const std::string MU2;
-    static const std::string GS;
-    static const std::string GS2;
-    static const std::string l2norm_t;
-    static const std::string Delta_l2norm_t;
-    static const std::string t1;
-    static const std::string t2;
-    static const std::string t3;
-    static const std::string t4;
-    static const std::string ev1;
-    static const std::string ev2;
-    static const std::string ev3;
-    static const std::string ev4;
-    static const std::string total_no_cells;
-    static const std::string total_no_active_cells;
-    static const std::string STEPSIZE;
-    static const std::string STATUS;
-    static const std::string time;
-    static const std::string ev_position_x;
-    static const std::string ev_position_y;
-    static const std::string ev_position_z;
-    static const std::string ev_momentum_x;
-    static const std::string ev_momentum_y;
-    static const std::string ev_momentum_z;
-
-    void save_txt( const std::string& );
-
-    tTable m_miTable;
-};
-
-//ostream& operator<<( ostream& stream, MyTable& obj );
+template <int iNoOfComponents>
+std::ostream& operator<<( std::ostream& oOutput, tTable<iNoOfComponents>& oTable )
+{
+  for( const auto& oRow : oTable )
+  {
+    oOutput << oRow;
+  }
+}
