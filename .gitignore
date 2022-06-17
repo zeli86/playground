@@ -1,4 +1,4 @@
-build
-Build
+[Bb]uild
 html
-.vscode
+.*/**
+compile_commands.json
