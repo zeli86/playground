@@ -1,24 +1,20 @@
- 
 from conans import ConanFile, CMake
-from conans.tools import download, unzip, check_md5, check_sha1, check_sha256
+from conans.tools import download, unzip
 import os
 import shutil
 
 class muparser_conan(ConanFile):
     name = "muparser"
-    version = "3.15.1"
+    version = "2.3.3"
     settings = "os", "compiler", "build_type", "arch"
     user = "atus"
     channel = "stable"
-    generators = "cmake", "virtualenv", "virtualrunenv"
+    generators = "cmake", "cmake_find_package", "virtualenv", "virtualrunenv"
     no_copy_source = True 
 
     def source(self):
-        src_archive = "lapack.zip"
-        download("https://github.com/Reference-LAPACK/lapack/archive/refs/tags/v3.10.1.zip", src_archive)
-        # check_md5(zip_name, "51e11f2c02a36689d6ed655b6fff9ec9")
-        # check_sha1(zip_name, "8d87812ce591ced8ce3a022beec1df1c8b2fac87")
-        # check_sha256(zip_name, "653f983c30974d292de58444626884bee84a2731989ff5a336b93a0fef168d79")
+        src_archive = "muparser.zip"
+        download("https://github.com/beltoforion/muparser/archive/refs/tags/v2.3.3-1.zip", src_archive)
         unzip(src_archive, strip_root=True)
         os.unlink(src_archive)
 
@@ -26,24 +22,19 @@ class muparser_conan(ConanFile):
         cmake = CMake(self)
         cmake.verbose = False
         cmake.parallel = True
-        cmake.build_folder = "BUILD"
-        cmake.definitions["BUILD_SHARED_LIBS"] = "On"
         cmake.configure()
         return cmake
 
     def build(self):
         cmake = self.configure_cmake()
-        self.output.info( "self.source_folder = %s" % self.source_folder )
-        self.output.info( "self.command_line = %s" % cmake.command_line )
-        self.output.info( "self.build_config = %s" % cmake.build_config )
         cmake.build()
 
     def package(self):
         cmake = self.configure_cmake()
         cmake.install()
-        shutil.rmtree( self.source_folder )
-        shutil.rmtree( self.build_folder )
+        tmp = os.path.dirname(self.build_folder)
+        shutil.rmtree( os.path.join(os.path.dirname(tmp), "source" ), ignore_errors=True )
+        shutil.rmtree( self.build_folder, ignore_errors=True )
         
     def package_info(self):
-        self.env_info.PATH.append(os.path.join(self.package_folder, "bin"))
         self.env_info.LD_LIBRARY_PATH.append(os.path.join(self.package_folder, "lib"))

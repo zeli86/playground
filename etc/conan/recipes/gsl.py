@@ -1,6 +1,6 @@
 
 from conans import ConanFile, AutoToolsBuildEnvironment
-from conans.tools import ftp_download, unzip, check_md5, check_sha1, check_sha256
+from conans.tools import ftp_download, untargz
 import os
 import shutil
 
@@ -10,14 +10,11 @@ class gsl_conan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
     user = "atus"
     channel = "stable"
-    generators = "cmake_find_package"
+    generators = "cmake", "cmake_find_package", "virtualenv", "virtualrunenv"
 
     def source(self):
         src_archive = "gsl-2.7.1.tar.gz"
         ftp_download("ftp.gnu.org", "gnu/gsl/gsl-2.7.1.tar.gz")
-        # check_md5(zip_name, "51e11f2c02a36689d6ed655b6fff9ec9")
-        # check_sha1(zip_name, "8d87812ce591ced8ce3a022beec1df1c8b2fac87")
-        # check_sha256(zip_name, "653f983c30974d292de58444626884bee84a2731989ff5a336b93a0fef168d79")
         untargz(src_archive, strip_root=True)
         os.unlink(src_archive)
 
@@ -31,8 +28,9 @@ class gsl_conan(ConanFile):
         autotools.install()
 
     def package(self):
-        shutil.rmtree( self.source_folder )
-        shutil.rmtree( self.build_folder )
+        tmp = os.path.dirname(self.build_folder)
+        shutil.rmtree( os.path.join(os.path.dirname(tmp), "source" ), ignore_errors=True )
+        shutil.rmtree( self.build_folder, ignore_errors=True )
 
     def package_info(self):
         self.env_info.PATH.append(os.path.join(self.package_folder, "bin"))

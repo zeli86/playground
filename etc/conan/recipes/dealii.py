@@ -1,6 +1,5 @@
- 
 from conans import ConanFile, CMake
-from conans.tools import download, unzip, check_md5, check_sha1, check_sha256
+from conans.tools import download, unzip
 import os
 import shutil
 
@@ -10,16 +9,13 @@ class dealii_conan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
     user = "atus"
     channel = "stable"
-    generators = "cmake", "virtualenv", "virtualrunenv"
+    generators = "cmake", "cmake_find_package", "virtualenv", "virtualrunenv"
     no_copy_source = True
-    build_requires = "openmpi/4.1.4@atus/stable"
+    requires = "openmpi/4.1.4@atus/stable", "gsl/2.7.1@atus/stable", "lapack/3.10.1@atus/stable", "muparser/2.3.3@atus/stable", "p4est/2.8.0@atus/stable", "boost/1.76.0@atus/stable", "petsc/3.17.2@atus/stable"
 
     def source(self):
         src_archive = "dealii.tar.gz"
         download("https://github.com/dealii/dealii/releases/download/v9.3.0/dealii-9.3.0.tar.gz", src_archive)
-        # check_md5(zip_name, "51e11f2c02a36689d6ed655b6fff9ec9")
-        # check_sha1(zip_name, "8d87812ce591ced8ce3a022beec1df1c8b2fac87")
-        # check_sha256(zip_name, "653f983c30974d292de58444626884bee84a2731989ff5a336b93a0fef168d79")
         unzip(src_archive, strip_root=True)
         os.unlink(src_archive)
 
@@ -27,8 +23,42 @@ class dealii_conan(ConanFile):
         cmake = CMake(self)
         cmake.verbose = False
         cmake.parallel = True
-        cmake.build_folder = "BUILD"
-        cmake.definitions["BUILD_SHARED_LIBS"] = "On"
+            
+        cmake.definitions["DEAL_II_WITH_MPI"] = "ON"
+        cmake.definitions["MAKE_C_COMPILER"] = "mpicc"
+        cmake.definitions["MAKE_CXX_COMPILER"] = "mpicxx"
+        cmake.definitions["DEAL_II_WITH_UMFPACK"] = "ON"
+        cmake.definitions["DEAL_II_WITH_THREADS"] = "OFF"
+        cmake.definitions["DEAL_II_WITH_HDF5"] = "OFF"
+
+        cmake.definitions["DEAL_II_WITH_GSL"] = "ON"
+        self.output.info( "GSL_DIR = %s" % self.deps_cpp_info["gsl"].rootpath )
+        cmake.definitions["GSL_DIR"] = self.deps_cpp_info["gsl"].rootpath;  
+        
+        cmake.definitions["DEAL_II_WITH_BOOST"] = "ON"
+        self.output.info( "BOOST_DIR = %s" % self.deps_cpp_info["boost"].rootpath )
+        cmake.definitions["BOOST_DIR"] = self.deps_cpp_info["boost"].rootpath;
+        
+        cmake.definitions["DEAL_II_WITH_MUPARSER"] = "ON"
+        self.output.info( "MUPARSER_DIR = %s" % self.deps_cpp_info["muparser"].rootpath )
+        cmake.definitions["MUPARSER_DIR"] = self.deps_cpp_info["muparser"].rootpath;
+        
+        cmake.definitions["DEAL_II_WITH_PETSC"] = "ON"
+        self.output.info( "PETSC_DIR = %s" % self.deps_cpp_info["petsc"].rootpath )
+        cmake.definitions["PETSC_DIR"] = self.deps_cpp_info["petsc"].rootpath;
+        
+        cmake.definitions["DEAL_II_WITH_SLEPC"] = "ON"
+        self.output.info( "SLEPC_DIR = %s" % self.deps_cpp_info["petsc"].rootpath )
+        cmake.definitions["PETSC_DIR"] = self.deps_cpp_info["petsc"].rootpath;
+
+        cmake.definitions["DEAL_II_WITH_LAPACK"] = "ON"
+        self.output.info( "LAPACK_DIR = %s" % self.deps_cpp_info["lapack"].rootpath )
+        cmake.definitions["LAPACK_DIR"] = self.deps_cpp_info["lapack"].rootpath;
+        
+        cmake.definitions["DEAL_II_WITH_P4EST"] = "ON"
+        self.output.info( "P4EST_DIR = %s" % self.deps_cpp_info["p4est"].rootpath )
+        cmake.definitions["P4EST_DIR"] = self.deps_cpp_info["p4est"].rootpath;
+
         cmake.configure()
         return cmake
 
@@ -40,10 +70,10 @@ class dealii_conan(ConanFile):
         cmake.build()
 
     def package(self):
-        cmake = self.configure_cmake()
+        cmake = CMake(self)
         cmake.install()
-        shutil.rmtree( self.source_folder )
-        shutil.rmtree( self.build_folder )
+        #shutil.rmtree( self.source_folder )
+        #shutil.rmtree( self.build_folder )
         
     def package_info(self):
         self.env_info.PATH.append(os.path.join(self.package_folder, "bin"))

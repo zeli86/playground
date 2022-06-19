@@ -17,8 +17,7 @@ class OpenMPIConan(ConanFile):
     version = "4.1.4"
     user = "atus"
     channel = "stable"
-    generators = "cmake", "virtualenv", "virtualrunenv"
-
+    generators = "cmake", "cmake_find_package", "virtualenv", "virtualrunenv"
     _autotools = None
 
     def configure(self):
@@ -58,6 +57,7 @@ class OpenMPIConan(ConanFile):
         with tools.chdir(self.source_folder):
              self._autotools.install()
         tools.rmdir(os.path.join(self.package_folder, "lib", "pkgconfig"))
+        #tools.remove_files_by_mask(os.path.join(self.package_folder, "lib"), "*.la")
         tmp = os.path.dirname(self.build_folder)
         shutil.rmtree( os.path.join(os.path.dirname(tmp), "source" ), ignore_errors=True )
         shutil.rmtree( self.build_folder, ignore_errors=True )

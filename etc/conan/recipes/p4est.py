@@ -1,4 +1,3 @@
-
 from conans import ConanFile, AutoToolsBuildEnvironment
 from conans.tools import download, unzip, check_md5, check_sha1, check_sha256
 import os
