@@ -10,12 +10,12 @@ class slepc_conan(ConanFile):
     user = "atus"
     channel = "stable"
     generators = "cmake", "cmake_find_package", "virtualenv", "virtualrunenv"
-    requires = "openmpi/4.1.4@atus/stable", "petsc/3.17.2@atus/testing"
+    requires = "openmpi/4.1.4@atus/stable", "petsc/3.17.2@atus/stable"
 
     def source(self):
         src_archive = "slepc.tar.gz"
         download("https://slepc.upv.es/download/distrib/slepc-3.17.1.tar.gz", src_archive)
-        #check_md5(src_archive, "a0ee1d2306b5388b4b94339f82f93550")
+        check_md5(src_archive, "a0ee1d2306b5388b4b94339f82f93550")
         unzip(src_archive, strip_root=True)
         os.unlink(src_archive)
     

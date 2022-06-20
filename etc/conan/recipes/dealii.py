@@ -11,7 +11,7 @@ class dealii_conan(ConanFile):
     channel = "stable"
     generators = "cmake", "cmake_find_package", "virtualenv", "virtualrunenv"
     no_copy_source = True
-    requires = "openmpi/4.1.4@atus/stable", "gsl/2.7.1@atus/stable", "lapack/3.10.1@atus/stable", "muparser/2.3.3@atus/stable", "p4est/2.8.0@atus/stable", "boost/1.76.0@atus/stable", "petsc/3.17.2@atus/stable"
+    requires = "openmpi/4.1.4@atus/stable", "gsl/2.7.1@atus/stable", "lapack/3.10.1@atus/stable", "muparser/2.3.3@atus/stable", "p4est/2.8.0@atus/stable", "boost/1.76.0@atus/stable", "petsc/3.17.2@atus/stable", "slepc/3.17.1@atus/stable", "trilinos/13.4.0@atus/stable"
 
     def source(self):
         src_archive = "dealii.tar.gz"
@@ -30,6 +30,7 @@ class dealii_conan(ConanFile):
         cmake.definitions["DEAL_II_WITH_UMFPACK"] = "ON"
         cmake.definitions["DEAL_II_WITH_THREADS"] = "OFF"
         cmake.definitions["DEAL_II_WITH_HDF5"] = "OFF"
+        cmake.definitions["DEAL_II_WITH_GINKO"] = "OFF"
 
         cmake.definitions["DEAL_II_WITH_GSL"] = "ON"
         self.output.info( "GSL_DIR = %s" % self.deps_cpp_info["gsl"].rootpath )
@@ -48,8 +49,12 @@ class dealii_conan(ConanFile):
         cmake.definitions["PETSC_DIR"] = self.deps_cpp_info["petsc"].rootpath;
         
         cmake.definitions["DEAL_II_WITH_SLEPC"] = "ON"
-        self.output.info( "SLEPC_DIR = %s" % self.deps_cpp_info["petsc"].rootpath )
-        cmake.definitions["PETSC_DIR"] = self.deps_cpp_info["petsc"].rootpath;
+        self.output.info( "SLEPC_DIR = %s" % self.deps_cpp_info["slepc"].rootpath )
+        cmake.definitions["SLEPC_DIR"] = self.deps_cpp_info["slepc"].rootpath;
+
+        cmake.definitions["DEAL_II_WITH_TRILINOS"] = "ON"
+        self.output.info( "TRILINOS_DIR = %s" % self.deps_cpp_info["trilinos"].rootpath )
+        cmake.definitions["TRILINOS_DIR"] = self.deps_cpp_info["trilinos"].rootpath;
 
         cmake.definitions["DEAL_II_WITH_LAPACK"] = "ON"
         self.output.info( "LAPACK_DIR = %s" % self.deps_cpp_info["lapack"].rootpath )

@@ -8,7 +8,7 @@ class petsc_conan(ConanFile):
     version = "3.17.2"
     settings = "os", "compiler", "build_type", "arch"
     user = "atus"
-    channel = "atus"
+    channel = "stable"
     generators = "cmake", "cmake_find_package", "virtualenv", "virtualrunenv"
     requires = "openmpi/4.1.4@atus/stable", "lapack/3.10.1@atus/stable"
 
@@ -36,7 +36,6 @@ class petsc_conan(ConanFile):
         args.append("--with-mpi=1") 
         args.append("--download-make-shared=1")
         args.append("--download-hypre=1") 
-        #args.append("--download-fblaslapack=1")
         pc_dir = os.path.join(self.deps_cpp_info["lapack"].rootpath, "lib", "pkgconfig")
         args.append("--with-blaslapack-pkg-config={}".format(pc_dir))
         args.append("--download-scalapack=1") 
@@ -46,8 +45,8 @@ class petsc_conan(ConanFile):
         args.append("--download-eigen=1")
         args.append("--download-superlu=1")
         args.append("--download-superlu_dist=1")
-        args.append("--download-kokkos-kernels=1")
-        args.append("--download-kokkos=1")
+        args.append("--download-kokkos-kernels=0")
+        args.append("--download-kokkos=0")
         args.append("--download-tetgen=1")
         args.append("--with-make-np={}".format(os.cpu_count()))
         autotools.configure(args=args)
