@@ -79,4 +79,11 @@ class OpenMPIConan(ConanFile):
         mpi_lib = os.path.join(self.package_folder, 'lib')
         self.output.info("Appending LD_LIBRARY_PATH environment variable: {}".format(mpi_lib))
         self.env_info.LD_LIBRARY_PATH.append(mpi_lib)
+        self.output.info("Creating CC environment variable: {}/mpicc".format(mpi_lib))
+        self.env_info.CC = "{}/mpicc".format(mpi_lib)
+        self.output.info("Creating CXX environment variable: {}/mpicxx".format(mpi_lib))
+        self.env_info.CXX = "{}/mpicxx".format(mpi_lib)
+        self.output.info("Creating FC environment variable: {}/mpif90".format(mpi_lib))
+        self.env_info.FC = "{}/mpif90".format(mpi_lib)
+
 
