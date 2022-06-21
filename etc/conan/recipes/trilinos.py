@@ -3,7 +3,7 @@ from conans.tools import download, unzip
 import os
 import shutil
 
-class dealii_conan(ConanFile):
+class trilinos_conan(ConanFile):
     name = "trilinos"
     version = "13.4.0"
     settings = "os", "compiler", "build_type", "arch"

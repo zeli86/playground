@@ -3,7 +3,7 @@ from conans.tools import download, unzip
 import os
 import shutil
 
-class gsl_conan(ConanFile):
+class adolc_conan(ConanFile):
     name = "adol-c"
     version = "2.7.2"
     settings = "os", "compiler", "build_type", "arch"
