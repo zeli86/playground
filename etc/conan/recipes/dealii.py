@@ -11,7 +11,7 @@ class dealii_conan(ConanFile):
     channel = "stable"
     generators = "cmake", "cmake_find_package", "virtualenv", "virtualrunenv"
     no_copy_source = True
-    requires = "openmpi/4.1.4@atus/stable", "gsl/2.7.1@atus/stable", "lapack/3.10.1@atus/stable", "muparser/2.3.3@atus/stable", "p4est/2.8.0@atus/stable", "boost/1.76.0@atus/stable", "petsc/3.17.2@atus/stable", "slepc/3.17.1@atus/stable", "trilinos/13.4.0@atus/stable"
+    requires = "openmpi/4.1.4@atus/stable", "gsl/2.7.1@atus/stable", "lapack/3.10.1@atus/stable", "muparser/2.3.3@atus/stable", "p4est/2.8.0@atus/stable", "boost/1.76.0@atus/stable", "petsc/3.17.2@atus/stable", "slepc/3.17.1@atus/stable", "trilinos/13.4.0@atus/stable", "adol-c/2.7.2@atus/stable"
 
     def source(self):
         src_archive = "dealii.tar.gz"
@@ -22,8 +22,7 @@ class dealii_conan(ConanFile):
     def configure_cmake(self):
         cmake = CMake(self)
         cmake.verbose = False
-        cmake.parallel = True
-            
+        cmake.parallel = False
         cmake.definitions["DEAL_II_WITH_MPI"] = "ON"
         cmake.definitions["MAKE_C_COMPILER"] = "mpicc"
         cmake.definitions["MAKE_CXX_COMPILER"] = "mpicxx"
@@ -31,6 +30,10 @@ class dealii_conan(ConanFile):
         cmake.definitions["DEAL_II_WITH_THREADS"] = "OFF"
         cmake.definitions["DEAL_II_WITH_HDF5"] = "OFF"
         cmake.definitions["DEAL_II_WITH_GINKO"] = "OFF"
+
+        cmake.definitions["DEAL_II_WITH_ADOLC"] = "ON"
+        self.output.info( "ADOLC_DIR = %s" % self.deps_cpp_info["adol-c"].rootpath )
+        cmake.definitions["ADOLC_DIR"] = self.deps_cpp_info["adol-c"].rootpath;  
 
         cmake.definitions["DEAL_II_WITH_GSL"] = "ON"
         self.output.info( "GSL_DIR = %s" % self.deps_cpp_info["gsl"].rootpath )
@@ -69,17 +72,17 @@ class dealii_conan(ConanFile):
 
     def build(self):
         cmake = self.configure_cmake()
-        self.output.info( "self.source_folder = %s" % self.source_folder )
-        self.output.info( "self.command_line = %s" % cmake.command_line )
-        self.output.info( "self.build_config = %s" % cmake.build_config )
         cmake.build()
 
     def package(self):
         cmake = CMake(self)
         cmake.install()
-        #shutil.rmtree( self.source_folder )
-        #shutil.rmtree( self.build_folder )
+        tmp = os.path.dirname(self.build_folder)
+        shutil.rmtree( os.path.join(os.path.dirname(tmp), "source" ), ignore_errors=True )
+        shutil.rmtree( self.build_folder, ignore_errors=True )
         
     def package_info(self):
+        #no_of_jobs = os.cpu_count() // 2
+        #self.conf_info.define("tools.build:jobs", "-j{}".format(no_of_jobs))
         self.env_info.PATH.append(os.path.join(self.package_folder, "bin"))
         self.env_info.LD_LIBRARY_PATH.append(os.path.join(self.package_folder, "lib"))
