@@ -1,10 +1,15 @@
 cmake_minimum_required(VERSION 3.10)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_EXTENSIONS ON)
+set(CONAN_DISABLE_CHECK_COMPILER ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-execute_process(COMMAND sh -c "module list")
+#execute_process(COMMAND sh -c "module list")
+
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+conan_basic_setup()
 
 find_package(deal.II HINTS ${deal.II_DIR} ${DEAL_II_DIR} ../ ../../ $ENV{DEAL_II_DIR})
 if(NOT ${deal.II_FOUND})
@@ -39,7 +44,7 @@ message("${DEAL_II_FEATURE_CONFIG}")
 project(atus-playground)
 
 ### nlopt
-find_package(NLOPT REQUIRED)
+find_package(NLopt REQUIRED)
 
 ### doxygen
 find_package(Doxygen)
@@ -57,9 +62,6 @@ option( BUILD_3D "3D - in the future this is going to be removed" OFF )
 option( BUILD_HTRAP "3D" OFF )
 option( BUILD_NEHARI "Disables the initial point in function space being set to the Nehari value" ON )
 option( BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" ${DOXYGEN_FOUND})
-
-#set(CMAKE_CXX_FLAGS_RELEASE "-std=gnu++14 -march=native -O3 -fopenmp -mieee-fp -funroll-loops -ftree-vectorize -w -s")
-#set(CMAKE_CXX_FLAGS_DEBUG "-std=gnu++14 -g -march=native -fopenmp -mieee-fp -fsanitize=address")
 
 set( HOME $ENV{HOME} CACHE STRING INTERNAL )
 set( DIR_INC ${PROJECT_SOURCE_DIR}/include CACHE STRING INTERNAL )
