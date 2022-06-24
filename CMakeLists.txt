@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.10)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS ON)
 set(CONAN_DISABLE_CHECK_COMPILER ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -96,7 +97,7 @@ endif()
 
 add_subdirectory( source/lib )
 add_subdirectory( source/case_gen )
-add_subdirectory( source/stationary )
+#add_subdirectory( source/stationary )
 #add_subdirectory( source/groundstates )
 #add_subdirectory( source/realtime )
 #add_subdirectory( source/oct )
