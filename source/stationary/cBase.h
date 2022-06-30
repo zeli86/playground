@@ -138,7 +138,7 @@ protected:
   double m_ti;
   double m_final_error;
   double m_N;
-  double m_mu = 0;
+  double m_rMu = 0;
   double m_dmu = 0.1;
   double m_gs = 1;
   vector<double> m_omega;
@@ -300,7 +300,7 @@ void cBase<dim, N>::dump_info_xml(const string path)
   pugi::xml_node parameter_node = doc.append_child("INFO");
 
   pugi::xml_node node = parameter_node.append_child("MU");
-  node.append_child(pugi::node_pcdata).set_value(to_string(m_mu).c_str());
+  node.append_child(pugi::node_pcdata).set_value(to_string(m_rMu).c_str());
 
   node = parameter_node.append_child("GS");
   node.append_child(pugi::node_pcdata).set_value(to_string(m_gs).c_str());

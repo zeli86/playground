@@ -104,7 +104,7 @@ namespace BreedSolver_1
     using cBase<dim, 2>::m_ti;
     using cBase<dim, 2>::m_N;
     using cBase<dim, 2>::m_omega;
-    using cBase<dim, 2>::m_mu;
+    using cBase<dim, 2>::m_rMu;
     using cBase<dim, 2>::m_gs;
     using cBase<dim, 2>::m_counter;
     using cBase<dim, 2>::m_ph;
@@ -215,7 +215,7 @@ namespace BreedSolver_1
         const double p12 = Psi_1[qp] * Psi_2[qp];
         const double p1q = Psi_1[qp] * Psi_1[qp];
         const double p2q = Psi_2[qp] * Psi_2[qp];
-        const double Q = Potential.value(fe_values.quadrature_point(qp)) - m_mu;
+        const double Q = Potential.value(fe_values.quadrature_point(qp)) - m_rMu;
 
         total_contributions[0] += JxW * p1q * p1q;
         total_contributions[1] += JxW * p2q * p2q;
@@ -269,7 +269,7 @@ namespace BreedSolver_1
       for (unsigned qp = 0; qp < n_q_points; ++qp)
       {
         const double JxW = fe_values.JxW(qp);
-        const double Q2 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + 3.0 * m_gs * Psi_ref[qp] * Psi_ref[qp];
+        const double Q2 = Potential.value(fe_values.quadrature_point(qp)) - m_rMu + 3.0 * m_gs * Psi_ref[qp] * Psi_ref[qp];
 
         for (unsigned i = 0; i < dofs_per_cell; ++i)
           for (unsigned j = 0; j < dofs_per_cell; ++j)
@@ -322,7 +322,7 @@ namespace BreedSolver_1
       for (unsigned qp = 0; qp < n_q_points; ++qp)
       {
         const double JxW = fe_values.JxW(qp);
-        const double Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs * Psi_ref[qp] * Psi_ref[qp];
+        const double Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_rMu + m_gs * Psi_ref[qp] * Psi_ref[qp];
 
         for (unsigned i = 0; i < dofs_per_cell; ++i)
         {
@@ -346,7 +346,7 @@ namespace BreedSolver_1
     MatrixTools::apply_boundary_values(boundary_values, this->m_System_Matrix, this->m_Search_Direction, this->m_System_RHS);
 
     SparseDirectUMFPACK A_direct;
-    A_direct.solve(this->m_System_Matrix,this->m_System_RHS);
+    A_direct.solve(this->m_System_Matrix, this->m_System_RHS);
     this->m_Search_Direction = this->m_System_RHS;
     m_res = this->m_Search_Direction.l2_norm();
   }
@@ -379,7 +379,7 @@ namespace BreedSolver_1
       solve();
 
       double tau;
-      MyRealTools::compute_stepsize(this->m_DOF_Handler, this->m_FE, Potential, this->m_Psi_Ref, this->m_Search_Direction, m_mu, m_gs, tau);
+      MyRealTools::compute_stepsize(this->m_DOF_Handler, this->m_FE, Potential, this->m_Psi_Ref, this->m_Search_Direction, m_rMu, m_gs, tau);
       this->m_Psi[1].add(tau * m_t[1] / fabs(m_t[1]), this->m_Search_Direction);
 
       if (m_counter % m_NA == 0)
@@ -400,7 +400,7 @@ namespace BreedSolver_1
       m_table.insert(cols, MyTable::COUNTER, double(m_counter));
       m_table.insert(cols, MyTable::RES, m_res);
       m_table.insert(cols, MyTable::RESP, m_resp);
-      m_table.insert(cols, MyTable::MU, m_mu);
+      m_table.insert(cols, MyTable::MU, m_rMu);
       m_table.insert(cols, MyTable::GS, m_gs);
       m_table.insert(cols, MyTable::t1, m_t[0]);
       m_table.insert(cols, MyTable::t2, m_t[1]);
@@ -448,7 +448,7 @@ namespace BreedSolver_1
       m_table.insert(cols, MyTable::COUNTER, double(m_counter));
       m_table.insert(cols, MyTable::RES, m_res);
       m_table.insert(cols, MyTable::RESP, m_resp);
-      m_table.insert(cols, MyTable::MU, m_mu);
+      m_table.insert(cols, MyTable::MU, m_rMu);
       m_table.insert(cols, MyTable::GS, m_gs);
       m_table.insert(cols, MyTable::t1, m_t[0]);
       m_table.insert(cols, MyTable::t2, m_t[1]);
@@ -516,7 +516,7 @@ namespace BreedSolver_1
       for (unsigned qp = 0; qp < n_q_points; ++qp)
       {
         const double JxW = fe_values.JxW(qp);
-        const double Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs * (vals[qp] * vals[qp]);
+        const double Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_rMu + m_gs * (vals[qp] * vals[qp]);
 
         for (unsigned i = 0; i < dofs_per_cell; ++i)
         {
@@ -559,13 +559,13 @@ namespace BreedSolver_1
     this->m_Psi[1] = 0;
 
     compute_E_lin(this->m_Psi[0], T, N, W);
-    double m_mu_0 = T / N;
-    m_mu = ceil(10.0 * m_mu_0) / 10.0 + m_gs / fabs(m_gs) * m_dmu;
+    double m_rMu_0 = T / N;
+    m_rMu = ceil(10.0 * m_rMu_0) / 10.0 + m_gs / fabs(m_gs) * m_dmu;
 
     cout << "T = " << T << endl;
     cout << "N = " << N << endl;
     cout << "W = " << W << endl;
-    cout << "m_mu = " << m_mu << endl;
+    cout << "m_rMu = " << m_rMu << endl;
     cout << "m_gs = " << m_gs << endl;
 
     output_guess();
@@ -578,17 +578,17 @@ namespace BreedSolver_1
       path = shellcmd;
 
       // Nehari Reset
-      // sqrt((m_mu*N-T)/(m_gs*W)); if this->m_Psi[1] == 0
-      // sqrt((m_mu*N-T)/(4.0*m_gs*W)); if this->m_Psi[1] == this->m_Psi[0]
+      // sqrt((m_rMu*N-T)/(m_gs*W)); if this->m_Psi[1] == 0
+      // sqrt((m_rMu*N-T)/(4.0*m_gs*W)); if this->m_Psi[1] == this->m_Psi[0]
 #ifdef NEHARI
-      m_ti = sqrt((m_mu * N - T) / (m_gs * W));
+      m_ti = sqrt((m_rMu * N - T) / (m_gs * W));
 #endif
 
       const auto status = DoIter(path);
       estimate_error(m_final_error);
 
       columns& cols = m_results.new_line();
-      m_results.insert(cols, MyTable::MU, m_mu);
+      m_results.insert(cols, MyTable::MU, m_rMu);
       m_results.insert(cols, MyTable::GS, m_gs);
       m_results.insert(cols, MyTable::PARTICLE_NUMBER, m_N);
       m_results.insert(cols, MyTable::COUNTER, double(m_counter));
@@ -615,7 +615,7 @@ namespace BreedSolver_1
       {
         break;
       }
-      m_mu += m_gs / fabs(m_gs) * m_dmu;
+      m_rMu += m_gs / fabs(m_gs) * m_dmu;
       compute_E_lin(this->m_Psi_Ref, T, N, W);
     }
     m_results.dump_2_file("results.csv");

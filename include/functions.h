@@ -18,8 +18,7 @@
  */
 
 
-#ifndef _MY_FUNCTIONS
-#define _MY_FUNCTIONS
+#pragma once
 
 #include <deal.II/base/function.h>
 #include "eigenfunctions_AiryAi.h"
@@ -32,119 +31,125 @@ using namespace dealii;
 template <int dim>
 class CEigenfunctions : public Function<dim>
 {
-  public:
-    CEigenfunctions ( unsigned QN[3], std::vector<double> a ) : Function<dim>() 
-    { 
-      m_QNx=QN[0]; m_QNy=QN[1]; m_QNz=QN[2]; 
+public:
+  CEigenfunctions(unsigned QN[3], std::vector<double> a) : Function<dim>()
+  {
+    m_QNx = QN[0];
+    m_QNy = QN[1];
+    m_QNz = QN[2];
 
-      #if POTENTIAL==1
-        m_fakx=a[0];
-      #endif
-      #if POTENTIAL==2
-        m_fakx=pow(a[0],2.0/3.0);
-      #endif
+#if POTENTIAL==1
+    m_fakx = a[0];
+#endif
+#if POTENTIAL==2
+    m_fakx = pow(a[0], 2.0 / 3.0);
+#endif
 
-      m_faky=a[1]; m_fakz=a[2]; 
-    }
+    m_faky = a[1];
+    m_fakz = a[2];
+  }
 
-    CEigenfunctions ( const std::vector<int>& QN, std::vector<double> a ) : Function<dim>() 
-    { 
-      m_QNx=QN[0]; m_QNy=QN[1]; m_QNz=QN[2]; 
+  CEigenfunctions(const std::vector<int>& QN, std::vector<double> a) : Function<dim>()
+  {
+    m_QNx = QN[0];
+    m_QNy = QN[1];
+    m_QNz = QN[2];
 
-      #if POTENTIAL==1
-        m_fakx=a[0];
-      #endif
-      #if POTENTIAL==2
-        m_fakx=pow(a[0],2.0/3.0);
-      #endif
+#if POTENTIAL==1
+    m_fakx = a[0];
+#endif
+#if POTENTIAL==2
+    m_fakx = pow(a[0], 2.0 / 3.0);
+#endif
 
-      m_faky=a[1]; m_fakz=a[2]; 
-    }
-    virtual double value ( const Point<dim> &p, const unsigned component = 0) const;
-    virtual Tensor<1,dim> gradient (const Point<2> &p, const unsigned component=0) const;
-  
-  private:
-    unsigned int m_QNx;
-    unsigned int m_QNy;
-    unsigned int m_QNz;
-    double m_fakx;
-    double m_faky;
-    double m_fakz;
+    m_faky = a[1];
+    m_fakz = a[2];
+  }
+  virtual double value(const Point<dim>& p, const unsigned component = 0) const;
+  virtual Tensor<1, dim> gradient(const Point<2>& p, const unsigned component = 0) const;
+
+private:
+  unsigned int m_QNx;
+  unsigned int m_QNy;
+  unsigned int m_QNz;
+  double m_fakx;
+  double m_faky;
+  double m_fakz;
 };
 
 template <int dim>
-double CEigenfunctions<dim>::value( const Point<dim> &p, const unsigned ) const
+double CEigenfunctions<dim>::value(const Point<dim>& p, const unsigned) const
 {
   double retval;
-  
-  switch(dim)
+
+  switch (dim)
   {
-    case 1:
-            #if POTENTIAL==1
-              retval = (*EF_HO[m_QNx])(m_fakx,p(0));
-            #endif
-            #if POTENTIAL==2
-              retval = (*EF_AIRY[m_QNx])(m_fakx,p(0));
-            #endif
+  case 1:
+#if POTENTIAL==1
+    retval = (*EF_HO[m_QNx])(m_fakx, p(0));
+#endif
+#if POTENTIAL==2
+    retval = (*EF_AIRY[m_QNx])(m_fakx, p(0));
+#endif
     break;
-    case 2:
-            #if POTENTIAL==1
-              retval = (*EF_HO[m_QNx])(m_fakx,p(0)) * (*EF_HO[m_QNy])(m_faky,p(1));
-            #endif
-            #if POTENTIAL==2
-              retval = (*EF_AIRY[m_QNx])(m_fakx,p(0)) * (*EF_HO[m_QNy])(m_faky,p(1));
-            #endif
+  case 2:
+#if POTENTIAL==1
+    retval = (*EF_HO[m_QNx])(m_fakx, p(0)) * (*EF_HO[m_QNy])(m_faky, p(1));
+#endif
+#if POTENTIAL==2
+    retval = (*EF_AIRY[m_QNx])(m_fakx, p(0)) * (*EF_HO[m_QNy])(m_faky, p(1));
+#endif
     break;
-    case 3:
-            #if POTENTIAL==1
-              retval = (*EF_HO[m_QNx])(m_fakx,p(0)) * (*EF_HO[m_QNy])(m_faky,p(1)) * (*EF_HO[m_QNz])(m_fakz,p(2));
-            #endif
-            #if POTENTIAL==2
-              retval = (*EF_AIRY[m_QNx])(m_fakx,p(0)) * (*EF_HO[m_QNy])(m_faky,p(1)) * (*EF_HO[m_QNz])(m_fakz,p(2));
-            #endif
+  case 3:
+#if POTENTIAL==1
+    retval = (*EF_HO[m_QNx])(m_fakx, p(0)) * (*EF_HO[m_QNy])(m_faky, p(1)) * (*EF_HO[m_QNz])(m_fakz, p(2));
+#endif
+#if POTENTIAL==2
+    retval = (*EF_AIRY[m_QNx])(m_fakx, p(0)) * (*EF_HO[m_QNy])(m_faky, p(1)) * (*EF_HO[m_QNz])(m_fakz, p(2));
+#endif
     break;
   }
-return retval;
+  return retval;
 }
 
 template <int dim>
-Tensor<1,dim> CEigenfunctions<dim>::gradient (const Point<2> &p, const unsigned ) const
+Tensor<1, dim> CEigenfunctions<dim>::gradient(const Point<2>& p, const unsigned) const
 {
   Point<dim> retval;
-  switch(dim)
+  switch (dim)
   {
-    case 1:
-            #if POTENTIAL==1
-              retval[0] = (*EF_HO_DERIV[m_QNx])(m_fakx,p(0));
-            #endif
-            #if POTENTIAL==2
-              retval[0] = (*EF_AIRY_DERIV[m_QNx])(m_fakx,p(0));
-            #endif
+  case 1:
+#if POTENTIAL==1
+    retval[0] = (*EF_HO_DERIV[m_QNx])(m_fakx, p(0));
+#endif
+#if POTENTIAL==2
+    retval[0] = (*EF_AIRY_DERIV[m_QNx])(m_fakx, p(0));
+#endif
     break;
-    case 2:
-            #if POTENTIAL==1
-              retval[0] = (*EF_HO_DERIV[m_QNx])(m_fakx,p(0));
-              retval[1] = (*EF_HO_DERIV[m_QNy])(m_faky,p(1));
-            #endif
-            #if POTENTIAL==2
-              retval[0] = (*EF_AIRY_DERIV[m_QNx])(m_fakx,p(0));
-              retval[1] = (*EF_HO_DERIV[m_QNy])(m_faky,p(1));
-            #endif
+  case 2:
+#if POTENTIAL==1
+    retval[0] = (*EF_HO_DERIV[m_QNx])(m_fakx, p(0));
+    retval[1] = (*EF_HO_DERIV[m_QNy])(m_faky, p(1));
+#endif
+#if POTENTIAL==2
+    retval[0] = (*EF_AIRY_DERIV[m_QNx])(m_fakx, p(0));
+    retval[1] = (*EF_HO_DERIV[m_QNy])(m_faky, p(1));
+#endif
     break;
-    case 3:
-            #if POTENTIAL==1
-              retval[0] = (*EF_HO_DERIV[m_QNx])(m_fakx,p(0));
-              retval[1] = (*EF_HO_DERIV[m_QNy])(m_faky,p(1));
-              retval[2] = (*EF_HO_DERIV[m_QNz])(m_fakz,p(2));
-            #endif
-            #if POTENTIAL==2
-              retval[0] = (*EF_AIRY_DERIV[m_QNx])(m_fakx,p(0));
-              retval[1] = (*EF_HO_DERIV[m_QNy])(m_faky,p(1));
-              retval[2] = (*EF_HO_DERIV[m_QNz])(m_fakz,p(2));
-            #endif
+  case 3:
+#if POTENTIAL==1
+    retval[0] = (*EF_HO_DERIV[m_QNx])(m_fakx, p(0));
+    retval[1] = (*EF_HO_DERIV[m_QNy])(m_faky, p(1));
+    retval[2] = (*EF_HO_DERIV[m_QNz])(m_fakz, p(2));
+#endif
+#if POTENTIAL==2
+    retval[0] = (*EF_AIRY_DERIV[m_QNx])(m_fakx, p(0));
+    retval[1] = (*EF_HO_DERIV[m_QNy])(m_faky, p(1));
+    retval[2] = (*EF_HO_DERIV[m_QNz])(m_fakz, p(2));
+#endif
     break;
   }
-return retval;
+  return retval;
 }
 
 /*************************************************************************************************/
@@ -152,48 +157,52 @@ return retval;
 template <int dim>
 class CPotential : public Function<dim>
 {
-  public:
-    explicit CPotential ( std::vector<double> a ) : Function<dim>() { m_fakx=a[0]; m_faky=a[1]; m_fakz=a[2];  }
-    virtual double value ( const Point<dim> &p, const unsigned component = 0) const;
+public:
+  explicit CPotential(std::vector<double> a) : Function<dim>()
+  {
+    m_fakx = a[0];
+    m_faky = a[1];
+    m_fakz = a[2];
+  }
+  virtual double value(const Point<dim>& p, const unsigned component = 0) const;
 
-    double m_fakx;
-    double m_faky;
-    double m_fakz;
+  double m_fakx;
+  double m_faky;
+  double m_fakz;
 };
-  
+
 /*************************************************************************************************/
 template <int dim>
-double CPotential<dim>::value( const Point<dim> &p, const unsigned ) const
+double CPotential<dim>::value(const Point<dim>& p, const unsigned) const
 {
   double retval;
 
-  switch( dim )
+  switch (dim)
   {
-    case 1: 
-            #if POTENTIAL==1
-              retval = m_fakx*m_fakx*p(0)*p(0);
-            #endif
-            #if POTENTIAL==2
-              retval = m_fakx*p(0);
-            #endif
+  case 1:
+#if POTENTIAL==1
+    retval = m_fakx * m_fakx * p(0) * p(0);
+#endif
+#if POTENTIAL==2
+    retval = m_fakx * p(0);
+#endif
     break;
-    case 2: 
-            #if POTENTIAL==1
-              retval = m_fakx*m_fakx*p(0)*p(0) + m_faky*m_faky*p(1)*p(1);
-            #endif
-            #if POTENTIAL==2
-              retval = m_fakx*p(0) + m_faky*m_faky*p(1)*p(1);
-            #endif
+  case 2:
+#if POTENTIAL==1
+    retval = m_fakx * m_fakx * p(0) * p(0) + m_faky * m_faky * p(1) * p(1);
+#endif
+#if POTENTIAL==2
+    retval = m_fakx * p(0) + m_faky * m_faky * p(1) * p(1);
+#endif
     break;
-    case 3: 
-            #if POTENTIAL==1
-              retval = m_fakx*m_fakx*p(0)*p(0) + m_faky*m_faky*p(1)*p(1) + m_fakz*m_fakz*p(2)*p(2);
-            #endif
-            #if POTENTIAL==2
-              retval = m_fakx*p(0) + m_faky*m_faky*p(1)*p(1) + m_fakz*m_fakz*p(2)*p(2);
-            #endif
+  case 3:
+#if POTENTIAL==1
+    retval = m_fakx * m_fakx * p(0) * p(0) + m_faky * m_faky * p(1) * p(1) + m_fakz * m_fakz * p(2) * p(2);
+#endif
+#if POTENTIAL==2
+    retval = m_fakx * p(0) + m_faky * m_faky * p(1) * p(1) + m_fakz * m_fakz * p(2) * p(2);
+#endif
     break;
   }
-return retval;
+  return retval;
 }
-#endif

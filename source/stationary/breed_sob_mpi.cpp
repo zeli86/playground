@@ -65,7 +65,7 @@ namespace BreedSolver
     double m_final_error = 0.0;
     double m_N = 0.0;
 
-    double m_mu = 0;
+    double m_rMu = 0;
     std::vector<double> m_gs{1, 1};
     std::vector<double> m_omega{3, 1};
     std::vector<double> m_epsilon{2, 1e-10};
@@ -258,7 +258,7 @@ namespace BreedSolver
         for (unsigned qp = 0; qp < n_q_points; ++qp)
         {
           const double JxW = fe_values.JxW(qp);
-          const double Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs.at(0) * (vals[qp] * vals[qp]);
+          const double Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_rMu + m_rG * (vals[qp] * vals[qp]);
 
           for (unsigned i = 0; i < dofs_per_cell; ++i)
           {
@@ -322,7 +322,7 @@ namespace BreedSolver
         for (unsigned qp = 0; qp < n_q_points; ++qp)
         {
           const double JxW = fe_values.JxW(qp);
-          const double Q1 = Potential.value(fe_values.quadrature_point(qp)) + m_gs.at(0) * (vals[qp] * vals[qp]);
+          const double Q1 = Potential.value(fe_values.quadrature_point(qp)) + m_rG * (vals[qp] * vals[qp]);
 
           for (unsigned int i = 0; i < dofs_per_cell; ++i)
           {
@@ -486,11 +486,11 @@ namespace BreedSolver
         for (unsigned qp = 0; qp < n_q_points; ++qp)
         {
           double uq = vals[qp] * vals[qp];
-          psum += fe_values.JxW(qp) * (grads[qp] * grads[qp] + (Potential.value(fe_values.quadrature_point(qp)) + m_gs.at(0) * uq) * uq);
+          psum += fe_values.JxW(qp) * (grads[qp] * grads[qp] + (Potential.value(fe_values.quadrature_point(qp)) + m_rG * uq) * uq);
         }
       }
     }
-    MPI_Allreduce(&psum, &m_mu, 1, MPI_DOUBLE, MPI_SUM, mpi_communicator);
+    MPI_Allreduce(&psum, &m_rMu, 1, MPI_DOUBLE, MPI_SUM, mpi_communicator);
 
   }
 
@@ -673,7 +673,7 @@ namespace BreedSolver
     m_counter = 0;
     do
     {
-      BOOST_LOG_TRIVIAL(info) << std::string('-',80);
+      BOOST_LOG_TRIVIAL(info) << std::string('-', 80);
       BOOST_LOG_TRIVIAL(info) << "- " << m_counter;
 
       assemble_system();
@@ -685,7 +685,7 @@ namespace BreedSolver
 
       m_Psi.add(-1e-3, m_sob_grad);
 
-      //compute_mu(m_mu);
+      //compute_mu(m_rMu);
       m_N = MyRealTools::MPI::Particle_Number(mpi_communicator, dof_handler, fe, m_Psi);
 
       if (fabs(m_N - 1) > 1e-5)
@@ -707,7 +707,7 @@ namespace BreedSolver
       // m_table.insert(cols, MyTable::COUNTER, double(m_counter));
       // m_table.insert(cols, MyTable::RES, m_res);
       // m_table.insert(cols, MyTable::RESP, m_resp);
-      // m_table.insert(cols, MyTable::MU, m_mu);
+      // m_table.insert(cols, MyTable::MU, m_rMu);
       // m_table.insert(cols, MyTable::GS, m_gs);
       // m_table.insert(cols, MyTable::PARTICLE_NUMBER, m_N);
       //m_table.insert( cols, MyTable::total_no_cells, double(m_total_no_cells) );

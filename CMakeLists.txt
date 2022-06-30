@@ -97,7 +97,7 @@ endif()
 
 add_subdirectory( source/lib )
 add_subdirectory( source/case_gen )
-#add_subdirectory( source/stationary )
+add_subdirectory( source/stationary )
 #add_subdirectory( source/groundstates )
 #add_subdirectory( source/realtime )
 #add_subdirectory( source/oct )

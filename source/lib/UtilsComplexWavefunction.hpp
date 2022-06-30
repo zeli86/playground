@@ -1,21 +1,49 @@
 
 #include "IBase.hpp"
-#include "deal.II/fe/fe_q.h"
+
+#include <deal.II/dofs/dof_handler.h>
+#include <deal.II/lac/affine_constraints.h>
+#include <deal.II/fe/fe_system.h>
+#include <deal.II/fe/fe_values.h>
+#include <deal.II/lac/vector.h>
+#include <deal.II/lac/generic_linear_algebra.h>
+
+namespace LA
+{
+  using namespace dealii::LinearAlgebraPETSc;
+}
 
 namespace utils
 {
-  using namespace dealii;
-  namespace LA
+  namespace complex_wavefunction
   {
-    using namespace dealii::LinearAlgebraPETSc;
+    using namespace dealii;
+
+    template<int iDim>
+    using IComplexWavefunction = IBase<DoFHandler<iDim>, FESystem<iDim>, AffineConstraints<double>>;
+
+    template<int iDim>
+    double particle_number(IComplexWavefunction<iDim>*, const Vector<double>&);
+
+    template<int iDim>
+    double particle_number(IComplexWavefunction<iDim>*, const LA::MPI::Vector&, MPI_Comm);
+
+    template <int iDim>
+    Point<iDim> expectation_value_position(IComplexWavefunction<iDim>*, const Vector<double>&);
+
+    template <int iDim>
+    Point<iDim> expectation_value_position(IComplexWavefunction<iDim>*, const LA::MPI::Vector&, MPI_Comm);
+
+    template <int iDim>
+    Point<iDim> expectation_value_momentum(IComplexWavefunction<iDim>*, const Vector<double>&);
+
+    template <int iDim>
+    Point<iDim> expectation_value_momentum(IComplexWavefunction<iDim>*, const LA::MPI::Vector&, MPI_Comm);
+
+    template <int iDim>
+    Point<iDim> expectation_value_width(IComplexWavefunction<iDim>*, const Vector<double>&, const Point<iDim>&);
+
+    template <int iDim>
+    Point<iDim> expectation_value_width(IComplexWavefunction<iDim>*, const LA::MPI::Vector& vec, const Point<iDim>&, MPI_Comm);
   }
-
-  template<int dim>
-  double particle_number(const DoFHandler<dim>& dof_handler, const FE_Q<dim>& fe, const Vector<double>& vec);
-
-  template<int dim>
-  double particle_number(const DoFHandler<dim>&, const FE_Q<dim>&, const LA::MPI::Vector&, MPI_Comm);
-
-  //template <int dim>
-  //double Particle_Number(MPI_Comm, IBase<DoFHandler<dim>, FE_Q<dim>, const Vector<double>&, Fe, tConstraints>* );
 }

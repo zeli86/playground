@@ -105,18 +105,6 @@ public:
 
   void output_results(const std::string&, std::string = "step");
 
-  //template <typename tVals, typename std::enable_if<std::is_same<tVals, double>::value>::type* = nullptr>
-  double particle_number(LA::MPI::Vector& vec)
-  {
-    if constexpr(bComplex)
-    {
-
-    }
-
-    return 0;
-
-  }
-
   MPI_Comm mpi_communicator;
 protected:
 
@@ -152,7 +140,7 @@ protected:
   double m_ti;
   double m_final_error;
   double m_N;
-  double m_mu = 0;
+  double m_rMu = 0;
   double m_dmu = 0.1;
   std::vector<double> m_gs;
   std::vector<double> m_omega;
@@ -379,57 +367,54 @@ void cBaseMPI<dim, N, T, bComplex>::update_workspace()
 template <int dim, int N, class T, bool bComplex>
 void cBaseMPI<dim, N, T, bComplex>::save(const std::string& filename)
 {
-  m_constraints.distribute(m_Psi_Ref);
-  parallel::distributed::SolutionTransfer<dim, LA::MPI::Vector> solution_transfer(m_DOF_Handler);
-  solution_transfer.prepare_for_serialization(m_Psi_Ref);
-
-  m_Triangulation.save(filename.c_str());
+  // m_constraints.distribute(m_Psi_Ref);
+  // parallel::distributed::SolutionTransfer<dim, LA::MPI::Vector> solution_transfer(m_DOF_Handler);
+  // solution_transfer.prepare_for_serialization(m_Psi_Ref);
+  // m_Triangulation.save(filename.c_str());
 }
 
 template <int dim, int N, class T, bool bComplex>
 void cBaseMPI<dim, N, T, bComplex>::output_results(const std::string& path, std::string prefix)
 {
-  dealii::TimerOutput::Scope timing_section(m_computing_timer, "");
+  // dealii::TimerOutput::Scope timing_section(m_computing_timer, "");
 
-  std::string filename;
+  // std::string filename;
 
-  dealii::Vector<float> subdomain(m_Triangulation.n_active_cells());
-  for (unsigned int i = 0; i < subdomain.size(); ++i)
-  {
-    subdomain(i) = m_Triangulation.locally_owned_subdomain();
-  }
+  // dealii::Vector<float> subdomain(m_Triangulation.n_active_cells());
+  // for (unsigned int i = 0; i < subdomain.size(); ++i)
+  // {
+  //   subdomain(i) = m_Triangulation.locally_owned_subdomain();
+  // }
 
-  dealii::DataOut<dim> data_out;
-  data_out.attach_dof_handler(m_DOF_Handler);
-  data_out.add_data_vector(m_Psi_Ref, "Psi_sol");
-  data_out.add_data_vector(m_error_per_cell, "error per cell");
-  data_out.add_data_vector(subdomain, "subdomain");
-  data_out.build_patches();
+  // dealii::DataOut<dim> data_out;
+  // data_out.attach_dof_handler(m_DOF_Handler);
+  // data_out.add_data_vector(m_Psi_Ref, "Psi_sol");
+  // data_out.add_data_vector(m_error_per_cell, "error per cell");
+  // data_out.add_data_vector(subdomain, "subdomain");
+  // data_out.build_patches();
 
-  filename = path + prefix + "-" + dealii::Utilities::int_to_string(m_counter, 5) + ".vtu";
-  data_out.write_vtu_in_parallel(filename.c_str(), mpi_communicator);
-
-
+  // filename = path + prefix + "-" + dealii::Utilities::int_to_string(m_counter, 5) + ".vtu";
+  // data_out.write_vtu_in_parallel(filename.c_str(), mpi_communicator);
 }
 
 template <int dim, int N, class T, bool bComplex>
 void cBaseMPI<dim, N, T, bComplex>::output_guess()
 {
-  dealii::TimerOutput::Scope timing_section(m_computing_timer, "");
+  // dealii::TimerOutput::Scope timing_section(m_computing_timer, "");
 
-  this->update_workspace();
+  // this->update_workspace();
 
-  // CPotential Potential_fct ( m_omega, m_QN1[2] );
-  // VectorTools::interpolate (this->m_DOF_Handler, Potential_fct, this->m_Workspace_NG );
-  // this->m_constraints.distribute(this->m_Workspace_NG);
-  // this->m_Psi_Ref=this->m_Workspace_NG;
+  // // CPotential Potential_fct ( m_omega, m_QN1[2] );
+  // // VectorTools::interpolate (this->m_DOF_Handler, Potential_fct, this->m_Workspace_NG );
+  // // this->m_constraints.distribute(this->m_Workspace_NG);
+  // // this->m_Psi_Ref=this->m_Workspace_NG;
 
-  dealii::DataOut<dim> data_out;
-  data_out.attach_dof_handler(this->m_DOF_Handler);
-  data_out.add_data_vector(this->m_Workspace[0], "Psi_0");  // todo : loop
-  data_out.add_data_vector(this->m_Workspace[1], "Psi_1");
-  // data_out.add_data_vector (this->m_Psi_Ref, "m_Potential");
-  data_out.build_patches();
-  data_out.write_vtu_in_parallel("guess.vtu", mpi_communicator);
+  // dealii::DataOut<dim> data_out;
+  // data_out.attach_dof_handler(this->m_DOF_Handler);
+  // data_out.add_data_vector(this->m_Workspace[0], "Psi_0");  // todo : loop
+  // data_out.add_data_vector(this->m_Workspace[1], "Psi_1");
+  // // data_out.add_data_vector (this->m_Psi_Ref, "m_Potential");
+  // data_out.build_patches();
+  // data_out.write_vtu_in_parallel("guess.vtu", mpi_communicator);
 }
 

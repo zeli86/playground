@@ -21,24 +21,24 @@ namespace utils
     using namespace dealii;
 
     template<int iDim>
-    using IBaseRealWavefunction = IBase<DoFHandler<iDim>, FE_Q<iDim>, AffineConstraints<double>>;
+    using IRealWavefunction = IBase<DoFHandler<iDim>, FE_Q<iDim>, AffineConstraints<double>>;
 
     template<int iDim>
-    double particle_number(IBaseRealWavefunction<iDim>*, const std::vector<double>&);
+    double particle_number(IRealWavefunction<iDim>*, const std::vector<double>&);
 
     template<int iDim>
-    double particle_number(IBaseRealWavefunction<iDim>*, const LA::MPI::Vector&, MPI_Comm);
+    double particle_number(IRealWavefunction<iDim>*, const LA::MPI::Vector&, MPI_Comm);
 
     template<int iDim>
-    Point<iDim> expectation_value_position(IBaseRealWavefunction<iDim>*, const std::vector<double>&);
+    Point<iDim> expectation_value_position(IRealWavefunction<iDim>*, const std::vector<double>&);
 
     template<int iDim>
-    Point<iDim> expectation_value_position(IBaseRealWavefunction<iDim>*, const LA::MPI::Vector&, MPI_Comm);
+    Point<iDim> expectation_value_position(IRealWavefunction<iDim>*, const LA::MPI::Vector&, MPI_Comm);
 
     template<int iDim>
-    Point<iDim> expectation_value_width(IBaseRealWavefunction<iDim>*, const std::vector<double>&, const Point<iDim>&);
+    Point<iDim> expectation_value_width(IRealWavefunction<iDim>*, const std::vector<double>&, const Point<iDim>&);
 
     template<int iDim>
-    Point<iDim> expectation_value_width(IBaseRealWavefunction<iDim>*, const LA::MPI::Vector&, const Point<iDim>&, MPI_Comm);
+    Point<iDim> expectation_value_width(IRealWavefunction<iDim>*, const LA::MPI::Vector&, const Point<iDim>&, MPI_Comm);
   }
 }

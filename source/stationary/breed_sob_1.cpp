@@ -84,7 +84,7 @@ namespace BreedSolver_1
 
   enum Status { SUCCESS, FAILED, ZERO_SOL, SLOW_CONV };
 
-  template <int dim> 
+  template <int dim>
   class MySolver
   {
   public:
@@ -94,18 +94,18 @@ namespace BreedSolver_1
     void run();
 
   protected:
-    double m_xmin=-5.0, m_xmax=5.0;
-    double m_ymin=-5.0, m_ymax=5.0;
+    double m_xmin = -5.0, m_xmax = 5.0;
+    double m_ymin = -5.0, m_ymax = 5.0;
     double m_res, m_res_old, m_resp;
     double m_final_error = 0.0;
     double m_N = 0.0;
 
-    double m_mu=0.0;
-    double m_gs=1.0;
+    double m_rMu = 0.0;
+    double m_gs = 1.0;
     vector<double> m_omega;
     vector<double> m_epsilon;
 
-    unsigned m_counter=0;
+    unsigned m_counter = 0;
     unsigned m_global_refinement;
     unsigned m_NA;
 
@@ -121,8 +121,8 @@ namespace BreedSolver_1
     void Project_gradient();
 
     void solve();
-    void compute_E_lin(Vector<double> &, double &, double &, double &);
-    void estimate_error(double &);
+    void compute_E_lin(Vector<double>&, double&, double&, double&);
+    void estimate_error(double&);
 
     void output_results(string);
 
@@ -150,10 +150,10 @@ namespace BreedSolver_1
    * Constructor
    */
   template <int dim>
-  MySolver<dim>::MySolver(const std::string& xmlfilename) : 
+  MySolver<dim>::MySolver(const std::string& xmlfilename) :
     m_ph(xmlfilename),
     triangulation(),
-    fe(gl_degree_fe), 
+    fe(gl_degree_fe),
     dof_handler(triangulation)
   {
     try
@@ -187,7 +187,7 @@ namespace BreedSolver_1
   }
 
   template <int dim>
-  void MySolver<dim>::compute_E_lin(Vector<double> &vec, double &T, double &N, double &W)
+  void MySolver<dim>::compute_E_lin(Vector<double>& vec, double& T, double& N, double& W)
   {
     CPotential<dim> Potential(m_omega);
     const QGauss<dim> quadrature_formula(fe.degree + 1);
@@ -218,7 +218,7 @@ namespace BreedSolver_1
     }
   }
 
-  template <int dim> 
+  template <int dim>
   void MySolver<dim>::Project_gradient()
   {
     const QGauss<dim> quadrature_formula(fe.degree + 1);
@@ -249,68 +249,72 @@ namespace BreedSolver_1
     m_sob_grad.add(-sum[0] / sum[1], m_Psi_sob);
   }
 
-  template <int dim> 
-  void MySolver<dim>::estimate_error(double &err)
+  template <int dim>
+  void MySolver<dim>::estimate_error(double& err)
   {
     compute_mu();
 
-    CPotential<dim> Potential( m_omega );
-    const QGauss<dim> quadrature_formula(fe.degree+1);
+    CPotential<dim> Potential(m_omega);
+    const QGauss<dim> quadrature_formula(fe.degree + 1);
 
-    m_system_rhs=0;
-    m_system_matrix=0;
+    m_system_rhs = 0;
+    m_system_matrix = 0;
 
-    FEValues<dim> fe_values (fe, quadrature_formula, update_values|update_gradients|update_JxW_values|update_quadrature_points);
+    FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_gradients | update_JxW_values | update_quadrature_points);
 
     const unsigned dofs_per_cell = fe.dofs_per_cell;
     const unsigned n_q_points = quadrature_formula.size();
 
-    Vector<double> cell_rhs (dofs_per_cell);
-    FullMatrix<double> cell_matrix (dofs_per_cell, dofs_per_cell);
+    Vector<double> cell_rhs(dofs_per_cell);
+    FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
 
-    vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
+    vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
     vector<double> vals(n_q_points);
-    vector<Tensor<1,dim>> grads(n_q_points);
+    vector<Tensor<1, dim>> grads(n_q_points);
 
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
-    for ( ; cell!=endc; ++cell )
+    for (; cell != endc; ++cell)
     {
-      cell_rhs=0;
-      cell_matrix=0;
+      cell_rhs = 0;
+      cell_matrix = 0;
 
-      fe_values.reinit (cell);
+      fe_values.reinit(cell);
       fe_values.get_function_values(m_Psi, vals);
       fe_values.get_function_gradients(m_Psi, grads);
 
-      for ( unsigned qp=0; qp<n_q_points; ++qp )
+      for (unsigned qp = 0; qp < n_q_points; ++qp)
       {
-          const double JxW = fe_values.JxW(qp);
-          const double Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_mu + m_gs*(vals[qp]*vals[qp]);
-
-          for ( unsigned i=0; i<dofs_per_cell; ++i )
-          {
-            cell_rhs(i) += JxW*(grads[qp]*fe_values.shape_grad(i,qp) + Q1*vals[qp]*fe_values.shape_value(i,qp));
-            for ( unsigned j=0; j<dofs_per_cell; ++j )
-                cell_matrix(i,j) += JxW*(fe_values.shape_value(i,qp)*fe_values.shape_value(j,qp));
-          }
-        }
-        cell->get_dof_indices (local_dof_indices);
+        const double JxW = fe_values.JxW(qp);
+        const double Q1 = Potential.value(fe_values.quadrature_point(qp)) - m_rMu + m_gs * (vals[qp] * vals[qp]);
 
         for (unsigned i = 0; i < dofs_per_cell; ++i)
         {
-          m_system_rhs(local_dof_indices[i]) += cell_rhs(i);
+          cell_rhs(i) += JxW * (grads[qp] * fe_values.shape_grad(i, qp) + Q1 * vals[qp] * fe_values.shape_value(i, qp));
           for (unsigned j = 0; j < dofs_per_cell; ++j)
-            m_system_matrix.add(local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));
-        }      
+          {
+            cell_matrix(i, j) += JxW * (fe_values.shape_value(i, qp) * fe_values.shape_value(j, qp));
+          }
+        }
       }
+      cell->get_dof_indices(local_dof_indices);
 
-      solve();
+      for (unsigned i = 0; i < dofs_per_cell; ++i)
+      {
+        m_system_rhs(local_dof_indices[i]) += cell_rhs(i);
+        for (unsigned j = 0; j < dofs_per_cell; ++j)
+        {
+          m_system_matrix.add(local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));
+        }
+      }
+    }
 
-      VectorTools::integrate_difference ( dof_handler, m_solution, ZeroFunction<dim>(), m_error_per_cell, QGauss<dim>(fe.degree+2), VectorTools::L2_norm);
-      err = m_error_per_cell.l2_norm();
+    solve();
+
+    VectorTools::integrate_difference(dof_handler, m_solution, ZeroFunction<dim>(), m_error_per_cell, QGauss<dim>(fe.degree + 2), VectorTools::L2_norm);
+    err = m_error_per_cell.l2_norm();
   }
 
-  template <int dim> 
+  template <int dim>
   void MySolver<dim>::assemble_rhs()
   {
     m_system_rhs = 0;
@@ -343,15 +347,19 @@ namespace BreedSolver_1
         const double Q1 = Potential.value(fe_values.quadrature_point(qp)) + m_gs * (vals[qp] * vals[qp]);
 
         for (unsigned i = 0; i < dofs_per_cell; ++i)
+        {
           cell_rhs(i) +=  JxW * (grads[qp] * fe_values.shape_grad(i, qp) + Q1 * vals[qp] * fe_values.shape_value(i, qp));
+        }
       }
       cell->get_dof_indices(local_dof_indices);
-      for ( unsigned i = 0; i < dofs_per_cell; ++i )
-        m_system_rhs(local_dof_indices[i]) += cell_rhs(i);      
+      for (unsigned i = 0; i < dofs_per_cell; ++i)
+      {
+        m_system_rhs(local_dof_indices[i]) += cell_rhs(i);
+      }
     }
   }
 
-  template <int dim> 
+  template <int dim>
   void MySolver<dim>::assemble_system()
   {
     const QGauss<dim> quadrature_formula(fe.degree + 1);
@@ -378,16 +386,20 @@ namespace BreedSolver_1
 
         for (unsigned i = 0; i < dofs_per_cell; ++i)
           for (unsigned j = 0; j < dofs_per_cell; ++j)
+          {
             cell_matrix(i, j) += JxW * (fe_values.shape_grad(i, qp) * fe_values.shape_grad(j, qp) + fe_values.shape_value(i, qp) * fe_values.shape_value(j, qp));
+          }
       }
-      cell->get_dof_indices (local_dof_indices);
-      for ( unsigned i = 0; i < dofs_per_cell; ++i )
-        for ( unsigned j = 0; j < dofs_per_cell; ++j )
-          m_system_matrix.add (local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));      
+      cell->get_dof_indices(local_dof_indices);
+      for (unsigned i = 0; i < dofs_per_cell; ++i)
+        for (unsigned j = 0; j < dofs_per_cell; ++j)
+        {
+          m_system_matrix.add(local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));
+        }
     }
   }
 
-  template <int dim> 
+  template <int dim>
   void MySolver<dim>::compute_Psi_sob()
   {
     m_system_rhs = 0;
@@ -395,7 +407,7 @@ namespace BreedSolver_1
     CPotential<dim> Potential(m_omega);
     const QGauss<dim> quadrature_formula(fe.degree + 1);
 
-    FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_gradients | update_JxW_values );
+    FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_gradients | update_JxW_values);
 
     const unsigned dofs_per_cell = fe.dofs_per_cell;
     const unsigned n_q_points = quadrature_formula.size();
@@ -403,7 +415,7 @@ namespace BreedSolver_1
     vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
     vector<double> vals(n_q_points);
     Vector<double> cell_rhs(dofs_per_cell);
-    FullMatrix<double> cell_matrix (dofs_per_cell, dofs_per_cell);
+    FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
 
     typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
     for (; cell != endc; ++cell)
@@ -422,22 +434,26 @@ namespace BreedSolver_1
         {
           cell_rhs(i) += JxW * vals[qp] * fe_values.shape_value(i, qp);
           for (unsigned j = 0; j < dofs_per_cell; ++j)
+          {
             cell_matrix(i, j) += JxW * (fe_values.shape_grad(i, qp) * fe_values.shape_grad(j, qp) + fe_values.shape_value(i, qp) * fe_values.shape_value(j, qp));
+          }
         }
       }
-      cell->get_dof_indices (local_dof_indices);
-      for ( unsigned i = 0; i < dofs_per_cell; ++i )
+      cell->get_dof_indices(local_dof_indices);
+      for (unsigned i = 0; i < dofs_per_cell; ++i)
       {
         m_system_rhs(local_dof_indices[i]) += cell_rhs(i);
-        for ( unsigned j = 0; j < dofs_per_cell; ++j )
-          m_system_matrix.add (local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));    
-      } 
+        for (unsigned j = 0; j < dofs_per_cell; ++j)
+        {
+          m_system_matrix.add(local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));
+        }
+      }
     }
     solve();
     m_Psi_sob = m_solution;
   }
 
-  template <int dim> 
+  template <int dim>
   void MySolver<dim>::compute_mu()
   {
     CPotential<dim> Potential(m_omega);
@@ -464,19 +480,19 @@ namespace BreedSolver_1
     }
   }
 
-  template <int dim> 
+  template <int dim>
   void MySolver<dim>::solve()
   {
     map<types::global_dof_index, double> boundary_values;
-    VectorTools::interpolate_boundary_values (dof_handler, 0, ZeroFunction<dim>(), boundary_values);
-    MatrixTools::apply_boundary_values (boundary_values, m_system_matrix, m_solution, m_system_rhs);    
+    VectorTools::interpolate_boundary_values(dof_handler, 0, ZeroFunction<dim>(), boundary_values);
+    MatrixTools::apply_boundary_values(boundary_values, m_system_matrix, m_solution, m_system_rhs);
 
     SparseDirectUMFPACK A_direct;
     A_direct.initialize(m_system_matrix);
     A_direct.vmult(m_solution, m_system_rhs);
   }
 
-  template <int dim> 
+  template <int dim>
   void MySolver<dim>::make_grid()
   {
     Point<dim, double> pt1, pt2;
@@ -484,7 +500,7 @@ namespace BreedSolver_1
     double min[] = {m_xmin, m_ymin};
     double max[] = {m_xmax, m_ymax};
 
-    for ( int i = 0; i < dim; ++i )
+    for (int i = 0; i < dim; ++i)
     {
       pt1(i) = min[i];
       pt2(i) = max[i];
@@ -494,7 +510,7 @@ namespace BreedSolver_1
     triangulation.refine_global(m_global_refinement);
   }
 
-  template <int dim> 
+  template <int dim>
   void MySolver<dim>::setup_system()
   {
     dof_handler.distribute_dofs(fe);
@@ -515,19 +531,19 @@ namespace BreedSolver_1
   }
 
   template <int dim>
-  void MySolver<dim>::output_results( string filename ) 
+  void MySolver<dim>::output_results(string filename)
   {
     DataOut<dim> data_out;
-    data_out.attach_dof_handler (dof_handler);
-    data_out.add_data_vector (m_Psi, "Psi");
-    data_out.add_data_vector (m_error_per_cell, "error_per_cell");
-    data_out.build_patches ();
-    
-    ofstream output (filename.c_str());
-    data_out.write_gnuplot (output);
+    data_out.attach_dof_handler(dof_handler);
+    data_out.add_data_vector(m_Psi, "Psi");
+    data_out.add_data_vector(m_error_per_cell, "error_per_cell");
+    data_out.build_patches();
+
+    ofstream output(filename.c_str());
+    data_out.write_gnuplot(output);
   }
 
-  template <int dim> 
+  template <int dim>
   int MySolver<dim>::DoIter(string path)
   {
     int retval = Status::SUCCESS;
@@ -546,29 +562,31 @@ namespace BreedSolver_1
       assemble_system();
       solve();
       m_sob_grad = m_solution;
-      
+
       compute_Psi_sob();
       Project_gradient();
       m_res = m_sob_grad.l2_norm();
-      
-      m_Psi.add( -0.1, m_sob_grad);
-      
-      // compute_mu(m_mu);
+
+      m_Psi.add(-0.1, m_sob_grad);
+
+      // compute_mu(m_rMu);
       m_N = MyRealTools::Particle_Number(dof_handler, fe, m_Psi);
-      
+
       if (fabs(m_N - 1) > 1e-5)
+      {
         m_Psi *= 1 / sqrt(m_N);
+      }
 
       assemble_rhs();
-        
+
       m_resp = m_res_old - m_res;
       m_res_old = m_res;
 
-      columns &cols = m_table.new_line();
+      columns& cols = m_table.new_line();
       m_table.insert(cols, MyTable::COUNTER, double(m_counter));
       m_table.insert(cols, MyTable::RES, m_res);
       m_table.insert(cols, MyTable::RESP, m_resp);
-      m_table.insert(cols, MyTable::MU, m_mu);
+      m_table.insert(cols, MyTable::MU, m_rMu);
       m_table.insert(cols, MyTable::GS, m_gs);
       m_table.insert(cols, MyTable::PARTICLE_NUMBER, m_N);
 
@@ -586,7 +604,9 @@ namespace BreedSolver_1
     m_N = MyRealTools::Particle_Number(dof_handler, fe, m_Psi);
 
     if (m_N < 1e-5)
+    {
       retval = Status::ZERO_SOL;
+    }
 
     string filename = path + "log.csv";
     m_table.dump_2_file(filename);
@@ -594,7 +614,7 @@ namespace BreedSolver_1
     return retval;
   }
 
-  template <int dim> 
+  template <int dim>
   void MySolver<dim>::run()
   {
     int status;
@@ -627,15 +647,15 @@ namespace BreedSolver_1
     //ofs << m_table;
   }
 
-  template <int dim> 
-  void MySolver<dim>::save(string filename) 
+  template <int dim>
+  void MySolver<dim>::save(string filename)
   {
     ofstream ofs(filename);
     m_Psi.block_write(ofs);
   }
 } // end of namespace
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
   using namespace dealii;
   deallog.depth_console(0);

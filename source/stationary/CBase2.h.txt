@@ -117,7 +117,7 @@ class CBase2
     double m_res_over_resp;
     double m_ti;    
     double m_final_error;
-    double m_mu;
+    double m_rMu;
     double m_dmu;
     double m_N;
     double m_L_halbe;
@@ -365,7 +365,7 @@ void CBase2::dump_info_xml ( const string path )
   locale utf8_locale("en_US.UTF8");
   fs2.imbue(utf8_locale); 
   fs2 << L"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<INFO>\n";
-  fs2 << L"<MU>" << m_mu << L"</MU>\n";
+  fs2 << L"<MU>" << m_rMu << L"</MU>\n";
   fs2 << L"<GS>" << m_gs[0] << L"</GS>\n";
   fs2 << L"<N>" << m_N << "L</N>\n";
   fs2 << L"<XMIN>" << m_xmin << L"</XMIN>\n";

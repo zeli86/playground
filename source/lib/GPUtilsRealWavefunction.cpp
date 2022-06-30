@@ -28,7 +28,7 @@ namespace utils
     std::tuple<double, double, double>
     GP
     (
-      IBaseRealWavefunction<iDim>* pBase,
+      IRealWavefunction<iDim>* pBase,
       const std::vector<double>& vWavefunction,
       const Function<iDim>& oPotential
     )
@@ -64,11 +64,11 @@ namespace utils
 
     template
     std::tuple<double, double, double>
-    GP<1>(IBaseRealWavefunction<1>*, const std::vector<double>&, const Function<1>&);
+    GP<1>(IRealWavefunction<1>*, const std::vector<double>&, const Function<1>&);
 
     template
     std::tuple<double, double, double>
-    GP<2>(IBaseRealWavefunction<2>*, const std::vector<double>&, const Function<2>&);
+    GP<2>(IRealWavefunction<2>*, const std::vector<double>&, const Function<2>&);
 
     /**
      * @brief
@@ -84,7 +84,7 @@ namespace utils
     std::tuple<double, double, double>
     GP
     (
-      IBaseRealWavefunction<iDim>* pBase,
+      IRealWavefunction<iDim>* pBase,
       const LA::MPI::Vector& vWavefunction,
       const Function<iDim>& oPotential,
       MPI_Comm oMpiCommunicator
@@ -127,11 +127,11 @@ namespace utils
 
     template
     std::tuple<double, double, double>
-    GP<2>(IBaseRealWavefunction<2>*, const LA::MPI::Vector&, const Function<2>&, MPI_Comm);
+    GP<2>(IRealWavefunction<2>*, const LA::MPI::Vector&, const Function<2>&, MPI_Comm);
 
     template
     std::tuple<double, double, double>
-    GP<3>(IBaseRealWavefunction<3>*, const LA::MPI::Vector&, const Function<3>&, MPI_Comm);
+    GP<3>(IRealWavefunction<3>*, const LA::MPI::Vector&, const Function<3>&, MPI_Comm);
 
     /**
      * @brief
@@ -146,7 +146,7 @@ namespace utils
     double
     mu
     (
-      IBaseRealWavefunction<iDim>* pBase,
+      IRealWavefunction<iDim>* pBase,
       const LA::MPI::Vector& vWavefunction,
       const Function<iDim>& oPotential
     )
@@ -183,11 +183,11 @@ namespace utils
 
     template
     double
-    mu<1>(IBaseRealWavefunction<1>*, const LA::MPI::Vector&, const Function<1>&);
+    mu<1>(IRealWavefunction<1>*, const LA::MPI::Vector&, const Function<1>&);
 
     template
     double
-    mu<2>(IBaseRealWavefunction<2>*, const LA::MPI::Vector&, const Function<2>&);
+    mu<2>(IRealWavefunction<2>*, const LA::MPI::Vector&, const Function<2>&);
 
 
     /**
@@ -204,7 +204,7 @@ namespace utils
     double
     mu
     (
-      IBaseRealWavefunction<iDim>* pBase,
+      IRealWavefunction<iDim>* pBase,
       const LA::MPI::Vector& vWavefunction,
       const Function<iDim>& oPotential,
       MPI_Comm oMpiCommunicator
@@ -248,11 +248,11 @@ namespace utils
 
     template
     double
-    mu<2>(IBaseRealWavefunction<2>*, const LA::MPI::Vector&, const Function<2>&, MPI_Comm);
+    mu<2>(IRealWavefunction<2>*, const LA::MPI::Vector&, const Function<2>&, MPI_Comm);
 
     template
     double
-    mu<3>(IBaseRealWavefunction<3>*, const LA::MPI::Vector&, const Function<3>&, MPI_Comm);
+    mu<3>(IRealWavefunction<3>*, const LA::MPI::Vector&, const Function<3>&, MPI_Comm);
 
     /**
      * @brief
@@ -268,7 +268,7 @@ namespace utils
     template <int dim>
     SparseMatrix<double> assemble_jacobian
     (
-      IBaseRealWavefunction<dim>* pBase,
+      IRealWavefunction<dim>* pBase,
       const std::vector<double>& vWavefunction,
       const Function<dim>& oPotential,
       const double rMu,
@@ -321,13 +321,13 @@ namespace utils
       return oMatrix;
     }
 
-    template SparseMatrix<double> assemble_jacobian<1>(IBaseRealWavefunction<1>*, const std::vector<double>&, const Function<1>&, const double, const double);
-    template SparseMatrix<double> assemble_jacobian<2>(IBaseRealWavefunction<2>*, const std::vector<double>&, const Function<2>&, const double, const double);
+    template SparseMatrix<double> assemble_jacobian<1>(IRealWavefunction<1>*, const std::vector<double>&, const Function<1>&, const double, const double);
+    template SparseMatrix<double> assemble_jacobian<2>(IRealWavefunction<2>*, const std::vector<double>&, const Function<2>&, const double, const double);
 
     template <int dim>
     void assemble_jacobian
     (
-      IBaseRealWavefunction<dim>* pBase,
+      IRealWavefunction<dim>* pBase,
       const LA::MPI::Vector& vWavefunction,
       const Function<dim>& oPotential,
       LA::MPI::SparseMatrix& oMatrix,
@@ -376,14 +376,14 @@ namespace utils
               }
           }
           cell->get_dof_indices(local_dof_indices);
-          pBase->get_affine_constraints().distribute_local_to_global(cell_matrix, local_dof_indices, oMatrix);
+          pBase->get_constraints().distribute_local_to_global(cell_matrix, local_dof_indices, oMatrix);
         }
       }
       oMatrix.compress(VectorOperation::add);
     }
 
-    template void assemble_jacobian<2>(IBaseRealWavefunction<2>*, const LA::MPI::Vector&, const Function<2>&, LA::MPI::SparseMatrix&, const double, const double);
-    template void assemble_jacobian<3>(IBaseRealWavefunction<3>*, const LA::MPI::Vector&, const Function<3>&, LA::MPI::SparseMatrix&, const double, const double);
+    template void assemble_jacobian<2>(IRealWavefunction<2>*, const LA::MPI::Vector&, const Function<2>&, LA::MPI::SparseMatrix&, const double, const double);
+    template void assemble_jacobian<3>(IRealWavefunction<3>*, const LA::MPI::Vector&, const Function<3>&, LA::MPI::SparseMatrix&, const double, const double);
 
     /**
      * @brief
@@ -400,7 +400,7 @@ namespace utils
     template <int dim>
     double assemble_L2gradient
     (
-      IBaseRealWavefunction<dim>* pBase,
+      IRealWavefunction<dim>* pBase,
       const Vector<double>& vWavefunction,
       const Function<dim>& oPotential,
       const double rMu,
@@ -453,8 +453,8 @@ namespace utils
       return vGradient.l2_norm();
     }
 
-    template double assemble_L2gradient<1>(IBaseRealWavefunction<1>*, const Vector<double>&, const Function<1>&, const double, const double, Vector<double>&);
-    template double assemble_L2gradient<2>(IBaseRealWavefunction<2>*, const Vector<double>&, const Function<2>&, const double, const double, Vector<double>&);
+    template double assemble_L2gradient<1>(IRealWavefunction<1>*, const Vector<double>&, const Function<1>&, const double, const double, Vector<double>&);
+    template double assemble_L2gradient<2>(IRealWavefunction<2>*, const Vector<double>&, const Function<2>&, const double, const double, Vector<double>&);
 
     /**
      * @brief
@@ -471,7 +471,7 @@ namespace utils
     template <int dim>
     double assemble_L2gradient
     (
-      IBaseRealWavefunction<dim>* pBase,
+      IRealWavefunction<dim>* pBase,
       const LA::MPI::Vector& vWavefunction,
       const Function<dim>& oPotential,
       const double rMu,
@@ -521,14 +521,14 @@ namespace utils
             }
           }
           cell->get_dof_indices(local_dof_indices);
-          pBase->get_affine_constraints().distribute_local_to_global(cell_rhs, local_dof_indices, vGradient);
+          pBase->get_constraints().distribute_local_to_global(cell_rhs, local_dof_indices, vGradient);
         }
       }
       vGradient.compress(VectorOperation::add);
       return vGradient.l2_norm();
     }
 
-    template double assemble_L2gradient<2>(IBaseRealWavefunction<2>*, const LA::MPI::Vector&, const Function<2>&, const double, const double, LA::MPI::Vector&);
-    template double assemble_L2gradient<3>(IBaseRealWavefunction<3>*, const LA::MPI::Vector&, const Function<3>&, const double, const double, LA::MPI::Vector&);
+    template double assemble_L2gradient<2>(IRealWavefunction<2>*, const LA::MPI::Vector&, const Function<2>&, const double, const double, LA::MPI::Vector&);
+    template double assemble_L2gradient<3>(IRealWavefunction<3>*, const LA::MPI::Vector&, const Function<3>&, const double, const double, LA::MPI::Vector&);
   }
 }

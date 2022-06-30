@@ -5,9 +5,12 @@ add_library( ${TARGET}
   UtilsRealWavefunction.hpp
   UtilsRealWavefunction.cpp
   GPUtilsRealWavefunction.hpp
-  GPUtilsRealWavefunction.cpp  
+  GPUtilsRealWavefunction.cpp
+  UtilsComplexWavefunction.hpp
+  UtilsComplexWavefunction.cpp
+  GPUtilsComplexWavefunction.hpp
+  GPUtilsComplexWavefunction.cpp
   MyParameterHandler.cpp 
-  MyComplexTools.cpp 
   MyLogging.cpp 
   mmio.c 
 )

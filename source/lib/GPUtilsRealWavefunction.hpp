@@ -23,31 +23,31 @@ namespace utils
     using namespace dealii;
 
     template<int iDim>
-    using IBaseRealWavefunction = IBase<DoFHandler<iDim>, FE_Q<iDim>, AffineConstraints<double>>;
+    using IRealWavefunction = IBase<DoFHandler<iDim>, FE_Q<iDim>, AffineConstraints<double>>;
 
     template<int iDim>
     std::tuple<double, double, double>
-    GP(IBaseRealWavefunction<iDim>*, const std::vector<double>&,  const Function<iDim>&);
+    GP(IRealWavefunction<iDim>*, const std::vector<double>&,  const Function<iDim>&);
 
     template<int iDim>
     std::tuple<double, double, double>
-    GP(IBaseRealWavefunction<iDim>*, const LA::MPI::Vector&,  const Function<iDim>&, MPI_Comm);
+    GP(IRealWavefunction<iDim>*, const LA::MPI::Vector&,  const Function<iDim>&, MPI_Comm);
 
     template<int iDim>
     double
-    mu(IBaseRealWavefunction<iDim>*, const std::vector<double>&,  const Function<iDim>&);
+    mu(IRealWavefunction<iDim>*, const std::vector<double>&,  const Function<iDim>&);
 
     template<int iDim>
     double
-    mu(IBaseRealWavefunction<iDim>*, const LA::MPI::Vector&,  const Function<iDim>&, MPI_Comm);
+    mu(IRealWavefunction<iDim>*, const LA::MPI::Vector&,  const Function<iDim>&, MPI_Comm);
 
     template<int iDim>
     SparseMatrix<double>
-    assemble_jacobian(IBaseRealWavefunction<iDim>*, std::vector<double>&, const Function<iDim>&, const double mu, const double gs);
+    assemble_jacobian(IRealWavefunction<iDim>*, std::vector<double>&, const Function<iDim>&, const double mu, const double gs);
 
     template<int iDim>
     void
-    assemble_jacobian(IBaseRealWavefunction<iDim>*, const LA::MPI::Vector&, const Function<iDim>&, LA::MPI::SparseMatrix&, const double mu, const double gs);
+    assemble_jacobian(IRealWavefunction<iDim>*, const LA::MPI::Vector&, const Function<iDim>&, LA::MPI::SparseMatrix&, const double mu, const double gs);
 
     template<int iDim>
     double

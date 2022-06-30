@@ -15,7 +15,7 @@ namespace utils
     template<int iDim>
     double particle_number
     (
-      IBaseRealWavefunction<iDim>* pBase,
+      IRealWavefunction<iDim>* pBase,
       const std::vector<double>& vWavefunction
     )
     {
@@ -52,7 +52,7 @@ namespace utils
     template<int iDim>
     double particle_number
     (
-      IBaseRealWavefunction<iDim>* pBase,
+      IRealWavefunction<iDim>* pBase,
       const LA::MPI::Vector& vWavefunction,
       MPI_Comm mpi_communicator
     )
@@ -92,7 +92,7 @@ namespace utils
     template<int iDim>
     Point<iDim> expectation_value_position
     (
-      IBaseRealWavefunction<iDim>* pBase,
+      IRealWavefunction<iDim>* pBase,
       const std::vector<double>& vWavefunction
     )
     {
@@ -129,7 +129,7 @@ namespace utils
     template<int iDim>
     Point<iDim> expectation_value_position
     (
-      IBaseRealWavefunction<iDim>* pBase,
+      IRealWavefunction<iDim>* pBase,
       const LA::MPI::Vector& vec,
       MPI_Comm mpi_communicator
     )
@@ -164,13 +164,13 @@ namespace utils
       return Utilities::MPI::sum(retval, mpi_communicator);
     }
 
-    template Point<2> expectation_value_position<2>(IBaseRealWavefunction<2>*, const LA::MPI::Vector&, MPI_Comm);
-    template Point<3> expectation_value_position<3>(IBaseRealWavefunction<3>*, const LA::MPI::Vector&, MPI_Comm);
+    template Point<2> expectation_value_position<2>(IRealWavefunction<2>*, const LA::MPI::Vector&, MPI_Comm);
+    template Point<3> expectation_value_position<3>(IRealWavefunction<3>*, const LA::MPI::Vector&, MPI_Comm);
 
     template<int iDim>
     Point<iDim> expectation_value_width
     (
-      IBaseRealWavefunction<iDim>* pBase,
+      IRealWavefunction<iDim>* pBase,
       const std::vector<double>& vWavefunction,
       const Point<iDim>& pos
     )
@@ -206,13 +206,13 @@ namespace utils
       return retval;
     }
 
-    template Point<1> expectation_value_width<1>(IBaseRealWavefunction<1>*, const std::vector<double>&, const Point<1>&);
-    template Point<2> expectation_value_width<2>(IBaseRealWavefunction<2>*, const std::vector<double>&, const Point<2>&);
+    template Point<1> expectation_value_width<1>(IRealWavefunction<1>*, const std::vector<double>&, const Point<1>&);
+    template Point<2> expectation_value_width<2>(IRealWavefunction<2>*, const std::vector<double>&, const Point<2>&);
 
     template<int iDim>
     Point<iDim> expectation_value_width
     (
-      IBaseRealWavefunction<iDim>* pBase,
+      IRealWavefunction<iDim>* pBase,
       const LA::MPI::Vector& vec,
       const Point<iDim>& pos,
       MPI_Comm mpi_communicator
@@ -252,7 +252,7 @@ namespace utils
       return Utilities::MPI::sum(tmp, mpi_communicator);
     }
 
-    template Point<2> expectation_value_width<2>(IBaseRealWavefunction<2>*, const LA::MPI::Vector&, const Point<2>&, MPI_Comm);
-    template Point<3> expectation_value_width<3>(IBaseRealWavefunction<3>*, const LA::MPI::Vector&, const Point<3>&, MPI_Comm);
+    template Point<2> expectation_value_width<2>(IRealWavefunction<2>*, const LA::MPI::Vector&, const Point<2>&, MPI_Comm);
+    template Point<3> expectation_value_width<3>(IRealWavefunction<3>*, const LA::MPI::Vector&, const Point<3>&, MPI_Comm);
   }
 }
