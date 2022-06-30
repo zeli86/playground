@@ -31,28 +31,27 @@ MyParameterHandler::MyParameterHandler(const std::string& sXMLFilename)
   PopulatePropertyTree(sXMLFilename);
 }
 
-
 void MyParameterHandler::PopulatePropertyTree(const std::string& sXMLFilename)
 {
   boost::property_tree::read_xml(sXMLFilename, m_oPropertyTree);
 }
 
-void MyParameterHandler::GetParameter(const std::string sXMLNodeName, std::vector<double>& vRetval)
+void MyParameterHandler::get(const std::string sXMLNodeName, std::vector<double>& vRetval)
 {
   vRetval = m_oPropertyTree.get<std::vector<double>>(std::string("atus.parameter.") + sXMLNodeName);
 }
 
-void MyParameterHandler::GetParameter(const std::string sXMLNodeName, std::vector<int>& vRetval)
+void MyParameterHandler::get(const std::string sXMLNodeName, std::vector<int>& vRetval)
 {
   vRetval = m_oPropertyTree.get<std::vector<int>>(std::string("atus.parameter.") + sXMLNodeName);
 }
 
-void MyParameterHandler::GetParameter(const std::string sXMLNodeName, double& rRetval)
+void MyParameterHandler::get(const std::string sXMLNodeName, double& rRetval)
 {
   rRetval = m_oPropertyTree.get<double>(std::string("atus.parameter.") + sXMLNodeName);
 }
 
-void MyParameterHandler::GetParameter(const std::string sXMLNodeName, int& iRetval)
+void MyParameterHandler::get(const std::string sXMLNodeName, int& iRetval)
 {
   iRetval = m_oPropertyTree.get<int>(std::string("atus.parameter.") + sXMLNodeName);
 }

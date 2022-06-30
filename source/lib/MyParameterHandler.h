@@ -97,11 +97,10 @@ public:
   explicit MyParameterHandler(const std::string&);
   virtual ~MyParameterHandler() {};
 
-  void GetParameter(const std::string, std::vector<double>&);
-  void GetParameter(const std::string, std::vector<int>&);
-  void GetParameter(const std::string, double&);
-  void GetParameter(const std::string, int&);
-
+  void get(const std::string, std::vector<double>&);
+  void get(const std::string, std::vector<int>&);
+  void get(const std::string, double&);
+  void get(const std::string, int&);
 
   //void Setup_muParser( mu::Parser& );
 protected:
