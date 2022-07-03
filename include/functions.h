@@ -66,7 +66,6 @@ public:
     m_fakz = a[2];
   }
   virtual double value(const Point<dim>& p, const unsigned component = 0) const;
-  virtual Tensor<1, dim> gradient(const Point<2>& p, const unsigned component = 0) const;
 
 private:
   unsigned int m_QNx;
@@ -106,46 +105,6 @@ double CEigenfunctions<dim>::value(const Point<dim>& p, const unsigned) const
 #endif
 #if POTENTIAL==2
     retval = (*EF_AIRY[m_QNx])(m_fakx, p(0)) * (*EF_HO[m_QNy])(m_faky, p(1)) * (*EF_HO[m_QNz])(m_fakz, p(2));
-#endif
-    break;
-  }
-  return retval;
-}
-
-template <int dim>
-Tensor<1, dim> CEigenfunctions<dim>::gradient(const Point<2>& p, const unsigned) const
-{
-  Point<dim> retval;
-  switch (dim)
-  {
-  case 1:
-#if POTENTIAL==1
-    retval[0] = (*EF_HO_DERIV[m_QNx])(m_fakx, p(0));
-#endif
-#if POTENTIAL==2
-    retval[0] = (*EF_AIRY_DERIV[m_QNx])(m_fakx, p(0));
-#endif
-    break;
-  case 2:
-#if POTENTIAL==1
-    retval[0] = (*EF_HO_DERIV[m_QNx])(m_fakx, p(0));
-    retval[1] = (*EF_HO_DERIV[m_QNy])(m_faky, p(1));
-#endif
-#if POTENTIAL==2
-    retval[0] = (*EF_AIRY_DERIV[m_QNx])(m_fakx, p(0));
-    retval[1] = (*EF_HO_DERIV[m_QNy])(m_faky, p(1));
-#endif
-    break;
-  case 3:
-#if POTENTIAL==1
-    retval[0] = (*EF_HO_DERIV[m_QNx])(m_fakx, p(0));
-    retval[1] = (*EF_HO_DERIV[m_QNy])(m_faky, p(1));
-    retval[2] = (*EF_HO_DERIV[m_QNz])(m_fakz, p(2));
-#endif
-#if POTENTIAL==2
-    retval[0] = (*EF_AIRY_DERIV[m_QNx])(m_fakx, p(0));
-    retval[1] = (*EF_HO_DERIV[m_QNy])(m_faky, p(1));
-    retval[2] = (*EF_HO_DERIV[m_QNz])(m_fakz, p(2));
 #endif
     break;
   }
