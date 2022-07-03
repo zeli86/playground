@@ -8,11 +8,13 @@ namespace utils
 {
   namespace complex_wavefunction
   {
-    template <int dim>
+    using namespace dealii;
+
+    template <int iDim>
     double
     particle_number
     (
-      IComplexWavefunction<dim>* pBase,
+      IComplexWavefunction<iDim>* pBase,
       const Vector<double>& vec
     )
     {
@@ -20,15 +22,15 @@ namespace utils
       const auto& dof_handler = pBase->get_dof_handler();
 
       double retval{0};
-      const QGauss<dim> quadrature_formula(fe.degree + 1);
+      const QGauss<iDim> quadrature_formula(fe.degree + 1);
 
-      FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_quadrature_points | update_JxW_values);
+      FEValues<iDim> fe_values(fe, quadrature_formula, update_values | update_quadrature_points | update_JxW_values);
 
       const unsigned n_q_points = quadrature_formula.size();
 
       std::vector<Vector<double>> vals(n_q_points, Vector<double>(2));
 
-      typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
+      typename DoFHandler<iDim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
       for (; cell != endc; ++cell)
       {
         fe_values.reinit(cell);
@@ -44,11 +46,11 @@ namespace utils
     template double particle_number(IComplexWavefunction<1>*, const Vector<double>&);
     template double particle_number(IComplexWavefunction<2>*, const Vector<double>&);
 
-    template <int dim>
+    template <int iDim>
     double
     particle_number
     (
-      IComplexWavefunction<dim>* pBase,
+      IComplexWavefunction<iDim>* pBase,
       const LA::MPI::Vector& vec,
       MPI_Comm mpi_communicator
     )
@@ -58,13 +60,13 @@ namespace utils
       const auto& dof_handler = pBase->get_dof_handler();
       double tmp = 0;
 
-      const QGauss<dim> quadrature_formula(fe.degree + 1);
-      FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_JxW_values);
+      const QGauss<iDim> quadrature_formula(fe.degree + 1);
+      FEValues<iDim> fe_values(fe, quadrature_formula, update_values | update_JxW_values);
 
       const unsigned n_q_points = quadrature_formula.size();
       std::vector<Vector<double>> vec_vals(n_q_points, Vector<double>(2));
 
-      typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
+      typename DoFHandler<iDim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
       for (; cell != endc; ++cell)
       {
         if (cell->is_locally_owned())
@@ -77,25 +79,25 @@ namespace utils
           }
         }
       }
-      return Utilities::MPI::sum(tmp, mpi_communicator);;
+      return Utilities::MPI::sum(tmp, mpi_communicator);
     }
     template double particle_number<2>(IComplexWavefunction<2>*, const LA::MPI::Vector&, MPI_Comm);
     template double particle_number<3>(IComplexWavefunction<3>*, const LA::MPI::Vector&, MPI_Comm);
 
-    template <int dim>
-    Point<dim>
+    template <int iDim>
+    std::array<double, iDim>
     expectation_value_position
     (
-      IComplexWavefunction<dim>* pBase,
+      IComplexWavefunction<iDim>* pBase,
       const Vector<double>& vec
     )
     {
       const auto& fe = pBase->get_fe();
       const auto& dof_handler = pBase->get_dof_handler();
 
-      const QGauss<dim> quadrature_formula(fe.degree + 1);
+      const QGauss<iDim> quadrature_formula(fe.degree + 1);
 
-      FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_quadrature_points | update_JxW_values);
+      FEValues<iDim> fe_values(fe, quadrature_formula, update_values | update_quadrature_points | update_JxW_values);
 
       const unsigned dofs_per_cell = fe.dofs_per_cell;
       const unsigned n_q_points = quadrature_formula.size();
@@ -103,9 +105,9 @@ namespace utils
       std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
       std::vector<Vector<double>> vals(n_q_points, Vector<double>(2));
 
-      Point<dim> retval = {};
+      Point<iDim> oTotalIntegral = {};
 
-      typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
+      typename DoFHandler<iDim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
       for (; cell != endc; ++cell)
       {
         fe_values.reinit(cell);
@@ -113,21 +115,25 @@ namespace utils
 
         for (unsigned qp = 0; qp < n_q_points; ++qp)
         {
-          double JxWxn = fe_values.JxW(qp) * (vals[qp][0] * vals[qp][0] + vals[qp][1] * vals[qp][1]);
-          Point<dim> spacept = fe_values.quadrature_point(qp);
-          retval += JxWxn * spacept;
+          oTotalIntegral += fe_values.JxW(qp) * (vals[qp][0] * vals[qp][0] + vals[qp][1] * vals[qp][1]) * fe_values.quadrature_point(qp);
         }
+      }
+
+      std::array<double, iDim> retval;
+      for (int i = 0; i < iDim; ++i)
+      {
+        retval[i] = oTotalIntegral[i];
       }
       return retval;
     }
-    template Point<1> expectation_value_position(IComplexWavefunction<1>*, const Vector<double>&);
-    template Point<2> expectation_value_position(IComplexWavefunction<2>*, const Vector<double>&);
+    template std::array<double, 1> expectation_value_position<1>(IComplexWavefunction<1>*, const Vector<double>&);
+    template std::array<double, 2> expectation_value_position<2>(IComplexWavefunction<2>*, const Vector<double>&);
 
-    template <int dim>
-    Point<dim>
+    template <int iDim>
+    std::array<double, iDim>
     expectation_value_position
     (
-      IComplexWavefunction<dim>* pBase,
+      IComplexWavefunction<iDim>* pBase,
       const LA::MPI::Vector& vec,
       MPI_Comm mpi_communicator
     )
@@ -136,15 +142,15 @@ namespace utils
       const auto& fe = pBase->get_fe();
       const auto& dof_handler = pBase->get_dof_handler();
 
-      Point<dim> tmp = {};
+      Point<iDim> oLocalIntegral = {};
 
-      const QGauss<dim> quadrature_formula(fe.degree + 1);
-      FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_quadrature_points | update_JxW_values);
+      const QGauss<iDim> quadrature_formula(fe.degree + 1);
+      FEValues<iDim> fe_values(fe, quadrature_formula, update_values | update_quadrature_points | update_JxW_values);
 
       const unsigned n_q_points = quadrature_formula.size();
       std::vector<Vector<double>> vec_vals(n_q_points, Vector<double>(2));
 
-      typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
+      typename DoFHandler<iDim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
       for (; cell != endc; ++cell)
       {
         if (cell->is_locally_owned())
@@ -153,59 +159,62 @@ namespace utils
           fe_values.get_function_values(vec, vec_vals);
           for (unsigned qp = 0; qp < n_q_points; ++qp)
           {
-            const double JxWxn = fe_values.JxW(qp) * (vec_vals[qp][0] * vec_vals[qp][0] + vec_vals[qp][1] * vec_vals[qp][1]);
-            Point<dim> spacept = fe_values.quadrature_point(qp);
-            tmp += JxWxn * spacept;
+            oLocalIntegral += fe_values.JxW(qp) * (vec_vals[qp][0] * vec_vals[qp][0] + vec_vals[qp][1] * vec_vals[qp][1]) * fe_values.quadrature_point(qp);
           }
         }
       }
-      return Utilities::MPI::sum(tmp, mpi_communicator);
+      std::array<double, iDim> oTotalIntegral = {};
+      MPI_Allreduce(oLocalIntegral.begin_raw(), oTotalIntegral.data(), iDim, MPI_DOUBLE, MPI_SUM, mpi_communicator);
+      return oTotalIntegral;
     }
-    template Point<2> expectation_value_position<2>(IComplexWavefunction<2>*, const LA::MPI::Vector&, MPI_Comm);
-    template Point<3> expectation_value_position<3>(IComplexWavefunction<3>*, const LA::MPI::Vector&, MPI_Comm);
+    template std::array<double, 2> expectation_value_position<2>(IComplexWavefunction<2>*, const LA::MPI::Vector&, MPI_Comm);
+    template std::array<double, 3> expectation_value_position<3>(IComplexWavefunction<3>*, const LA::MPI::Vector&, MPI_Comm);
 
-    template <int dim>
-    Point<dim>
-    expectation_value_momentum(IComplexWavefunction<dim>* pBase, const Vector<double>& vec)
+    template <int iDim>
+    std::array<double, iDim>
+    expectation_value_momentum(IComplexWavefunction<iDim>* pBase, const Vector<double>& vec)
     {
       const auto& fe = pBase->get_fe();
       const auto& dof_handler = pBase->get_dof_handler();
 
-      Point<dim >retval = {};
+      Point<iDim> oTotalIntegral = {};
 
-      Point<dim> tmp;
-
-      const QGauss<dim> quadrature_formula(fe.degree + 1);
-      FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_gradients | update_JxW_values);
+      const QGauss<iDim> quadrature_formula(fe.degree + 1);
+      FEValues<iDim> fe_values(fe, quadrature_formula, update_values | update_gradients | update_JxW_values);
 
       const unsigned n_q_points = quadrature_formula.size();
       std::vector<Vector<double>> vec_vals(n_q_points, Vector<double>(2));
-      std::vector<Vector<Tensor<1, dim>>> vec_grads(n_q_points, Vector<Tensor<1, dim>>(2));
+      std::vector<std::vector<Tensor<1, iDim>>> vec_grads(n_q_points, std::vector<Tensor<1, iDim>>(2));
 
-      typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
+      typename DoFHandler<iDim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
       for (; cell != endc; ++cell)
       {
         fe_values.reinit(cell);
         fe_values.get_function_values(vec, vec_vals);
         for (unsigned qp = 0; qp < n_q_points; ++qp)
         {
-          double JxW = fe_values.JxW(qp);
-          for (unsigned i = 0; i < dim; ++i)
+          const double JxW = fe_values.JxW(qp);
+          for (unsigned i = 0; i < iDim; ++i)
           {
-            retval[i] += JxW * (vec_vals[qp][0] * vec_grads[qp][1][i] - vec_vals[qp][1] * vec_grads[qp][0][i]);
+            oTotalIntegral[i] += JxW * (vec_vals[qp][0] * vec_grads[qp][1][i] - vec_vals[qp][1] * vec_grads[qp][0][i]);
           }
         }
       }
+      std::array<double, iDim> retval;
+      for (int i = 0; i < iDim; ++i)
+      {
+        retval[i] = oTotalIntegral[i];
+      }
       return retval;
     }
-    template Point<1> expectation_value_momentum(IComplexWavefunction<1>*, const Vector<double>&);
-    template Point<2> expectation_value_momentum(IComplexWavefunction<2>*, const Vector<double>&);
+    template std::array<double, 1> expectation_value_momentum<1>(IComplexWavefunction<1>*, const Vector<double>&);
+    template std::array<double, 2> expectation_value_momentum<2>(IComplexWavefunction<2>*, const Vector<double>&);
 
-    template <int dim>
-    Point<dim>
+    template <int iDim>
+    std::array<double, iDim>
     expectation_value_momentum
     (
-      IComplexWavefunction<dim>* pBase,
+      IComplexWavefunction<iDim>* pBase,
       const LA::MPI::Vector& vec,
       MPI_Comm mpi_communicator
     )
@@ -215,16 +224,16 @@ namespace utils
 
       assert(vec.has_ghost_elements() == true);
 
-      Point<dim> tmp = {};
+      Point<iDim> oLocalIntegral = {};
 
-      const QGauss<dim> quadrature_formula(fe.degree + 1);
-      FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_gradients | update_JxW_values);
+      const QGauss<iDim> quadrature_formula(fe.degree + 1);
+      FEValues<iDim> fe_values(fe, quadrature_formula, update_values | update_gradients | update_JxW_values);
 
       const unsigned n_q_points = quadrature_formula.size();
       std::vector<Vector<double>> vec_vals(n_q_points, Vector<double>(2));
-      std::vector<Vector<Tensor<1, dim>>> vec_grads(n_q_points, Vector<Tensor<1, dim>>(2));
+      std::vector<std::vector<Tensor<1, iDim>>> vec_grads(n_q_points, std::vector<Tensor<1, iDim>>(2));
 
-      typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
+      typename DoFHandler<iDim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
       for (; cell != endc; ++cell)
       {
         if (cell->is_locally_owned())
@@ -234,24 +243,27 @@ namespace utils
           for (unsigned qp = 0; qp < n_q_points; qp++)
           {
             const double JxW = fe_values.JxW(qp);
-            for (unsigned i = 0; i < dim; ++i)
+            for (unsigned i = 0; i < iDim; ++i)
             {
-              tmp[i] += JxW * (vec_vals[qp][0] * vec_grads[qp][1][i] - vec_vals[qp][1] * vec_grads[qp][0][i]);
+              oLocalIntegral[i] += JxW * (vec_vals[qp][0] * vec_grads[qp][1][i] - vec_vals[qp][1] * vec_grads[qp][0][i]);
             }
           }
         }
       }
-      return Utilities::MPI::sum(tmp, mpi_communicator);
+      std::array<double, iDim> oTotalIntegral = {};
+      MPI_Allreduce(oLocalIntegral.begin_raw(), oTotalIntegral.data(), iDim, MPI_DOUBLE, MPI_SUM, mpi_communicator);
+      return oTotalIntegral;
     }
-    template Point<2> expectation_value_momentum<2>(IComplexWavefunction<2>*, const LA::MPI::Vector&, MPI_Comm);
-    template Point<3> expectation_value_momentum<3>(IComplexWavefunction<3>*, const LA::MPI::Vector&, MPI_Comm);
+    template std::array<double, 2> expectation_value_momentum<2>(IComplexWavefunction<2>*, const LA::MPI::Vector&, MPI_Comm);
+    template std::array<double, 3> expectation_value_momentum<3>(IComplexWavefunction<3>*, const LA::MPI::Vector&, MPI_Comm);
 
-    template <int dim>
-    Point<dim> expectation_value_width
+    template <int iDim>
+    std::array<double, iDim>
+    expectation_value_width
     (
-      IComplexWavefunction<dim>* pBase,
+      IComplexWavefunction<iDim>* pBase,
       const Vector<double>& vec,
-      const Point<dim>& pos
+      const Point<iDim>& pos
     )
     {
       const auto& fe = pBase->get_fe();
@@ -259,15 +271,15 @@ namespace utils
 
       assert(vec.has_ghost_elements() == true);
 
-      Point<dim> tmp = {};
+      Point<iDim> oTotalIntegral = {};
 
-      const QGauss<dim> quadrature_formula(fe.degree + 1);
-      FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_quadrature_points | update_JxW_values);
+      const QGauss<iDim> quadrature_formula(fe.degree + 1);
+      FEValues<iDim> fe_values(fe, quadrature_formula, update_values | update_quadrature_points | update_JxW_values);
 
       const unsigned n_q_points = quadrature_formula.size();
       std::vector<Vector<double>> vec_vals(n_q_points, Vector<double>(2));
 
-      typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
+      typename DoFHandler<iDim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
       for (; cell != endc; ++cell)
       {
         fe_values.reinit(cell);
@@ -275,36 +287,41 @@ namespace utils
         for (unsigned qp = 0; qp < n_q_points; ++qp)
         {
           const double JxWxn = fe_values.JxW(qp) * (vec_vals[qp][0] * vec_vals[qp][0] + vec_vals[qp][1] * vec_vals[qp][1]);
-          Point<dim> spacept = fe_values.quadrature_point(qp);
-          for (unsigned i = 0; i < dim; i++)
+          Point<iDim> spacept = fe_values.quadrature_point(qp);
+          for (unsigned i = 0; i < iDim; i++)
           {
-            tmp[i] += JxWxn * (spacept[i] - pos[i]) * (spacept[i] - pos[i]);
+            oTotalIntegral[i] += JxWxn * (spacept[i] - pos[i]) * (spacept[i] - pos[i]);
           }
         }
       }
-      return tmp;
+      std::array<double, iDim> retval;
+      for (int i = 0; i < iDim; ++i)
+      {
+        retval[i] = oTotalIntegral[i];
+      }
+      return retval;
     }
-    template Point<1> expectation_value_width<1>(IComplexWavefunction<1>*, const Vector<double>&, const Point<1>&);
-    template Point<2> expectation_value_width<2>(IComplexWavefunction<2>*, const Vector<double>&, const Point<2>&);
+    template std::array<double, 1> expectation_value_width<1>(IComplexWavefunction<1>*, const Vector<double>&, const Point<1>&);
+    template std::array<double, 2> expectation_value_width<2>(IComplexWavefunction<2>*, const Vector<double>&, const Point<2>&);
 
-    template <int dim>
-    Point<dim>
-    expectation_value_width(IComplexWavefunction<dim>* pBase, const LA::MPI::Vector& vec, const Point<dim>& pos, MPI_Comm mpi_communicator)
+    template <int iDim>
+    std::array<double, iDim>
+    expectation_value_width(IComplexWavefunction<iDim>* pBase, const LA::MPI::Vector& vec, const Point<iDim>& pos, MPI_Comm mpi_communicator)
     {
       const auto& fe = pBase->get_fe();
       const auto& dof_handler = pBase->get_dof_handler();
 
       assert(vec.has_ghost_elements() == true);
 
-      Point<dim> tmp = {};
+      Point<iDim> oLocalIntegral = {};
 
-      const QGauss<dim> quadrature_formula(fe.degree + 1);
-      FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_quadrature_points | update_JxW_values);
+      const QGauss<iDim> quadrature_formula(fe.degree + 1);
+      FEValues<iDim> fe_values(fe, quadrature_formula, update_values | update_quadrature_points | update_JxW_values);
 
       const unsigned n_q_points = quadrature_formula.size();
       std::vector<Vector<double>> vec_vals(n_q_points, Vector<double>(2));
 
-      typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
+      typename DoFHandler<iDim>::active_cell_iterator cell = dof_handler.begin_active(), endc = dof_handler.end();
       for (; cell != endc; ++cell)
       {
         if (cell->is_locally_owned())
@@ -314,17 +331,19 @@ namespace utils
           for (unsigned qp = 0; qp < n_q_points; ++qp)
           {
             const double JxWxn = fe_values.JxW(qp) * (vec_vals[qp][0] * vec_vals[qp][0] + vec_vals[qp][1] * vec_vals[qp][1]);
-            Point<dim> spacept = fe_values.quadrature_point(qp);
-            for (unsigned i = 0; i < dim; i++)
+            Point<iDim> spacept = fe_values.quadrature_point(qp);
+            for (unsigned i = 0; i < iDim; i++)
             {
-              tmp[i] += JxWxn * (spacept[i] - pos[i]) * (spacept[i] - pos[i]);
+              oLocalIntegral[i] += JxWxn * (spacept[i] - pos[i]) * (spacept[i] - pos[i]);
             }
           }
         }
       }
-      return Utilities::MPI::sum(tmp, mpi_communicator);
+      std::array<double, iDim> oTotalIntegral = {};
+      MPI_Allreduce(oLocalIntegral.begin_raw(), oTotalIntegral.data(), iDim, MPI_DOUBLE, MPI_SUM, mpi_communicator);
+      return oTotalIntegral;
     }
-    template Point<2> expectation_value_width<2>(IComplexWavefunction<2>*, const LA::MPI::Vector&, const Point<2>&, MPI_Comm);
-    template Point<3> expectation_value_width<3>(IComplexWavefunction<3>*, const LA::MPI::Vector&, const Point<3>&, MPI_Comm);
+    template std::array<double, 2> expectation_value_width<2>(IComplexWavefunction<2>*, const LA::MPI::Vector&, const Point<2>&, MPI_Comm);
+    template std::array<double, 3> expectation_value_width<3>(IComplexWavefunction<3>*, const LA::MPI::Vector&, const Point<3>&, MPI_Comm);
   }
 }

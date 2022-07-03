@@ -29,7 +29,7 @@ namespace utils
     GP
     (
       IRealWavefunction<iDim>* pBase,
-      const std::vector<double>& vWavefunction,
+      const Vector<double>& vWavefunction,
       const Function<iDim>& oPotential
     )
     {
@@ -62,13 +62,8 @@ namespace utils
       return std::make_tuple(tmp1[0], tmp1[1], tmp1[2]);
     }
 
-    template
-    std::tuple<double, double, double>
-    GP<1>(IRealWavefunction<1>*, const std::vector<double>&, const Function<1>&);
-
-    template
-    std::tuple<double, double, double>
-    GP<2>(IRealWavefunction<2>*, const std::vector<double>&, const Function<2>&);
+    template std::tuple<double, double, double> GP<1>(IRealWavefunction<1>*, const Vector<double>&, const Function<1>&);
+    template std::tuple<double, double, double> GP<2>(IRealWavefunction<2>*, const Vector<double>&, const Function<2>&);
 
     /**
      * @brief
@@ -121,17 +116,13 @@ namespace utils
           }
         }
       }
-      auto result = Utilities::MPI::sum(tmp1, oMpiCommunicator);
-      return std::make_tuple(result[0], result[1], result[2]);
+
+      MPI_Allreduce(tmp1.begin_raw(), tmp1.begin_raw(), iDim, MPI_DOUBLE, MPI_SUM, oMpiCommunicator);
+      return std::make_tuple(tmp1[0], tmp1[1], tmp1[2]);
     }
 
-    template
-    std::tuple<double, double, double>
-    GP<2>(IRealWavefunction<2>*, const LA::MPI::Vector&, const Function<2>&, MPI_Comm);
-
-    template
-    std::tuple<double, double, double>
-    GP<3>(IRealWavefunction<3>*, const LA::MPI::Vector&, const Function<3>&, MPI_Comm);
+    template std::tuple<double, double, double> GP<2>(IRealWavefunction<2>*, const LA::MPI::Vector&, const Function<2>&, MPI_Comm);
+    template std::tuple<double, double, double> GP<3>(IRealWavefunction<3>*, const LA::MPI::Vector&, const Function<3>&, MPI_Comm);
 
     /**
      * @brief
@@ -181,13 +172,8 @@ namespace utils
       return (tmp[0] / tmp[1]);
     }
 
-    template
-    double
-    mu<1>(IRealWavefunction<1>*, const LA::MPI::Vector&, const Function<1>&);
-
-    template
-    double
-    mu<2>(IRealWavefunction<2>*, const LA::MPI::Vector&, const Function<2>&);
+    template double mu<1>(IRealWavefunction<1>*, const LA::MPI::Vector&, const Function<1>&);
+    template double mu<2>(IRealWavefunction<2>*, const LA::MPI::Vector&, const Function<2>&);
 
 
     /**
@@ -246,13 +232,8 @@ namespace utils
       return (rNom / rDen);
     }
 
-    template
-    double
-    mu<2>(IRealWavefunction<2>*, const LA::MPI::Vector&, const Function<2>&, MPI_Comm);
-
-    template
-    double
-    mu<3>(IRealWavefunction<3>*, const LA::MPI::Vector&, const Function<3>&, MPI_Comm);
+    template double mu<2>(IRealWavefunction<2>*, const LA::MPI::Vector&, const Function<2>&, MPI_Comm);
+    template double mu<3>(IRealWavefunction<3>*, const LA::MPI::Vector&, const Function<3>&, MPI_Comm);
 
     /**
      * @brief
@@ -269,7 +250,7 @@ namespace utils
     SparseMatrix<double> assemble_jacobian
     (
       IRealWavefunction<dim>* pBase,
-      const std::vector<double>& vWavefunction,
+      const Vector<double>& vWavefunction,
       const Function<dim>& oPotential,
       const double rMu,
       const double rG
@@ -321,8 +302,8 @@ namespace utils
       return oMatrix;
     }
 
-    template SparseMatrix<double> assemble_jacobian<1>(IRealWavefunction<1>*, const std::vector<double>&, const Function<1>&, const double, const double);
-    template SparseMatrix<double> assemble_jacobian<2>(IRealWavefunction<2>*, const std::vector<double>&, const Function<2>&, const double, const double);
+    template SparseMatrix<double> assemble_jacobian<1>(IRealWavefunction<1>*, const Vector<double>&, const Function<1>&, const double, const double);
+    template SparseMatrix<double> assemble_jacobian<2>(IRealWavefunction<2>*, const Vector<double>&, const Function<2>&, const double, const double);
 
     template <int dim>
     void assemble_jacobian

@@ -27,7 +27,7 @@ namespace utils
 
     template<int iDim>
     std::tuple<double, double, double>
-    GP(IRealWavefunction<iDim>*, const std::vector<double>&,  const Function<iDim>&);
+    GP(IRealWavefunction<iDim>*, const Vector<double>&,  const Function<iDim>&);
 
     template<int iDim>
     std::tuple<double, double, double>
@@ -35,7 +35,7 @@ namespace utils
 
     template<int iDim>
     double
-    mu(IRealWavefunction<iDim>*, const std::vector<double>&,  const Function<iDim>&);
+    mu(IRealWavefunction<iDim>*, const Vector<double>&,  const Function<iDim>&);
 
     template<int iDim>
     double
@@ -43,7 +43,7 @@ namespace utils
 
     template<int iDim>
     SparseMatrix<double>
-    assemble_jacobian(IRealWavefunction<iDim>*, std::vector<double>&, const Function<iDim>&, const double mu, const double gs);
+    assemble_jacobian(IRealWavefunction<iDim>*, const Vector<double>&, const Function<iDim>&, const double mu, const double gs);
 
     template<int iDim>
     void
@@ -51,10 +51,10 @@ namespace utils
 
     template<int iDim>
     double
-    assemble_L2gradient(const Vector<double>&, const Function<iDim>&, const double, const double, Vector<double>&);
+    assemble_L2gradient(IRealWavefunction<iDim>*, const Vector<double>&, const Function<iDim>&, const double, const double, Vector<double>&);
 
     template<int iDim>
     double
-    assemble_L2gradient(const LA::MPI::Vector&, const Function<iDim>&, const double, const double, LA::MPI::Vector&);
+    assemble_L2gradient(IRealWavefunction<iDim>*, const LA::MPI::Vector&, const Function<iDim>&, const double, const double, LA::MPI::Vector&);
   }
 }

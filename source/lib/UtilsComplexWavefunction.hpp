@@ -29,21 +29,21 @@ namespace utils
     double particle_number(IComplexWavefunction<iDim>*, const LA::MPI::Vector&, MPI_Comm);
 
     template <int iDim>
-    Point<iDim> expectation_value_position(IComplexWavefunction<iDim>*, const Vector<double>&);
+    std::array<double, iDim> expectation_value_position(IComplexWavefunction<iDim>*, const Vector<double>&);
 
     template <int iDim>
-    Point<iDim> expectation_value_position(IComplexWavefunction<iDim>*, const LA::MPI::Vector&, MPI_Comm);
+    std::array<double, iDim> expectation_value_position(IComplexWavefunction<iDim>*, const LA::MPI::Vector&, MPI_Comm);
 
     template <int iDim>
-    Point<iDim> expectation_value_momentum(IComplexWavefunction<iDim>*, const Vector<double>&);
+    std::array<double, iDim> expectation_value_momentum(IComplexWavefunction<iDim>*, const Vector<double>&);
 
     template <int iDim>
-    Point<iDim> expectation_value_momentum(IComplexWavefunction<iDim>*, const LA::MPI::Vector&, MPI_Comm);
+    std::array<double, iDim> expectation_value_momentum(IComplexWavefunction<iDim>*, const LA::MPI::Vector&, MPI_Comm);
 
     template <int iDim>
-    Point<iDim> expectation_value_width(IComplexWavefunction<iDim>*, const Vector<double>&, const Point<iDim>&);
+    std::array<double, iDim> expectation_value_width(IComplexWavefunction<iDim>*, const Vector<double>&, const Point<iDim>&);
 
     template <int iDim>
-    Point<iDim> expectation_value_width(IComplexWavefunction<iDim>*, const LA::MPI::Vector& vec, const Point<iDim>&, MPI_Comm);
+    std::array<double, iDim> expectation_value_width(IComplexWavefunction<iDim>*, const LA::MPI::Vector& vec, const Point<iDim>&, MPI_Comm);
   }
 }
