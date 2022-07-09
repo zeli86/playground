@@ -1,22 +1,3 @@
-//
-// atus-pro testing - atus-pro testing playgroung
-// Copyright (C) 2020 Želimir Marojević <zelimir.marojevic@gmail.com>
-//
-// This file is part of atus-pro testing.
-//
-// atus-pro testing is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// atus-pro testing is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with atus-pro testing.  If not, see <http://www.gnu.org/licenses/>.
-//
 
 #include "default_includes.h"
 
@@ -60,43 +41,11 @@ namespace BreedSolver
 
     void run2b();
 
-    void set_t (const double a, const double b)
-    {
-      m_t[0] = a;
-      m_t[1] = b;
-    };
-
     double m_I[8]; // remove me
 
   protected:
 
     dealii::FE_Q<dim> m_FEQ{gl_degree_fe};
-
-    using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::mpi_communicator;
-    using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_root;
-    using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_rank;
-    using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_t;
-    using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_ti;
-    using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_N;
-    using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_omega;
-    using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_rMu;
-    using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_gs;
-    using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_counter;
-    using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_computing_timer;
-    using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_ph;
-    using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_final_error;
-    using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_NA;
-    using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_Ndmu;
-    using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_dmu;
-    using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_QN1;
-    using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_res;
-    using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_resp;
-    using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_res_old;
-    using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_epsilon;
-    using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_maxiter;
-    using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_total_no_cells;
-    using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_total_no_active_cells;
-    using cBaseMPI<dim, 2, dealii::FE_Q<dim>>::m_global_refinement;
 
     void estimate_error(double&);
 
@@ -132,67 +81,7 @@ namespace BreedSolver
   template <int dim>
   void MySolver<dim>::compute_contributions()
   {
-    TimerOutput::Scope timing_section(m_computing_timer, "compute contributions");
 
-    this->update_workspace();
-
-    CPotential<dim> Potential_fct(m_omega);
-    const QGauss<dim> quadrature_formula(this->m_FE.degree + 1);
-    FEValues<dim> fe_values(this->m_FE, quadrature_formula, update_gradients | update_values | update_JxW_values | update_quadrature_points);
-
-    const unsigned n_q_points = quadrature_formula.size();
-
-    vector<double> Psi_0(n_q_points);
-    vector<double> Psi_1(n_q_points);
-    vector<Tensor<1, dim>> Psi_0_grad(n_q_points);
-    vector<Tensor<1, dim>> Psi_1_grad(n_q_points);
-
-    std::array<double, 8> local_contributions;
-    std::array<double, 8> total_contributions;
-    local_contributions.fill(0);
-    total_contributions.fill(0);
-
-    typename DoFHandler<dim>::active_cell_iterator cell = this->m_DOF_Handler.begin_active(), endc = this->m_DOF_Handler.end();
-    for (; cell != endc; ++cell)
-    {
-      if (cell->is_locally_owned())
-      {
-        fe_values.reinit(cell);
-        fe_values.get_function_values(this->m_Workspace[0], Psi_0);
-        fe_values.get_function_values(this->m_Workspace[1], Psi_1);
-        fe_values.get_function_gradients(this->m_Workspace[0], Psi_0_grad);
-        fe_values.get_function_gradients(this->m_Workspace[1], Psi_1_grad);
-
-        for (unsigned qp = 0; qp < n_q_points; ++qp)
-        {
-          const double JxW = fe_values.JxW(qp);
-          const double p01 = Psi_0[qp] * Psi_1[qp];
-          const double p0q = Psi_0[qp] * Psi_0[qp];
-          const double p1q = Psi_1[qp] * Psi_1[qp];
-          const double Q = Potential_fct.value(fe_values.quadrature_point(qp)) - m_rMu;
-
-          local_contributions[0] += JxW * p0q * p0q;
-          local_contributions[1] += JxW * p1q * p1q;
-          local_contributions[2] += JxW * p0q * p1q;
-          local_contributions[3] += JxW * p0q * p01;
-          local_contributions[4] += JxW * p1q * p01;
-          local_contributions[5] += JxW * (Psi_0_grad[qp] * Psi_0_grad[qp] + Q * p0q);
-          local_contributions[6] += JxW * (Psi_1_grad[qp] * Psi_1_grad[qp] + Q * p1q);
-          local_contributions[7] += JxW * (Psi_0_grad[qp] * Psi_1_grad[qp] + Q * p01);
-        }
-      }
-    }
-
-    MPI_Allreduce(local_contributions.data(), total_contributions.data(), total_contributions.size(), MPI_DOUBLE, MPI_SUM, mpi_communicator);
-
-    this->m_coeffs["t0^2"]      = 0.5 * total_contributions[5];
-    this->m_coeffs["t0_t1"]     = total_contributions[7];
-    this->m_coeffs["t1^2"]      = 0.5 * total_contributions[6];
-    this->m_coeffs["t0^4"]      = 0.25 * m_rG * total_contributions[0];
-    this->m_coeffs["t0^1_t1^3"] = 0.25 * m_rG * 4 * total_contributions[4];
-    this->m_coeffs["t0^2_t1^2"] = 0.25 * m_rG * 6 * total_contributions[2];
-    this->m_coeffs["t0^3_t1^1"] = 0.25 * m_rG * 4 * total_contributions[3];
-    this->m_coeffs["t1^4"]      = 0.25 * m_rG * total_contributions[1];
   }
 
 
@@ -290,22 +179,7 @@ namespace BreedSolver
       //this->output_results(path);
       // }
 
-      // columns& cols = m_table.new_line();
-      // m_table.insert(cols, MyTable::COUNTER, double (m_counter));
-      // m_table.insert(cols, MyTable::RES, m_res);
-      // m_table.insert(cols, MyTable::RESP, m_resp);
-      // m_table.insert(cols, MyTable::STEPSIZE, tau);
-      // m_table.insert(cols, MyTable::MU, m_rMu);
-      // m_table.insert(cols, MyTable::GS, m_gs);
-      // m_table.insert(cols, MyTable::t1, m_t[0]);
-      // m_table.insert(cols, MyTable::t2, m_t[1]);
-      // m_table.insert(cols, MyTable::l2norm_t, this->l2norm_t());
-
       m_counter++;
-      // if (m_root)
-      // {
-      //   cout << m_table;
-      // }
       if (m_res < m_epsilon[0])
       {
         retval = Status::SUCCESS;
@@ -362,18 +236,6 @@ namespace BreedSolver
       {
         this->output_results(path);
       }
-
-      // columns& cols = m_table.new_line();
-      // m_table.insert(cols, MyTable::COUNTER, double (m_counter));
-      // m_table.insert(cols, MyTable::RES, m_res);
-      // m_table.insert(cols, MyTable::RESP, m_resp);
-      // m_table.insert(cols, MyTable::STEPSIZE, tau);
-      // m_table.insert(cols, MyTable::MU, m_rMu);
-      // m_table.insert(cols, MyTable::GS, m_gs);
-      // m_table.insert(cols, MyTable::t1, m_t[0]);
-      // m_table.insert(cols, MyTable::t2, m_t[1]);
-      // m_table.insert(cols, MyTable::l2norm_t, this->l2norm_t());
-      // m_table.insert(cols, MyTable::PARTICLE_NUMBER, m_N);
 
       m_counter++;
 
@@ -452,12 +314,6 @@ namespace BreedSolver
       BOOST_LOG_TRIVIAL(info) << "m_ti = " << m_ti;
 
       status = DoIter(path);
-
-      // columns& cols = m_results.new_line();
-      // m_results.insert(cols, MyTable::MU, m_rMu);
-      // m_results.insert(cols, MyTable::GS, m_gs);
-      // m_results.insert(cols, MyTable::PARTICLE_NUMBER, m_N);
-      // m_results.insert(cols, MyTable::STATUS, double (status));
 
       if (status == Status::SUCCESS)
       {

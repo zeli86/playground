@@ -78,10 +78,16 @@ namespace BreedSolver
   MySolver<dim>::MySolver(const std::string sConfigFile)
     :
     m_oParameters(sConfigFile),
-    m_root(dealii::Utilities::MPI::this_mpi_process(mpi_communicator) == 0),
     m_oTriangulation(mpi_communicator, typename Triangulation<dim>::MeshSmoothing(Triangulation<dim>::limit_level_difference_at_vertices | Triangulation<dim>::eliminate_refined_inner_islands | Triangulation<dim>::smoothing_on_refinement | Triangulation<dim>::smoothing_on_coarsening)),
     m_oDofHandler(m_oTriangulation)
   {
+    m_root = (dealii::Utilities::MPI::this_mpi_process(mpi_communicator) == 0);
+  }
+
+  template <int dim>
+  MySolver<dim>::~MySolver()
+  {
+    m_oDofHandler.clear();
   }
 
   template <int dim>
@@ -227,21 +233,6 @@ namespace BreedSolver
   }
 
   template <int dim>
-  void MySolver<dim>::output_vector(LA::MPI::Vector& vec, string filename)
-  {
-    // TimerOutput::Scope timing_section(m_computing_timer, "");
-
-    // this->m_constraints.distribute(vec);
-    // this->m_Workspace[0] = vec;
-
-    // DataOut<dim> data_out;
-    // data_out.attach_m_oDofHandler(m_oDofHandler);
-    // data_out.add_data_vector(this->m_Workspace[0], "vec");
-    // data_out.build_patches(gl_subdivisions);
-    // data_out.write_vtu_in_parallel(filename.c_str(), mpi_communicator);
-  }
-
-  template <int dim>
   int MySolver<dim>::DoIter(string path)
   {
     using namespace utils::real_wavefunction;
@@ -314,17 +305,6 @@ namespace BreedSolver
       //   this->output_results(path);
       // }
 
-      // columns& cols = m_table.new_line();
-      // m_table.insert(cols, MyTable::COUNTER, double(m_counter));
-      // m_table.insert(cols, MyTable::RES, m_res);
-      // m_table.insert(cols, MyTable::RESP, m_resp);
-      // m_table.insert(cols, MyTable::STEPSIZE, tau);
-      // m_table.insert(cols, MyTable::MU, m_rMu);
-      // m_table.insert(cols, MyTable::GS, m_gs);
-      // m_table.insert(cols, MyTable::t1, m_t[0]);
-      // m_table.insert(cols, MyTable::t2, m_t[1]);
-      // m_table.insert(cols, MyTable::l2norm_t, this->l2norm_t());
-
       m_counter++;
       // if (m_root)
       // {
@@ -386,18 +366,6 @@ namespace BreedSolver
     // {
     //   this->output_results(path);
     // }
-
-    // columns& cols = m_table.new_line();
-    // m_table.insert(cols, MyTable::COUNTER, double(m_counter));
-    // m_table.insert(cols, MyTable::RES, m_res);
-    // m_table.insert(cols, MyTable::RESP, m_resp);
-    // m_table.insert(cols, MyTable::STEPSIZE, tau);
-    // m_table.insert(cols, MyTable::MU, m_rMu);
-    // m_table.insert(cols, MyTable::GS, m_rG);
-    // m_table.insert(cols, MyTable::t1, m_t[0]);
-    // m_table.insert(cols, MyTable::t2, m_t[1]);
-    // m_table.insert(cols, MyTable::l2norm_t, this->l2norm_t());
-    // m_table.insert(cols, MyTable::PARTICLE_NUMBER, m_N);
 
     // m_counter++;
 
@@ -566,8 +534,21 @@ namespace BreedSolver
     return true;
   }
 
+  template <int dim>
+  void MySolver<dim>::output_vector(LA::MPI::Vector& vec, string filename)
+  {
+    // TimerOutput::Scope timing_section(m_computing_timer, "");
+
+    // this->m_constraints.distribute(vec);
+    // this->m_Workspace[0] = vec;
+
+    // DataOut<dim> data_out;
+    // data_out.attach_m_oDofHandler(m_oDofHandler);
+    // data_out.add_data_vector(this->m_Workspace[0], "vec");
+    // data_out.build_patches(gl_subdivisions);
+    // data_out.write_vtu_in_parallel(filename.c_str(), mpi_communicator);
+  }
+
   template class MySolver<2>;
   template class MySolver<3>;
-
 } // end of namespace
-

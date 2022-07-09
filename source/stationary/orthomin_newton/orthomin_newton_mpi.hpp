@@ -16,7 +16,7 @@
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/grid/grid_generator.h>
 
-#include "global.h"
+//#include "global.h"
 #include "functions.h"
 //#include "ref_pt_list.h"
 #include "MyParameterHandler.h"
@@ -34,10 +34,14 @@ namespace BreedSolver
   {
   public:
     explicit MySolver(const std::string);
+    virtual ~MySolver();
 
     void run2b();
 
     double m_I[8];
+
+    std::map<std::string, double> m_coeffs;
+
   protected:
 
     MPI_Comm mpi_communicator;
@@ -75,7 +79,6 @@ namespace BreedSolver
     int m_iTotalNoActiveCells{0};
     int m_iGlobalRefinement{8};
 
-    std::map<std::string, double> m_coeffs;
 
   private:
     dealii::DoFHandler<dim>& get_dof_handler()

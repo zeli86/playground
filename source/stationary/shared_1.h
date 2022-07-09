@@ -1,21 +1,3 @@
-/** atus-pro testing - atus-pro testing playgroung
- * Copyright (C) 2020 Želimir Marojević <zelimir.marojevic@gmail.com>
- *
- * This file is part of atus-pro testing.
- *
- * atus-pro testing is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * atus-pro testing is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with atus-pro testing.  If not, see <http://www.gnu.org/licenses/>.
- */
 
 #pragma once
 
@@ -87,44 +69,5 @@ void MySolver<dim>::estimate_error(double& err)
   VectorTools::integrate_difference(this->m_DOF_Handler,  this->m_Workspace[0], ZeroFunction<dim>(2), this->m_error_per_cell, QGauss<dim>(this->m_FE.degree + 2), VectorTools::L2_norm);
   const double total_local_error = this->m_error_per_cell.l2_norm();
   err = std::sqrt(Utilities::MPI::sum(total_local_error * total_local_error, MPI_COMM_WORLD));
-}
-
-template <int dim>
-bool MySolver<dim>::solve()
-{
-  TimerOutput::Scope timing_section(m_computing_timer, "");
-  BOOST_LOG_TRIVIAL(info) << "Solving..." << endl;
-  /*
-      SolverControl solver_control;
-      PETScWrappers::SparseDirectMUMPS solver(solver_control, mpi_communicator);
-      solver.set_symmetric_mode(false);
-      solver.solve(m_system_matrix, m_newton_update, m_system_rhs);
-      constraints.distribute (m_newton_update);
-  */
-
-  this->m_Search_Direction = 0;
-  SolverControl solver_control(this->m_Search_Direction.size(), m_res * 1e-4);
-  //PETScWrappers::SolverGMRES solver (solver_control, mpi_communicator);
-  PETScWrappers::SolverBicgstab solver(solver_control, mpi_communicator);
-
-  //PETScWrappers::PreconditionBlockJacobi::AdditionalData adata;
-  //PETScWrappers::PreconditionBlockJacobi preconditioner(m_system_matrix,adata);
-
-  PETScWrappers::PreconditionParaSails::AdditionalData adata;
-  PETScWrappers::PreconditionParaSails preconditioner(this->m_System_Matrix, adata);
-
-  try
-  {
-    solver.solve(this->m_System_Matrix, this->m_Search_Direction, this->m_System_RHS, preconditioner);
-  }
-  catch (ExceptionBase& e)
-  {
-    BOOST_LOG_TRIVIAL(error) << e.what() << endl;
-    //pcout << "Possible singular matrix!" << endl;
-    return false;
-  }
-  this->m_constraints.distribute(this->m_Search_Direction);
-
-  return true;
 }
 

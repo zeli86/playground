@@ -184,47 +184,6 @@ cBaseMPI<dim, N, T, bComplex>::cBaseMPI(const std::string& xmlfilename, T& FE)
   m_FE(FE),
   m_DOF_Handler(m_Triangulation)
 {
-  // if constexpr ( std::is_same<T,dealii::FE_Q<dim>>::value )
-  // {
-  //   std::cout << "Hurra!\n";
-  //   m_FE
-  // }
-
-  // try
-  // {
-  m_ph.GetParameter("physics.omega", m_omega);
-  m_ph.GetParameter("physics.gs_1", m_gs);
-
-  m_ph.GetParameter("algorithm.NA", m_NA);
-  m_ph.GetParameter("algorithm.Ndmu", m_Ndmu);
-  m_ph.GetParameter("algorithm.dmu", m_dmu);
-  m_ph.GetParameter("algorithm.epsilon", m_epsilon);
-
-  m_ph.GetParameter("algorithm.ti", m_ti);
-  m_t[0] = m_ti;
-  m_t[1] = m_ti;
-  // }
-  // catch (const std::string& info)
-  // {
-  //   std::cerr << info << endl;
-  //   MPI_Abort(mpi_communicator, 0);
-  // }
-
-  MPI_Comm_rank(mpi_communicator, &m_rank);
-
-  m_counter = 0;
-  m_final_error = 0;
-}
-
-template <int dim, int N, class T, bool bComplex>
-double cBaseMPI<dim, N, T, bComplex>::l2norm_t()
-{
-  double retval = 0;
-  for (int i = 0; i < N; i++)
-  {
-    retval += m_t[i] * m_t[i];
-  }
-  return sqrt(retval);
 }
 
 template <int dim, int N, class T, bool bComplex>
@@ -307,52 +266,6 @@ int cBaseMPI<dim, N, T, bComplex>::find_ortho_min()
   return retval;
 }
 
-
-template <int dim, int N, class T, bool bComplex>
-void cBaseMPI<dim, N, T, bComplex>::setup_system()
-{
-  dealii::TimerOutput::Scope timing_section(m_computing_timer, "");
-
-  m_DOF_Handler.distribute_dofs(m_FE);
-
-  m_locally_owned_dofs = m_DOF_Handler.locally_owned_dofs();
-  dealii::DoFTools::extract_locally_relevant_dofs(m_DOF_Handler, m_locally_relevant_dofs);
-
-  m_Psi_Ref.reinit(m_locally_owned_dofs, m_locally_relevant_dofs, mpi_communicator);
-  m_Search_Direction.reinit(m_locally_owned_dofs, mpi_communicator);
-  m_System_RHS.reinit(m_locally_owned_dofs, mpi_communicator);
-  m_Workspace_NG.reinit(m_locally_owned_dofs, mpi_communicator);
-  m_error_per_cell.reinit(m_Triangulation.n_active_cells());
-
-  for (int i = 0; i < N; ++i)
-  {
-    m_Psi[i].reinit(m_locally_owned_dofs, mpi_communicator);
-    m_Workspace[i].reinit(m_locally_owned_dofs, m_locally_relevant_dofs, mpi_communicator);
-  }
-
-  m_constraints.clear();
-  m_constraints.reinit(m_locally_relevant_dofs);
-  dealii::DoFTools::make_hanging_node_constraints(m_DOF_Handler, m_constraints);
-  dealii::VectorTools::interpolate_boundary_values(m_DOF_Handler, 0, ZeroFunction<dim>(), m_constraints);
-  m_constraints.close();
-
-  dealii::DynamicSparsityPattern csp(m_locally_relevant_dofs);
-  dealii::DoFTools::make_sparsity_pattern(m_DOF_Handler, csp, m_constraints, false);
-  dealii::SparsityTools::distribute_sparsity_pattern(csp, m_DOF_Handler.locally_owned_dofs(), mpi_communicator, m_locally_relevant_dofs);
-  m_System_Matrix.reinit(m_locally_owned_dofs, m_locally_owned_dofs, csp, mpi_communicator);
-}
-
-template <int dim, int N, class T, bool bComplex>
-void cBaseMPI<dim, N, T, bComplex>::do_linear_superposition()
-{
-  m_Psi_Ref = 0;
-
-  for (int i = 0; i < N; i++)
-  {
-    m_Psi_Ref.add(m_t[i], m_Psi[i]);
-  }
-  m_constraints.distribute(m_Psi_Ref);
-}
 
 template <int dim, int N, class T, bool bComplex>
 void cBaseMPI<dim, N, T, bComplex>::update_workspace()

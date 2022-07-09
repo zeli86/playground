@@ -1,7 +1,7 @@
 
 set(TARGET myatus )
 
-add_library( ${TARGET} 
+add_library( ${TARGET} SHARED
   UtilsRealWavefunction.hpp
   UtilsRealWavefunction.cpp
   GPUtilsRealWavefunction.hpp
@@ -15,5 +15,7 @@ add_library( ${TARGET}
   mmio.c 
 )
 
-TARGET_LINK_LIBRARIES( ${TARGET} m gomp Boost::headers Boost::log Boost::log_setup)
+DEAL_II_SETUP_TARGET( ${TARGET} )
+
+TARGET_LINK_LIBRARIES( ${TARGET} m Boost::headers Boost::log Boost::log_setup)
 
