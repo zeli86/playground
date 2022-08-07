@@ -1,6 +1,6 @@
 //
 // atus-pro testing - atus-pro testing playgroung
-// Copyright (C) 2020 Želimir Marojević <zelimir.marojevic@gmail.com>
+// Copyright (C) 2022 Želimir Marojević <zelimir.marojevic@gmail.com>
 //
 // This file is part of atus-pro testing.
 //
@@ -27,7 +27,6 @@
 #include <fstream>
 #include <iostream>
 #include <stdlib.h>
-#include <locale>
 #include <limits>
 #include <cmath>
 #include <array>
@@ -49,69 +48,8 @@ namespace BreedSolver
 
 #include "cBaseMPI.h"
 
-  template <int dim>
-  class MySolver : public cBaseMPI<dim, 2, dealii::FESystem<dim>>
-  {
-  public:
-    explicit MySolver(const std::string);
-    virtual ~MySolver() = default;
-
-    void run2b();
-
-  protected:
-
-    void setup_system();
 
 
-    void compute_contributions();
-
-    int DoIter(string = "");
-
-    void make_grid_custom();
-    void assemble_rhs();
-    void assemble_system();
-    void save_one(string);
-
-    void solve();
-    void compute_E_lin(LA::MPI::Vector&, double&, double&, double&);
-    void estimate_error(double&);
-
-    FESystem<dim> m_FESys;
-
-    using cBaseMPI<dim, 2, dealii::FESystem<dim>>::mpi_communicator;
-    using cBaseMPI<dim, 2, dealii::FESystem<dim>>::m_root;
-    using cBaseMPI<dim, 2, dealii::FESystem<dim>>::m_rank;
-    using cBaseMPI<dim, 2, dealii::FESystem<dim>>::m_t;
-    using cBaseMPI<dim, 2, dealii::FESystem<dim>>::m_ti;
-    using cBaseMPI<dim, 2, dealii::FESystem<dim>>::m_N;
-    using cBaseMPI<dim, 2, dealii::FESystem<dim>>::m_omega;
-    using cBaseMPI<dim, 2, dealii::FESystem<dim>>::m_rMu;
-    using cBaseMPI<dim, 2, dealii::FESystem<dim>>::m_gs;
-    using cBaseMPI<dim, 2, dealii::FESystem<dim>>::m_counter;
-    using cBaseMPI<dim, 2, dealii::FESystem<dim>>::m_computing_timer;
-    using cBaseMPI<dim, 2, dealii::FESystem<dim>>::m_ph;
-    using cBaseMPI<dim, 2, dealii::FESystem<dim>>::m_final_error;
-    using cBaseMPI<dim, 2, dealii::FESystem<dim>>::m_NA;
-    using cBaseMPI<dim, 2, dealii::FESystem<dim>>::m_Ndmu;
-    using cBaseMPI<dim, 2, dealii::FESystem<dim>>::m_dmu;
-    using cBaseMPI<dim, 2, dealii::FESystem<dim>>::m_QN1;
-    using cBaseMPI<dim, 2, dealii::FESystem<dim>>::m_res;
-    using cBaseMPI<dim, 2, dealii::FESystem<dim>>::m_resp;
-    using cBaseMPI<dim, 2, dealii::FESystem<dim>>::m_res_old;
-    using cBaseMPI<dim, 2, dealii::FESystem<dim>>::m_epsilon;
-    using cBaseMPI<dim, 2, dealii::FESystem<dim>>::m_maxiter;
-    using cBaseMPI<dim, 2, dealii::FESystem<dim>>::m_total_no_cells;
-    using cBaseMPI<dim, 2, dealii::FESystem<dim>>::m_total_no_active_cells;
-    using cBaseMPI<dim, 2, dealii::FESystem<dim>>::m_global_refinement;
-    using cBaseMPI<dim, 2, dealii::FESystem<dim>>::m_DOF_Handler;
-
-    string m_guess_str;
-  };
-
-  /*************************************************************************************************/
-  /**
-   * Constructor
-   */
   template <int dim>
   MySolver<dim>::MySolver(const string xmlfilename)
     :
@@ -293,26 +231,20 @@ namespace BreedSolver
   template <int dim>
   void MySolver<dim>::assemble_system()
   {
-    TimerOutput::Scope timing_section(m_computing_timer, "");
-
     const FEValuesExtractors::Scalar rt(0);
     const FEValuesExtractors::Scalar it(1);
 
     CPotential<dim> Potential(m_omega);
     const QGauss<dim> quadrature_formula(this->m_FE.degree + 1);
-    //const QGauss<dim-1> face_quadrature_formula(this->m_FE.degree+1);
 
-    this->m_constraints.distribute(this->m_Psi_Ref);
-    this->m_Workspace[0] = this->m_Psi_Ref;
-    this->m_System_Matrix = 0;
+    m_constraints.distribute(m_Psi_Ref);
+    m_Workspace[0] = m_Psi_Ref;
+    m_System_Matrix = 0;
 
     FEValues<dim> fe_values(this->m_FE, quadrature_formula, update_values | update_gradients | update_JxW_values | update_quadrature_points);
-    //FEFaceValues<dim> fe_face_values ( fe, face_quadrature_formula, update_gradients|update_values|update_quadrature_points|update_normal_vectors|update_JxW_values);
 
-    const unsigned int dofs_per_cell = this->m_FE.dofs_per_cell;
-    const unsigned int n_q_points    = quadrature_formula.size();
-    //const unsigned int n_face_q_points = face_quadrature_formula.size();
-
+    const unsigned dofs_per_cell = m_FE.dofs_per_cell;
+    const unsigned n_q_points    = quadrature_formula.size();
     FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
 
     vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
@@ -346,10 +278,10 @@ namespace BreedSolver
                                           + fe_values[it].gradient(i, qp) * fe_values[it].gradient(j, qp) + (Pot + m_rG * (3 * imq + req)) * fe_values[it].value(i, qp) * fe_values[it].value(j, qp));
         }
         cell->get_dof_indices(local_dof_indices);
-        this->m_constraints.distribute_local_to_global(cell_matrix, local_dof_indices, this->m_System_Matrix);
+        m_constraints.distribute_local_to_global(cell_matrix, local_dof_indices, this->m_System_Matrix);
       }
     }
-    this->m_System_Matrix.compress(VectorOperation::add);
+    m_System_Matrix.compress(VectorOperation::add);
   }
 
 
@@ -459,63 +391,12 @@ namespace BreedSolver
   template <int dim>
   void MySolver<dim>::make_grid_custom()
   {
-    TimerOutput::Scope timing_section(m_computing_timer, "");
-
-    Point<dim, double> pt1;
-    Point<dim, double> pt2;
-
-    std::array<std::vector<double>, 3> aRange{std::vector<double>(2)};
-    m_ph.GetParameter("mesh.xrange", aRange[0]);
-    m_ph.GetParameter("mesh.yrange", aRange[1]);
-    m_ph.GetParameter("mesh.zrange", aRange[2]);
-
-    // for (int i = 0; i < dim; i++)
-    // {
-    //   pt1(i) = min[i];
-    //   pt2(i) = max[i];
-    // }
-
-    CPotential<dim> Potential_fct(m_omega);
-
-    GridGenerator::hyper_rectangle(this->m_Triangulation, pt2, pt1);
-    this->m_Triangulation.refine_global(5);
-
-    double isovalues[] = {15, 13, 11};
-
-    for (unsigned int step = 0; step < sizeof(isovalues) / sizeof(double); step++)
-    {
-      typename parallel::distributed::Triangulation<dim>::active_cell_iterator cell = this->m_Triangulation.begin_active(),
-                                                                               endc = this->m_Triangulation.end();
-      for (; cell != endc; ++cell)
-        for (unsigned int v = 0; v < GeometryInfo<dim>::vertices_per_cell; ++v)
-        {
-          Point<dim> p = cell->vertex(v);
-          if (fabs(Potential_fct.value(p))  < isovalues[step])
-          {
-            cell->set_refine_flag();
-            break;
-          }
-        }
-      this->m_Triangulation.execute_coarsening_and_refinement();
-    }
-
-    unsigned int tmp1[2], tmp2[2];
-    tmp1[0] = this->m_Triangulation.n_cells();
-    tmp1[1] = this->m_Triangulation.n_active_cells();
-
-    MPI_Allreduce(tmp1, tmp2, 2, MPI_UNSIGNED, MPI_SUM, mpi_communicator);
-
-    m_total_no_cells = tmp2[0];
-    m_total_no_active_cells = tmp2[1];
   }
-
 
   template <int dim>
   int MySolver<dim>::DoIter(string path)
   {
     int retval = Status::SUCCESS;
-
-    //m_table.clear();
 
     m_t[0] = m_ti;
     m_t[1] = m_ti;
@@ -550,23 +431,6 @@ namespace BreedSolver
         this->output_results(path);
       }
 
-      // columns& cols = m_table.new_line();
-      // m_table.insert(cols, MyTable::COUNTER, double(m_counter));
-      // m_table.insert(cols, MyTable::RES, m_res);
-      // m_table.insert(cols, MyTable::RESP, m_resp);
-      // m_table.insert(cols, MyTable::MU, m_rMu);
-      // m_table.insert(cols, MyTable::GS, m_rG);
-      // m_table.insert(cols, MyTable::t1, m_t[0]);
-      // m_table.insert(cols, MyTable::t2, m_t[1]);
-      // m_table.insert(cols, MyTable::l2norm_t, this->l2norm_t());
-      // m_table.insert(cols, MyTable::PARTICLE_NUMBER, m_N);
-      // m_table.insert( cols, MyTable::total_no_cells, double(m_total_no_cells) );
-      // m_table.insert( cols, MyTable::total_no_active_cells, double(m_total_no_active_cells) );
-
-      // if (m_root)
-      // {
-      //   cout << m_table;
-      // }
       if (m_res < m_epsilon[0])
       {
         retval = Status::SUCCESS;
@@ -583,53 +447,12 @@ namespace BreedSolver
     while (true);
 
     // Standard Newton
-    do
-    {
-      BOOST_LOG_TRIVIAL(info) << std::string('-', 80);
-      BOOST_LOG_TRIVIAL(info) << "-- " << path << " - " << m_counter << endl;
+    // do
+    // {
+    // }
+    // while (true);
 
-      assemble_system();
-      solve();
-
-      this->m_Psi_Ref.add(-0.1, this->m_Search_Direction);
-      this->m_constraints.distribute(this->m_Psi_Ref);
-
-      assemble_rhs();
-
-      m_resp = m_res_old - m_res;
-      m_res_old = m_res;
-
-      if (m_counter % m_NA == 0)
-      {
-        this->output_results(path);
-      }
-
-      // columns& cols = m_table.new_line();
-      // m_table.insert(cols, MyTable::COUNTER, double(m_counter));
-      // m_table.insert(cols, MyTable::RES, m_res);
-      // m_table.insert(cols, MyTable::RESP, m_resp);
-      // m_table.insert(cols, MyTable::MU, m_rMu);
-      // m_table.insert(cols, MyTable::GS, m_rG);
-      // m_table.insert(cols, MyTable::t1, m_t[0]);
-      // m_table.insert(cols, MyTable::t2, m_t[1]);
-      // m_table.insert(cols, MyTable::l2norm_t, this->l2norm_t());
-      // m_table.insert(cols, MyTable::PARTICLE_NUMBER, m_N);
-
-      // if (m_root)
-      // {
-      //   cout << m_table;
-      // }
-      if (m_res < m_epsilon[1])
-      {
-        retval = Status::SUCCESS;
-        break;
-      }
-
-      m_counter++;
-    }
-    while (true);
-
-    this->do_linear_superposition();
+    do_linear_superposition();
     m_N = MyComplexTools::MPI::Particle_Number<dim>(mpi_communicator, m_DOF_Handler, m_FESys, this->m_Psi_Ref);
 
     if (m_N < 1e-5)
@@ -685,13 +508,6 @@ namespace BreedSolver
 
       status = DoIter(path);
 
-      // columns& cols = m_results.new_line();
-      // m_results.insert(cols, MyTable::MU, m_rMu);
-      // m_results.insert(cols, MyTable::GS, m_rG);
-      // m_results.insert(cols, MyTable::PARTICLE_NUMBER, m_N);
-      // m_results.insert(cols, MyTable::COUNTER, double(m_counter));
-      // m_results.insert(cols, MyTable::STATUS, double(status));
-
       // if (status == Status::SUCCESS)
       // {
       //   estimate_error(m_final_error);
@@ -732,16 +548,3 @@ namespace BreedSolver
     this->m_Triangulation.save(filename.c_str());
   }
 } // end of namespace
-
-int main(int argc, char* argv[])
-{
-  using namespace dealii;
-  deallog.depth_console(0);
-
-  Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv);
-  {
-    BreedSolver::MySolver<2> solver("params.xml");
-    solver.run2b();
-  }
-  return EXIT_SUCCESS;
-}

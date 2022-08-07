@@ -21,12 +21,12 @@
 
 #include <iostream>
 #include <string>
+#include <sstream>
 #include <vector>
 #include <list>
 #include <map>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
-#include <boost/tokenizer.hpp>
 
 namespace mylib
 {
@@ -61,12 +61,12 @@ namespace mylib
       boost::optional<std::string> put_value(const T& b)
       {
         std::stringstream ss;
-        size_t i = 0;
+        int32_t i = 0;
         for (auto v : b)
         {
-          ss << (i++ ? " " : "") << v;
+          ss << (i++ < b.size() ? " " : "") << v;
         }
-        return ss.str();
+        return boost::make_optional(ss.str());
       }
     };
 

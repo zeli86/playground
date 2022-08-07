@@ -95,7 +95,8 @@ namespace utils
     std::array<double, iDim> expectation_value_position
     (
       IRealWavefunction<iDim>* pBase,
-      const Vector<double>& vWavefunction
+      const Vector<double>& vWavefunction,
+      const std::optional<double> oParticleNumber
     )
     {
       Point<iDim> oTotalIntegral = {};
@@ -123,14 +124,36 @@ namespace utils
         }
       }
 
+      double rN = 1;
+      if (oParticleNumber)
+      {
+        rN = oParticleNumber.value();
+      }
+      else
+      {
+        rN = particle_number(pBase, vWavefunction);
+      }
+
       std::array<double, iDim> retval;
       for (int i = 0; i < iDim; ++i)
       {
-        retval[i] = oTotalIntegral[i];
+        retval[i] = oTotalIntegral[i] / rN;
       }
       return retval;
     }
 
+    template std::array<double, 1> expectation_value_position<1>(IBase<DoFHandler<1>, FE_Q<1>, AffineConstraints<double>>*, const Vector<double>&, const std::optional<double>);
+    template std::array<double, 2> expectation_value_position<2>(IBase<DoFHandler<2>, FE_Q<2>, AffineConstraints<double>>*, const Vector<double>&, const std::optional<double>);
+
+    template<int iDim>
+    std::array<double, iDim> expectation_value_position
+    (
+      IRealWavefunction<iDim>* pBase,
+      const Vector<double>& vWavefunction
+    )
+    {
+      return expectation_value_position(pBase, vWavefunction, std::nullopt);
+    }
     template std::array<double, 1> expectation_value_position<1>(IBase<DoFHandler<1>, FE_Q<1>, AffineConstraints<double>>*, const Vector<double>&);
     template std::array<double, 2> expectation_value_position<2>(IBase<DoFHandler<2>, FE_Q<2>, AffineConstraints<double>>*, const Vector<double>&);
 
@@ -139,7 +162,8 @@ namespace utils
     (
       IRealWavefunction<iDim>* pBase,
       const LA::MPI::Vector& vec,
-      MPI_Comm mpi_communicator
+      MPI_Comm mpi_communicator,
+      std::optional<double> oParticleNumber
     )
     {
       assert(vec.has_ghost_elements() == true);
@@ -170,11 +194,38 @@ namespace utils
         }
       }
 
+      double rN = 1;
+      if (oParticleNumber)
+      {
+        rN = oParticleNumber.value();
+      }
+      else
+      {
+        rN = particle_number(pBase, vec, mpi_communicator);
+      }
       std::array<double, iDim> oTotalIntegral;
       MPI_Allreduce(oLocalIntegral.begin_raw(), oTotalIntegral.data(), iDim, MPI_DOUBLE, MPI_SUM, mpi_communicator);
+
+      for (auto& oVal : oTotalIntegral)
+      {
+        oVal /= rN;
+      }
       return oTotalIntegral;
     }
 
+    template std::array<double, 2> expectation_value_position<2>(IRealWavefunction<2>*, const LA::MPI::Vector&, MPI_Comm, const std::optional<double>);
+    template std::array<double, 3> expectation_value_position<3>(IRealWavefunction<3>*, const LA::MPI::Vector&, MPI_Comm, const std::optional<double>);
+
+    template<int iDim>
+    std::array<double, iDim> expectation_value_position
+    (
+      IRealWavefunction<iDim>* pBase,
+      const LA::MPI::Vector& vec,
+      MPI_Comm mpi_communicator
+    )
+    {
+      return expectation_value_position(pBase, vec, mpi_communicator, std::nullopt);
+    }
     template std::array<double, 2> expectation_value_position<2>(IRealWavefunction<2>*, const LA::MPI::Vector&, MPI_Comm);
     template std::array<double, 3> expectation_value_position<3>(IRealWavefunction<3>*, const LA::MPI::Vector&, MPI_Comm);
 
@@ -183,7 +234,8 @@ namespace utils
     (
       IRealWavefunction<iDim>* pBase,
       const Vector<double>& vWavefunction,
-      const Point<iDim>& pos
+      const Point<iDim>& pos,
+      std::optional<double> oParticleNumber
     )
     {
       Point<iDim> oResult = {};
@@ -215,12 +267,36 @@ namespace utils
         }
       }
 
+      double rN = 1;
+      if (oParticleNumber)
+      {
+        rN = oParticleNumber.value();
+      }
+      else
+      {
+        rN = particle_number(pBase, vWavefunction);
+      }
+
       std::array<double, iDim> retval;
       for (int i = 0; i < iDim; ++i)
       {
-        retval[i] = oResult[i];
+        retval[i] = oResult[i] / rN;
       }
       return retval;
+    }
+
+    template std::array<double, 1> expectation_value_width<1>(IRealWavefunction<1>*, const Vector<double>&, const Point<1>&, const std::optional<double>);
+    template std::array<double, 2> expectation_value_width<2>(IRealWavefunction<2>*, const Vector<double>&, const Point<2>&, const std::optional<double>);
+
+    template<int iDim>
+    std::array<double, iDim> expectation_value_width
+    (
+      IRealWavefunction<iDim>* pBase,
+      const Vector<double>& vWavefunction,
+      const Point<iDim>& pos
+    )
+    {
+      return expectation_value_width(pBase, vWavefunction, pos, std::nullopt);
     }
 
     template std::array<double, 1> expectation_value_width<1>(IRealWavefunction<1>*, const Vector<double>&, const Point<1>&);
@@ -232,7 +308,8 @@ namespace utils
       IRealWavefunction<iDim>* pBase,
       const LA::MPI::Vector& vec,
       const Point<iDim>& pos,
-      MPI_Comm mpi_communicator
+      MPI_Comm mpi_communicator,
+      std::optional<double> oParticleNumber
     )
     {
       assert(vec.has_ghost_elements() == true);
@@ -267,9 +344,39 @@ namespace utils
         }
       }
 
+      double rN = 1;
+      if (oParticleNumber)
+      {
+        rN = oParticleNumber.value();
+      }
+      else
+      {
+        rN = particle_number(pBase, vec, mpi_communicator);
+      }
+
       std::array<double, iDim> oTotalIntegral = {};
       MPI_Allreduce(oLocalIntegral.begin_raw(), oTotalIntegral.data(), iDim, MPI_DOUBLE, MPI_SUM, mpi_communicator);
+
+      for (auto& oVal : oTotalIntegral)
+      {
+        oVal /= rN;
+      }
       return oTotalIntegral;
+    }
+
+    template std::array<double, 2> expectation_value_width<2>(IRealWavefunction<2>*, const LA::MPI::Vector&, const Point<2>&, MPI_Comm, const std::optional<double>);
+    template std::array<double, 3> expectation_value_width<3>(IRealWavefunction<3>*, const LA::MPI::Vector&, const Point<3>&, MPI_Comm, const std::optional<double>);
+
+    template<int iDim>
+    std::array<double, iDim> expectation_value_width
+    (
+      IRealWavefunction<iDim>* pBase,
+      const LA::MPI::Vector& vec,
+      const Point<iDim>& pos,
+      MPI_Comm mpi_communicator
+    )
+    {
+      return expectation_value_width(pBase, vec, pos, mpi_communicator);
     }
 
     template std::array<double, 2> expectation_value_width<2>(IRealWavefunction<2>*, const LA::MPI::Vector&, const Point<2>&, MPI_Comm);

@@ -12,7 +12,6 @@ add_library( ${TARGET} SHARED
   GPUtilsComplexWavefunction.cpp
   MyParameterHandler.cpp 
   MyLogging.cpp 
-  mmio.c 
 )
 
 DEAL_II_SETUP_TARGET( ${TARGET} )

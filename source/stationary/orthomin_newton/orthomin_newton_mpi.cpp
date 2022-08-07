@@ -20,6 +20,8 @@
 
 #include "orthomin_newton_mpi.hpp"
 
+#include <deal.II/numerics/vector_tools.h>
+
 #include <nlopt.hpp>
 #include <functional>
 
@@ -70,10 +72,6 @@ namespace BreedSolver
     return retval;
   }
 
-
-  /**
-   * Constructor
-   */
   template <int dim>
   MySolver<dim>::MySolver(const std::string sConfigFile)
     :

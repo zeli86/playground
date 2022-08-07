@@ -1,9 +1,7 @@
 
 #pragma once
 
-//#include "global.h"
 #include "functions.h"
-//#include "ref_pt_list.h"
 #include "MyParameterHandler.h"
 #include "UtilsRealWavefunction.hpp"
 #include "GPUtilsRealWavefunction.hpp"
@@ -23,12 +21,13 @@ namespace BreedSolver_1
     ~MySolver();
 
     void run();
+    std::map<std::string, double> m_coeffs;
 
   private:
 
     dealii::DoFHandler<dim>& get_dof_handler()
     {
-      return m_DOF_Handler;
+      return m_oDofHandler;
     }
 
     dealii::FE_Q<dim>& get_fe()
@@ -47,9 +46,11 @@ namespace BreedSolver_1
     void assemble_rhs();
     int DoIter(string = "");
 
+    void find_ortho_min();
+
     void solve();
     void compute_contributions();
-    void compute_E_lin(Vector<double>&, double&, double&, double&);
+    //void compute_E_lin(Vector<double>&, double&, double&, double&);
     void output_results(string, string = "step");
     void output_guess();
 
@@ -69,8 +70,8 @@ namespace BreedSolver_1
 
     AffineConstraints<double> m_constraints;
 
-    double m_t[2];
-    double m_t_guess[2];
+    double m_t[2] = {1, 1};
+    double m_t_guess[2] = {1, 1};
 
     double m_res{std::numeric_limits<double>::max()};
     double m_ti;
@@ -86,20 +87,20 @@ namespace BreedSolver_1
 
     unsigned m_counter;
     unsigned m_maxiter{500};
-    unsigned m_global_refinement{9};
+    unsigned m_iGlobalRefinement{9};
     unsigned m_total_no_cells;
     unsigned m_total_no_active_cells;
     unsigned m_NA{10};
     unsigned m_Ndmu{10};
     unsigned m_QN1[3];
 
-    MyParameterHandler m_ph;
+    MyParameterHandler m_oParameters;
 
-    aTriangulation m_Triangulation;
-    FE_Q<dim> m_FE;
-    DoFHandler<dim> m_DOF_Handler;
+    aTriangulation m_oTriangulation;
+    FE_Q<dim> m_FE{2};
+    DoFHandler<dim> m_oDofHandler;
 
-    std::map<std::string, double> m_coeffs;
+    IndexSet m_locally_relevant_dofs;
+
   };
-
 }

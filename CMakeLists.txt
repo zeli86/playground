@@ -9,6 +9,10 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 #execute_process(COMMAND sh -c "module list")
 
+# if(NOT EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+# execute_process(COMMAND conan install ${CMAKE_SOURCE_DIR} -pr Linux_x64_gcc11 WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+# endif()
+
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup()
 
@@ -47,17 +51,10 @@ project(atus-playground)
 ### nlopt
 find_package(NLopt REQUIRED)
 
-### doxygen
-find_package(Doxygen)
-
 ### Boost
 set(Boost_VERBOSE ON)
 find_package(Boost REQUIRED COMPONENTS log log_setup program_options filesystem HINTS ${DEAL_II_BOOST_DIR})
 #include_directories( ${DEAL_II_BOOST_INCLUDE_DIRS} )
-
-include(GetGitRevisionDescription)
-get_git_head_revision(GIT_REFSPEC GIT_SHA1)
-add_definitions("-DGIT_SHA1=${GIT_SHA1}")
 
 option( BUILD_3D "3D - in the future this is going to be removed" OFF )
 option( BUILD_HTRAP "3D" OFF )
@@ -71,6 +68,15 @@ set( DIR_INC_2 ${PROJECT_SOURCE_DIR}/source/lib CACHE STRING INTERNAL )
 set( EXECUTABLE_OUTPUT_PATH  ${HOME}/out/bin )
 set( LIBRARY_OUTPUT_PATH  ${HOME}/out/bin/lib )
 #SET( EXECUTABLE_INSTALL_PATH  ${HOME}/bin )
+
+
+### doxygen
+find_package(Doxygen)
+
+find_package(Catch2 3 REQUIRED)
+include(CTest)
+include(Catch)
+
 
 # set include dirs
 include_directories( ${DIR_INC} ${DIR_INC_2} ${NLOPT_INCLUDE_DIR} ${DEAL_II_MUPARSER_INCLUDE_DIRS} ${DEAL_II_GSL_INCLUDE_DIRS} ${DEAL_II_INCLUDE_DIRS} )
@@ -103,6 +109,8 @@ add_subdirectory( source/stationary )
 #add_subdirectory( source/oct )
 #add_subdirectory( source/utils )
 #add_subdirectory( source/edu )
+add_subdirectory( tests/lib )
+
 
 if(BUILD_DOCUMENTATION)
 if(NOT DOXYGEN_FOUND)
@@ -118,7 +126,7 @@ add_custom_target(doc
     VERBATIM)
 endif()
 
-# enable_testing()
+enable_testing()
 # serial progs
 #add_test( NAME CASEGENTEST1 COMMAND ${EXECUTABLE_OUTPUT_PATH}/batch_case_generation_xml --dim 1 -f test1d -N 2 --Ndmu 2)
 #add_test( NAME CASEGENTEST2 COMMAND ${EXECUTABLE_OUTPUT_PATH}/batch_case_generation_xml --dim 2 -f test2d -N 1 --Ndmu 2)

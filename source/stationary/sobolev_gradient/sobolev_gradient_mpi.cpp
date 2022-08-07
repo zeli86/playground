@@ -31,11 +31,11 @@
 
 #include "sobolev_gradient_mpi.hpp"
 
-namespace BreedSolver
+namespace solver::mpi::stationary
 {
 
   template <int dim>
-  MySolver<dim>::MySolver(const std::string& xmlfilename)
+  CSobolevGradient<dim>::CSobolevGradient(const std::string& xmlfilename)
     :
     m_oParameters(xmlfilename),
     mpi_communicator(MPI_COMM_WORLD),
@@ -48,14 +48,14 @@ namespace BreedSolver
 
 
   template <int dim>
-  MySolver<dim>::~MySolver()
+  CSobolevGradient<dim>::~CSobolevGradient()
   {
     m_oDofHandler.clear();
   }
 
 
   template<int dim>
-  void MySolver<dim>::project_gradient()
+  void CSobolevGradient<dim>::project_gradient()
   {
     double tmp1[] = {0, 0}, sum[] = {0, 0};
 
@@ -100,7 +100,7 @@ namespace BreedSolver
 
 
   template <int dim>
-  void MySolver<dim>::assemble_system()
+  void CSobolevGradient<dim>::assemble_system()
   {
     const QGauss<dim> quadrature_formula(m_oFe.degree + 1);
 
@@ -141,7 +141,7 @@ namespace BreedSolver
 
 
   template <int dim>
-  void MySolver<dim>::compute_psi_sobolev()
+  void CSobolevGradient<dim>::compute_psi_sobolev()
   {
     const QGauss<dim> quadrature_formula(m_oFe.degree + 1);
 
@@ -214,7 +214,7 @@ namespace BreedSolver
 
 
   template <int dim>
-  void MySolver<dim>::solve()
+  void CSobolevGradient<dim>::solve()
   {
     BOOST_LOG_TRIVIAL(info) << "Solving..." << endl;
 
@@ -228,7 +228,7 @@ namespace BreedSolver
 
   /*
   template <int dim>
-  void MySolver<dim>::solve ()
+  void CSobolevGradient<dim>::solve ()
   {
     m_sob_grad=0;
     SolverControl solver_control ( m_sob_grad.size(), 1e-15 );
@@ -243,7 +243,7 @@ namespace BreedSolver
   */
 
   template <int dim>
-  void MySolver<dim>::make_grid()
+  void CSobolevGradient<dim>::make_grid()
   {
     Point<dim, double> pt1;
     Point<dim, double> pt2;
@@ -265,7 +265,7 @@ namespace BreedSolver
   }
 
   template <int dim>
-  void MySolver<dim>::setup_system()
+  void CSobolevGradient<dim>::setup_system()
   {
     m_oDofHandler.distribute_dofs(m_oFe);
 
@@ -295,7 +295,7 @@ namespace BreedSolver
 
 
   template <int dim>
-  int MySolver<dim>::DoIter(string path)
+  int CSobolevGradient<dim>::DoIter(string path)
   {
     using namespace utils::real_wavefunction;
 
@@ -333,7 +333,7 @@ namespace BreedSolver
       m_N = particle_number(dynamic_cast<IRealWavefunction<dim>*>(this), m_vWorkspace1, mpi_communicator);
       if (iCounter % m_NA == 0)
       {
-        output_results(path);
+        output_results(path, "step-");
       }
 
       if (m_res < m_rEpsilon)
@@ -346,7 +346,7 @@ namespace BreedSolver
   }
 
   template <int dim>
-  void MySolver<dim>::run()
+  void CSobolevGradient<dim>::run()
   {
     using namespace utils::real_wavefunction;
 
@@ -371,7 +371,7 @@ namespace BreedSolver
 
 
   template <int dim>
-  void MySolver<dim>::output_results(string path, string prefix)
+  void CSobolevGradient<dim>::output_results(string path, string prefix)
   {
     string filename;
 
@@ -389,7 +389,7 @@ namespace BreedSolver
 
 
   template<int dim>
-  void MySolver<dim>::save(string filename)
+  void CSobolevGradient<dim>::save(string filename)
   {
     m_vWorkspace1 = m_vPhi;
     parallel::distributed::SolutionTransfer<dim, LA::MPI::Vector> solution_transfer(m_oDofHandler);
@@ -397,6 +397,6 @@ namespace BreedSolver
     m_oTriangulation.save(filename.c_str());
   }
 
-  template class MySolver<2>;
-  template class MySolver<3>;
+  template class CSobolevGradient<2>;
+  template class CSobolevGradient<3>;
 } // end of namespace

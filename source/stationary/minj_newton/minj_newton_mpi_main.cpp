@@ -1,5 +1,4 @@
 
-#include "sobolev_gradient_mpi.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -8,8 +7,8 @@ int main(int argc, char* argv[])
 
   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv);
   {
-    solver::mpi::stationary::CSobolevGradient<2> solver("params.xml");
-    solver.run();
+    BreedSolver::MySolver<2> solver("params.xml");
+    solver.run2b();
   }
   return EXIT_SUCCESS;
 }

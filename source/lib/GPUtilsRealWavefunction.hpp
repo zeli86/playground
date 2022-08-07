@@ -35,11 +35,11 @@ namespace utils
 
     template<int iDim>
     double
-    mu(IRealWavefunction<iDim>*, const Vector<double>&,  const Function<iDim>&);
+    MU(IRealWavefunction<iDim>*, const Vector<double>&,  const Function<iDim>&);
 
     template<int iDim>
     double
-    mu(IRealWavefunction<iDim>*, const LA::MPI::Vector&,  const Function<iDim>&, MPI_Comm);
+    MU(IRealWavefunction<iDim>*, const LA::MPI::Vector&,  const Function<iDim>&, MPI_Comm);
 
     template<int iDim>
     SparseMatrix<double>

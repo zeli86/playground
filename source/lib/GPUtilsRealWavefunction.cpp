@@ -135,15 +135,13 @@ namespace utils
      */
     template <int iDim>
     double
-    mu
+    MU
     (
       IRealWavefunction<iDim>* pBase,
-      const LA::MPI::Vector& vWavefunction,
+      const Vector<double>& vWavefunction,
       const Function<iDim>& oPotential
     )
     {
-      assert(vWavefunction.has_ghost_elements());
-
       const auto& fe = pBase->get_fe();
       const auto& dof_handler = pBase->get_dof_handler();
 
@@ -172,8 +170,8 @@ namespace utils
       return (tmp[0] / tmp[1]);
     }
 
-    template double mu<1>(IRealWavefunction<1>*, const LA::MPI::Vector&, const Function<1>&);
-    template double mu<2>(IRealWavefunction<2>*, const LA::MPI::Vector&, const Function<2>&);
+    template double MU<1>(IRealWavefunction<1>*, const Vector<double>&, const Function<1>&);
+    template double MU<2>(IRealWavefunction<2>*, const Vector<double>&, const Function<2>&);
 
 
     /**
@@ -188,7 +186,7 @@ namespace utils
      */
     template <int iDim>
     double
-    mu
+    MU
     (
       IRealWavefunction<iDim>* pBase,
       const LA::MPI::Vector& vWavefunction,
@@ -232,8 +230,8 @@ namespace utils
       return (rNom / rDen);
     }
 
-    template double mu<2>(IRealWavefunction<2>*, const LA::MPI::Vector&, const Function<2>&, MPI_Comm);
-    template double mu<3>(IRealWavefunction<3>*, const LA::MPI::Vector&, const Function<3>&, MPI_Comm);
+    template double MU<2>(IRealWavefunction<2>*, const LA::MPI::Vector&, const Function<2>&, MPI_Comm);
+    template double MU<3>(IRealWavefunction<3>*, const LA::MPI::Vector&, const Function<3>&, MPI_Comm);
 
     /**
      * @brief

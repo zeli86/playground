@@ -31,7 +31,6 @@ public:
 
   double l2norm_t();
 
-  virtual void compute_contributions() = 0;
 protected:
   void screening();
 
@@ -58,8 +57,6 @@ protected:
   unsigned m_Ndmu;
 
   unsigned m_QN1[3];
-
-  MyParameterHandler m_ph;
 };
 
 template <int dim, int N>
@@ -129,7 +126,4 @@ void CBase<dim, N>::screening()
     delete [] x;
     nlopt_destroy(opt);
   }
-  m_ref_pt_list_tmp.condense();
 }
-
-#endif

@@ -9,6 +9,7 @@
 #include <deal.II/lac/generic_linear_algebra.h>
 #include <vector>
 #include <array>
+#include <optional>
 
 namespace LA
 {
@@ -26,20 +27,23 @@ namespace utils
 
     template<int iDim>
     double particle_number(IRealWavefunction<iDim>*, const Vector<double>&);
-
     template<int iDim>
     double particle_number(IRealWavefunction<iDim>*, const LA::MPI::Vector&, MPI_Comm);
-
     template<int iDim>
     std::array<double, iDim> expectation_value_position(IRealWavefunction<iDim>*, const Vector<double>&);
-
+    template<int iDim>
+    std::array<double, iDim> expectation_value_position(IRealWavefunction<iDim>*, const Vector<double>&, const std::optional<double>);
     template<int iDim>
     std::array<double, iDim> expectation_value_position(IRealWavefunction<iDim>*, const LA::MPI::Vector&, MPI_Comm);
-
+    template<int iDim>
+    std::array<double, iDim> expectation_value_position(IRealWavefunction<iDim>*, const LA::MPI::Vector&, MPI_Comm, const std::optional<double>);
     template<int iDim>
     std::array<double, iDim> expectation_value_width(IRealWavefunction<iDim>*, const Vector<double>&, const Point<iDim>&);
-
+    template<int iDim>
+    std::array<double, iDim> expectation_value_width(IRealWavefunction<iDim>*, const Vector<double>&, const Point<iDim>&, const std::optional<double>);
     template<int iDim>
     std::array<double, iDim> expectation_value_width(IRealWavefunction<iDim>*, const LA::MPI::Vector&, const Point<iDim>&, MPI_Comm);
+    template<int iDim>
+    std::array<double, iDim> expectation_value_width(IRealWavefunction<iDim>*, const LA::MPI::Vector&, const Point<iDim>&, MPI_Comm, const std::optional<double>);
   }
 }

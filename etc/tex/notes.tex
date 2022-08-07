@@ -3,42 +3,80 @@
 \usepackage{amsmath}
 \usepackage{amsfonts}
 \usepackage{amssymb}
+\usepackage{bbm}
+\usepackage{physics}
+\usepackage{xcolor}
+
+
+
 \author{Želimir Marojević}
+
+\newcommand{\RE}{\ensuremath{\operatorname{Re}}}
+\newcommand{\IM}{\ensuremath{\operatorname{Im}}}
+\newcommand{\Vext}{\ensuremath{\operatorname{V_{ext}}}}
+\newcommand{\iu}{\ensuremath{\mathbbm{i}}}
+
+\newcommand{\fz}{\ensuremath{{\color{blue}t_0}}}
+\newcommand{\fo}{\ensuremath{{\color{red}t_1}}}
+
 \begin{document}
+
+
+%\begin{align}
+%(\grad a + \grad \iu b) (\grad a - \grad \iu b) 
+%&= \grad a \grad a + \grad \iu b \grad a - \grad a \grad \iu b - \grad \iu b \grad \iu b \\
+%&= (\grad a)^2 + (\grad b)^2  
+%\end{align}
+
+%\begin{align}
+%F = \int \frac{1}{2} ((\grad a)^2 + (\grad b)^2)  + \frac{1}{2} (\mu - V) (a^2 + b^2) + \frac{1}{4} \gamma (a^4 + 2 a^2 b^2 + b^4) 
+%\end{align}
+
+%\begin{align}
+%\fdv{F}{a} &= \int \grad a \grad h  + (\mu - V) a h + \gamma (a^3 + a b^2) h \\
+%\fdv{F}{b} &= \int \grad b \grad h  + (\mu - V) b h + \gamma (a^2 b + b^3) h
+%\end{align}
+
+
+%\begin{equation}
+%\mu \phi(x,y,z) = -\laplacian{\phi}(x,y,z) + \Vext(x,y,z) \phi(x,y,z) + \gamma \vert \phi(x,y,z) \vert^2 \phi (x,y,z) 
+%\end{equation}
 
 \section{linear contributions}
 
 \begin{align}
-&\left( t_0 \nabla \bar{u}_0 + t_1 \nabla \bar{u}_1 \right) \left( t_0 \nabla u_0 + t_1 \nabla u_1 \right) = \\
-&t_0^2 \vert u_0 \vert^2 + t_0 t_1 \nabla \bar{u}_0 \nabla u_1  + t_0 t_1 \nabla u_0 \nabla \bar{u}_1 + t_1^2 \vert u_1 \vert^2 = \\
-&t_0^2 \vert u_0 \vert^2 + 2 t_0 t_1 ( \Re(\nabla u_0) \Re(\nabla u_1) + \Im(\nabla u_0) \Im(\nabla u_1) ) + t_1^2 \vert u_1 \vert^2 
+&\left( \fz \grad \bar{u}_0 + \fo \grad \bar{u}_1 \right) \left( \fz \grad u_0 + \fo \grad u_1 \right) = \\
+&\fz^2 \vert \grad u_0 \vert^2 + \fz \fo ( \grad \bar{u}_0 \grad u_1  + \grad u_0 \grad \bar{u}_1 ) + \fo^2 \vert \grad u_1 \vert^2 = \\
+&\fz^2 \vert \grad u_0 \vert^2 + 2 \fz \fo ( \RE(\grad u_0) \RE(\grad u_1) + \IM(\grad u_0) \IM(\grad u_1) ) + \fo^2 \vert \grad u_1 \vert^2 
 \end{align}
 
+\begin{align}
+\fz^2  &: \vert \grad u_0 \vert^2 \\
+\fo\fz &: 2 ( \RE(\grad u_0) \RE(\grad u_1) + \IM(\grad u_0) \IM(\grad u_1) ) \\
+\fo^2  &: \vert \grad u_1 \vert^2
+\end{align}
 
 \section{non linear contributions}
 
 \begin{align}
-&\left( t_0 \bar{u}_0 + t_1 \bar{u}_1 \right)^2 \left( t_0 u_0 + t_1 u_1 \right)^2 = \\
-&\left( t_0 \bar{u}_0 + 2 t_0 t_1 \bar{u}_0 \bar{u}_1 + t_1 \bar{u}_1 \right) \left( t_0 u_0 + 2 t_0 t_1 u_0 u_1 + t_1 u_1 \right)
+&\left( \fz \bar{u}_0 + \fo \bar{u}_1 \right)^2 \left( \fz u_0 + \fo u_1 \right)^2 = \\
+&\left( \fz \bar{u}_0 + 2 \fz \fo \bar{u}_0 \bar{u}_1 + \fo \bar{u}_1 \right) \left( \fz u_0 + 2 \fz \fo u_0 u_1 + \fo u_1 \right)
 \end{align}
 
 \begin{align}
-&t_0^4 \vert u_0 \vert^4 \\
-&2 t_0^3 t_1 \vert u_0 \vert^2 ( \bar{u}_0  u_1 + u_0 \bar{u}_1 ) \\
-&t_0^2 t_1^2 ( \bar{u}_0^2 u_1^2 + u_0^2 \bar{u}_1^2 ) \\
-&4 t_0^2 t_1^2 \vert u_0 \vert^2 \vert u_1 \vert^2 \\
-&2 t_0 t_1^3 \vert u_1 \vert^2 ( \bar{u}_0 u_1 + u_0 \bar{u}_1 ) \\
-&t_0^2 t_1^2 u_0^2 \bar{u_1}^2 \\
-& t_0^4 \vert u_1 \vert^4
+\fz^4 &: \vert u_0 \vert^4 \\
+\fz^3 \fo &: 2 \bar{u}_0^2 u_0 u_1 + 2 \bar{u}_0 \bar{u}_1 u_0^2 \\
+\fz^2 \fo^2 &: \bar{u}_0^2 u_1^2 + 4 \bar{u}_0 \bar{u}_1 u_0 u_1 + u_1^2 \bar{u}_1^2 \\
+\fz \fo^3  &: 2 \bar{u}_1^2 u_0 u_1 + 2 \bar{u}_0 \bar{u}_1 u_1^2 \\
+\fo^4 &: \vert u_1 \vert^4
 \end{align}
 
-\begin{align}
-&t_0^4 \vert u_0 \vert^4 \\
-&4 t_0^3 t_1 \vert u_0 \vert^2 ( \Re(u_0) \Re(u_1) + \Im(u_0) \Im(u_1) ) \\
-&2 t_0^2 t_1^2 ( (\Re(u_0)^2 - \Im(u_0)^2) (\Re(u_1)^2 - \Im(u_1)^2)  + 4 \Re(u_0) \Im(u_0) \Re(u_1)  \Im(u_1) )\\
-&4 t_0^2 t_1^2 \vert u_0 \vert^2 \vert u_1 \vert^2 \\
-&4 t_0 t_1^3 \vert u_1 \vert^2 ( \Re(u_0) \Re(u_1) + \Im(u_0) \Im(u_1) ) \\
-& t_0^4 \vert u_1 \vert^4
-\end{align}
+\begin{equation}
+( \bar{u}_0 u_1 + u_0 \bar{u}_1 ) = 2 \RE(u_0) \RE(u_1) + 2 \IM(u_0) \IM(u_1)
+\end{equation}
+
+\begin{multline}
+( \bar{u}_0^2 u_1^2 + u_0^2 \bar{u}_1^2 ) = 8 \RE(u_0) \RE(u_1) \IM(u_0) \IM(u_1) + \\ 2 (\RE(u_0)^2 - \IM(u_0)^2) (\RE(u_1)^2 - \IM(u_1)^2)
+\end{multline}
 
 \end{document}

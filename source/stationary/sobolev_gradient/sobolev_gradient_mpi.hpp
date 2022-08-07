@@ -5,7 +5,7 @@
 #include "GPUtilsRealWavefunction.hpp"
 #include <limits>
 
-namespace BreedSolver
+namespace solver::mpi::stationary
 {
   using namespace std;
   using namespace dealii;
@@ -13,11 +13,11 @@ namespace BreedSolver
   enum Status { SUCCESS, FAILED, ZERO_SOL, SLOW_CONV };
 
   template <int dim>
-  class MySolver : public utils::real_wavefunction::IRealWavefunction<dim>
+  class CSobolevGradient : public utils::real_wavefunction::IRealWavefunction<dim>
   {
   public:
-    explicit MySolver(const std::string&);
-    virtual ~MySolver();
+    explicit CSobolevGradient(const std::string&);
+    virtual ~CSobolevGradient();
 
     void run();
 
@@ -37,7 +37,7 @@ namespace BreedSolver
       return m_oConstraints;
     }
 
-    int DoIter(string = "");
+    int DoIter(string);
 
     void make_grid();
     void setup_system();
@@ -46,7 +46,7 @@ namespace BreedSolver
     void project_gradient();
     void solve();
     void save(string);
-    void output_results(string, string = "step");
+    void output_results(string, string);
 
   private:
 
