@@ -1,0 +1,119 @@
+sources:
+  "cmake":
+    "3.28.1": 
+      url: "https://github.com/Kitware/CMake/releases/download/v3.28.1/cmake-3.28.1.tar.gz"
+      sha256: "15e94f83e647f7d620a140a7a5da76349fc47a1bfed66d0f5cdee8e7344079ad"
+      strip_root: true
+  "openmpi":
+    "5.0.1":
+      url: "https://download.open-mpi.org/release/open-mpi/v5.0/openmpi-5.0.1.tar.bz2"
+      sha256: "e357043e65fd1b956a47d0dae6156a90cf0e378df759364936c1781f1a25ef80"
+      strip_root: true
+  "catch2":
+    "3.5.2":
+      url: "https://github.com/catchorg/Catch2/archive/refs/tags/v3.5.2.tar.gz"
+      sha256: "269543a49eb76f40b3f93ff231d4c24c27a7e16c90e47d2e45bcc564de470c6e"
+      strip_root: true
+  "hdf5":
+    "1.14.3":
+      url: "https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.14/hdf5-1.14.3/src/hdf5-1.14.3.tar.gz"
+      sha256: "09cdb287aa7a89148c1638dd20891fdbae08102cf433ef128fd345338aa237c7"
+      strip_root: true
+  "vtk":
+    "9.3.0":
+      url: "https://www.vtk.org/files/release/9.3/VTK-9.3.0.tar.gz"
+      sha256: "fdc7b9295225b34e4fdddc49cd06e66e94260cb00efee456e0f66568c9681be9"
+      strip_root: true
+  "gsl":
+    "2.7.1":
+      url: "https://ftp.gnu.org/gnu/gsl/gsl-2.7.1.tar.gz"
+      sha256: "dcb0fbd43048832b757ff9942691a8dd70026d5da0ff85601e52687f6deeb34b"
+      strip_root: true
+  "muparser":
+    "2.3.4":
+      url: "https://github.com/beltoforion/muparser/archive/refs/tags/v2.3.4.tar.gz"
+      sha256: "0c3fa54a3ebf36dda0ed3e7cd5451c964afbb15102bdbcba08aafb359a290121"
+      strip_root: true
+  "nlopt":
+    "2.7.1":
+      url: "https://github.com/stevengj/nlopt/archive/v2.7.1.tar.gz"
+      sha256: "db88232fa5cef0ff6e39943fc63ab6074208831dc0031cf1545f6ecd31ae2a1a"
+      strip_root: true
+  "onetbb":
+    "2021.11.0":
+      url: "https://github.com/oneapi-src/oneTBB/archive/refs/tags/v2021.11.0.tar.gz"
+      sha256: "782ce0cab62df9ea125cdea253a50534862b563f1d85d4cda7ad4e77550ac363"
+      strip_root: true
+  "boost":
+    "1.82.0": 
+      url: "https://boostorg.jfrog.io/artifactory/main/release/1.82.0/source/boost_1_82_0.tar.bz2"
+      sha256: "a6e1ab9b0860e6a2881dd7b21fe9f737a095e5f33a3a874afc6a345228597ee6"
+      strip_root: true
+  "sundials":
+    "6.7.0":
+      url: "https://github.com/LLNL/sundials/releases/download/v6.7.0/sundials-6.7.0.tar.gz"
+      sha256: "5f113a1564a9d2d98ff95249f4871a4c815a05dbb9b8866a82b13ab158c37adb"
+      strip_root: true
+  "lapack":
+    "3.12.0":
+      url: "https://github.com/Reference-LAPACK/lapack/archive/refs/tags/v3.12.0.tar.gz"
+      sha256: "eac9570f8e0ad6f30ce4b963f4f033f0f643e7c3912fc9ee6cd99120675ad48b"
+      strip_root: true
+  "adol-c":
+    "2.7.2":
+      url: "https://github.com/coin-or/ADOL-C/archive/refs/tags/releases/2.7.2.tar.gz"
+      sha256: "701e0856baae91b98397960d5e0a87a549988de9d4002d0e9a56fa08f5455f6e"
+      strip_root: true
+  "p4est":
+    "2.8.5":
+      url: "https://p4est.github.io/release/p4est-2.8.5.5-9ddbb.tar.gz"
+      sha256: "1a1fd146c07b8b4de369d2ac63984533e33e576c89d1f7bab9a15b343a6e403a"
+      strip_root: true
+  "petsc":
+    "3.20.3":
+      url: "https://web.cels.anl.gov/projects/petsc/download/release-snapshots/petsc-3.20.3.tar.gz"
+      sha256: "75a94fb44df0512f51ad093fa784e56b61f51b7ead5956fbe49185c203f8c245"
+      strip_root: true
+  "slepc":
+    "3.20.1":
+      url: "https://slepc.upv.es/download/distrib/slepc-3.20.1.tar.gz"
+      sha256: "5a36b664895881d3858d0644f56bf7bb922bdab70d732fa11cbf6442fec11806"
+      strip_root: true
+  "trilinos":
+    "15.0.0":
+      url: "https://github.com/trilinos/Trilinos/archive/refs/tags/trilinos-release-15-0-0.tar.gz"
+      sha256: "5651f1f967217a807f2c418a73b7e649532824dbf2742fa517951d6cc11518fb"
+      strip_root: true
+  "dealii":
+    "9.5.1":
+      url: "https://github.com/dealii/dealii/archive/refs/tags/v9.5.1.tar.gz"
+      sha256: "a818b535e6488d3aef7853311657c7b4fadc29a9abe91b7b202b131aad630f5e"
+      strip_root: true
+
+tool_requires:
+    - "cmake/3.28.1@atus/stable"
+    - "openmpi/5.0.1@atus/stable"
+
+requires:
+  "adol-c":
+    - "boost/1.82.0@atus/stable"  
+  "petsc":
+    - "lapack/3.12.0@atus/stable"
+  "slepc":
+    - "petsc/3.20.3@atus/stable"
+  "trilinos":
+    - "lapack/3.12.0@atus/stable"
+  "dealii":
+    - "boost/1.82.0@atus/stable"
+    - "gsl/2.7.1@atus/stable"
+    - "muparser/2.3.4@atus/stable"
+    - "onetbb/2021.11.0@atus/stable"
+    - "lapack/3.12.0@atus/stable"
+    - "sundials/6.7.0@atus/stable"
+    - "adol-c/2.7.2@atus/stable"
+    - "p4est/2.8.5@atus/stable"
+    - "petsc/3.20.3@atus/stable"
+    - "slepc/3.20.1@atus/stable"
+    - "trilinos/15.0.0@atus/stable"
+    - "hdf5/1.14.3@atus/stable"
+    - "vtk/9.3.0@atus/stable"

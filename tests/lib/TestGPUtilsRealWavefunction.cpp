@@ -68,45 +68,43 @@ protected:
   dealii::AffineConstraints<double> m_oConstraints;
 };
 
-class CPotential : public dealii::Function<1>
+template<int iDim>
+class CFunction : public dealii::Function<1>
 {
 public:
-  virtual double value(const dealii::Point<1>& p, const unsigned int = 0) const
+  CFunction(std::function<double(const dealii::Point<iDim>&)> fct) : m_fct(fct)
   {
-    return 0.25 * p(0) * p(0);
   }
-} oPotential1d;
-
-// class CPotential : public dealii::Function<2>
-// {
-// public:
-//   virtual double value(const dealii::Point<2>& p, const unsigned int = 0) const
-//   {
-//     return 0.25 * (p(0) * p(0) + p(1) * p(1));
-//   }
-// } oPotential2d;
-
+  virtual double value(const dealii::Point<iDim>& p, const unsigned int = 0) const
+  {
+    return m_fct(p);
+  }
+private:
+  std::function < double(const dealii::Point<iDim>&)> m_fct;
+};
 
 TEST_CASE("GP", "[widget]")
 {
   using namespace  utils::real_wavefunction;
 
+  CFunction<1> oTestFunction1([](const dealii::Point<1>& p)
+  {
+    return (0.751125544464943 * exp(-0.5 * p(0) * p(0)));
+  });
+
+  CFunction<1> oPotential1([](const dealii::Point<1>& p)
+  {
+    return 0.25 * p(0) * p(0);
+  });
+
   SECTION("pi^{-1/4}*exp(-0.5*x^2)")
   {
-    class CTestFunction : public dealii::Function<1>
-    {
-    public:
-      virtual double value(const dealii::Point<1>& p, const unsigned int = 0) const
-      {
-        return 0.751125544464943 * exp(-0.5 * p(0) * p(0));
-      }
-    } oFunction;
 
     CMock<1> oMock;
     dealii::Vector<double> vPhi;
     vPhi.reinit(oMock.get_dof_handler().n_dofs());
-    dealii::VectorTools::interpolate(oMock.get_dof_handler(), oFunction, vPhi);
-    const auto tpContributions = GP(dynamic_cast<IRealWavefunction<1>*>(&oMock), vPhi, oPotential1d);
+    dealii::VectorTools::interpolate(oMock.get_dof_handler(), oTestFunction1, vPhi);
+    const auto tpContributions = GP(dynamic_cast<IRealWavefunction<1>*>(&oMock), vPhi, oPotential1);
 
     INFO("Ekin = " << std::setprecision(15) << std::get<0>(tpContributions));
     INFO("Epot = " << std::setprecision(15) << std::get<1>(tpContributions));
@@ -121,24 +119,55 @@ TEST_CASE("mu", "[widget]")
 {
   using namespace  utils::real_wavefunction;
 
+  CFunction<1> oTestFunction1([](const dealii::Point<1>& p)
+  {
+    return (0.751125544464943 * exp(-0.5 * p(0) * p(0)));
+  });
+
+  CFunction<1> oPotential1([](const dealii::Point<1>& p)
+  {
+    return 0.25 * p(0) * p(0);
+  });
+
   SECTION("pi^{-1/4}*exp(-0.5*x^2)")
   {
-    class CTestFunction : public dealii::Function<1>
-    {
-    public:
-      virtual double value(const dealii::Point<1>& p, const unsigned int = 0) const
-      {
-        return 0.751125544464943 * exp(-0.5 * p(0) * p(0));
-      }
-    } oFunction;
-
     CMock<1> oMock;
     dealii::Vector<double> vPhi;
     vPhi.reinit(oMock.get_dof_handler().n_dofs());
-    dealii::VectorTools::interpolate(oMock.get_dof_handler(), oFunction, vPhi);
-    const auto rMu = MU(dynamic_cast<IRealWavefunction<1>*>(&oMock), vPhi, oPotential1d);
+    dealii::VectorTools::interpolate(oMock.get_dof_handler(), oTestFunction1, vPhi);
+    const auto rMu = MU(dynamic_cast<IRealWavefunction<1>*>(&oMock), vPhi, oPotential1);
 
     INFO("mu = " << std::setprecision(15) << rMu);
     CHECK(Catch::Matchers::WithinAbs(1, 1e-8).match(rMu));
+  }
+}
+
+TEST_CASE("mu2", "[widget]")
+{
+  using namespace  utils::real_wavefunction;
+
+  CFunction<1> oTestFunction1([](const dealii::Point<1>& p)
+  {
+    return (0.751125544464943 * exp(-0.5 * p(0) * p(0)));
+  });
+
+  CFunction<1> oPotential1([](const dealii::Point<1>& p)
+  {
+    return 0.25 * p(0) * p(0);
+  });
+
+  SECTION("pi^{-1/4}*exp(-0.5*x^2)")
+  {
+    CMock<1> oMock;
+    dealii::Vector<double> vPhi, vL2gradient, vExpextedResult;
+    vPhi.reinit(oMock.get_dof_handler().n_dofs());
+    vL2gradient.reinit(oMock.get_dof_handler().n_dofs());
+    dealii::VectorTools::interpolate(oMock.get_dof_handler(), oTestFunction1, vPhi);
+    const auto pMock = dynamic_cast<IRealWavefunction<1>*>(&oMock);
+
+    assemble_L2gradient(pMock, vPhi, oPotential1, 1, 1, vL2gradient);
+
+    //INFO("mu = " << std::setprecision(15) << rMu);
+    //CHECK(Catch::Matchers::WithinAbs(1, 1e-8).match(rMu));
   }
 }

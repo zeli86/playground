@@ -48,6 +48,9 @@ message("${DEAL_II_FEATURE_CONFIG}")
 
 project(atus-playground)
 
+#enable_testing()
+include(CTest)
+
 ### nlopt
 find_package(NLopt REQUIRED)
 
@@ -65,8 +68,8 @@ set( HOME $ENV{HOME} CACHE STRING INTERNAL )
 set( DIR_INC ${PROJECT_SOURCE_DIR}/include CACHE STRING INTERNAL )
 set( DIR_INC_2 ${PROJECT_SOURCE_DIR}/source/lib CACHE STRING INTERNAL )
 
-set( EXECUTABLE_OUTPUT_PATH  ${HOME}/out/bin )
-set( LIBRARY_OUTPUT_PATH  ${HOME}/out/bin/lib )
+# set( EXECUTABLE_OUTPUT_PATH  ${HOME}/out/bin )
+# set( LIBRARY_OUTPUT_PATH  ${HOME}/out/bin/lib )
 #SET( EXECUTABLE_INSTALL_PATH  ${HOME}/bin )
 
 
@@ -76,6 +79,8 @@ find_package(Doxygen)
 find_package(Catch2 3 REQUIRED)
 include(CTest)
 include(Catch)
+find_package(GTest REQUIRED)
+
 
 
 # set include dirs
@@ -126,19 +131,7 @@ add_custom_target(doc
     VERBATIM)
 endif()
 
-enable_testing()
 # serial progs
-#add_test( NAME CASEGENTEST1 COMMAND ${EXECUTABLE_OUTPUT_PATH}/batch_case_generation_xml --dim 1 -f test1d -N 2 --Ndmu 2)
-#add_test( NAME CASEGENTEST2 COMMAND ${EXECUTABLE_OUTPUT_PATH}/batch_case_generation_xml --dim 2 -f test2d -N 1 --Ndmu 2)
-#add_test( NAME BREED1_0 COMMAND ${EXECUTABLE_OUTPUT_PATH}/breed_1 WORKING_DIRECTORY ${CMAKE_CACHEFILE_DIR}/test1d/0/)
-#add_test( NAME BREED1_1 COMMAND ${EXECUTABLE_OUTPUT_PATH}/breed_1 WORKING_DIRECTORY ${CMAKE_CACHEFILE_DIR}/test1d/1/)
-#add_test( NAME BREEDSOB1_0 COMMAND ${EXECUTABLE_OUTPUT_PATH}/breed_sob_1 WORKING_DIRECTORY ${CMAKE_CACHEFILE_DIR}/test1d/0/0001)
-
-#execute_process(COMMAND sh -c "mkdir -p rt_prop_1_demo")
-#execute_process(COMMAND sh -c "cp ${CMAKE_CURRENT_SOURCE_DIR}/xml/rt_prop_1_demo.xml ${CMAKE_CACHEFILE_DIR}/rt_prop_1_demo/")
-#add_test( NAME RTPROP0 COMMAND ${EXECUTABLE_OUTPUT_PATH}/gen_Psi_1 -p rt_prop_1_demo.xml WORKING_DIRECTORY ${CMAKE_CACHEFILE_DIR}/rt_prop_1_demo)
-#add_test( NAME RTPROP1 COMMAND ${EXECUTABLE_OUTPUT_PATH}/rt_prop -p rt_prop_1_demo.xml -i Psi0.1d.bin WORKING_DIRECTORY ${CMAKE_CACHEFILE_DIR}/rt_prop_1_demo)
-
 #execute_process(COMMAND sh -c "mkdir -p rt_prop_2_demo")
 #execute_process(COMMAND sh -c "cp ${CMAKE_CURRENT_SOURCE_DIR}/xml/rt_prop_1_demo.xml ${CMAKE_CACHEFILE_DIR}/rt_prop_2_demo/")
 #add_test( NAME RTPROP2 COMMAND ${EXECUTABLE_OUTPUT_PATH}/gen_Psi_1 -p rt_prop_1_demo.xml WORKING_DIRECTORY ${CMAKE_CACHEFILE_DIR}/rt_prop_2_demo)

@@ -1,16 +1,4 @@
 
-## HDF5 ##
-
-wget https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.10/hdf5-1.10.0-patch1/src/hdf5-1.10.0-patch1.tar.gz
-tar xfvz hdf5-1.10.0-patch1.tar.gz
-cd hdf5-1.10.0-patch1
-mdkir build
-cd build
-cmake -DHDF5_BUILD_CPP_LIB=OFF -DHDF5_ENABLE_PARALLEL=ON -DCMAKE_INSTALL_PREFIX=/opt/hdf5-1.10 ..
-or cmake -DHDF5_BUILD_TOOLS=ON -DHDF5_BUILD_CPP_LIB=OFF -DHDF5_ENABLE_PARALLEL=ON -DCMAKE_INSTALL_PREFIX=/opt/hdf5-1.10 ..
-make 
-make install
-
 ## ARPACK-NG ##
 
 git clone https://github.com/opencollab/arpack-ng.git

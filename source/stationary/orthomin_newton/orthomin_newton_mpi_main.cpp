@@ -7,7 +7,7 @@ int main(int argc, char* argv[])
   deallog.depth_console(0);
 
   MyParameterHandler params("params.xml");
-  int dim = 0;
+  int                dim = 0;
 
   try
   {
@@ -26,20 +26,20 @@ int main(int argc, char* argv[])
   {
     switch (dim)
     {
-    case 2:
-    {
-      BreedSolver::MySolver<2> solver("params.xml");
-      solver.run2b();
-      break;
-    }
-    case 3:
-    {
-      BreedSolver::MySolver<3> solver("params.xml");
-      solver.run2b();
-      break;
-    }
-    default:
-      std::cout << "You have found a new dimension!" << std::endl;
+      case 2:
+      {
+        BreedSolver::MySolver<2> solver("params.xml");
+        solver.run2b();
+        break;
+      }
+      case 3:
+      {
+        BreedSolver::MySolver<3> solver("params.xml");
+        solver.run2b();
+        break;
+      }
+      default:
+        std::cout << "You have found a new dimension!" << std::endl;
     }
   }
   return EXIT_SUCCESS;
