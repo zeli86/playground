@@ -7,7 +7,7 @@ sources:
   "openmpi":
     "5.0.5":
       url: "https://download.open-mpi.org/release/open-mpi/v5.0/openmpi-5.0.5.tar.bz2"
-      sha256: "5cbefa0780b84f4126743c40cdd6a334b2f0574cd7fd95050fb1ac0ddbb7f0b8"
+      sha256: "6588d57c0a4bd299a24103f4e196051b29e8b55fbda49e11d5b3d32030a32776"
       strip_root: true
   "catch2":
     "3.5.2":
