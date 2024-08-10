@@ -29,7 +29,7 @@ required_conan_version = ">=2.0"
 
 class cmake_recipe(ConanFile):
     name = "cmake"
-    version = "3.28.1"
+    version = "3.30.2"
     user = "atus"
     channel = "stable"
     homepage = "https://cmake.org/"

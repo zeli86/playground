@@ -29,9 +29,9 @@ required_conan_version = ">=2.0"
 
 class dealii_recipe(ConanFile):
     name = "dealii"
-    version = "9.5.1"
-    default_user = "atus"
-    default_channel = "stable"
+    version = "9.5.2"
+    user = "atus"
+    channel = "stable"
     settings = "os", "compiler", "build_type", "arch"
     no_copy_source = True
     options = {
@@ -139,9 +139,12 @@ class dealii_recipe(ConanFile):
     def build(self):
         cmake = CMake(self)
         cmake.configure()
-        cmake.build(build_tool_args=["-j1"])
+        cmake.build()
 
     def package(self):
         cmake = CMake(self)
         cmake.install()
 
+    def package_info(self):
+        self.cpp_info.set_property("cmake_find_mode", "none")
+        self.cpp_info.builddirs.append(os.path.join("lib", "cmake", "deal.II"))

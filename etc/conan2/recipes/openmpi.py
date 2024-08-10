@@ -30,7 +30,7 @@ required_conan_version = ">=2.0"
 
 class open_mpi_recipe(ConanFile):
     name = "openmpi"
-    version = "5.0.1"
+    version = "5.0.5"
     user = "atus"
     channel = "stable"
     homepage = "https://www.open-mpi.org"
@@ -68,9 +68,6 @@ class open_mpi_recipe(ConanFile):
         autotools.make()
 
     def package(self):
-        self.output.info("package_folder := %s" % self.package_folder)
-        self.output.info("build_folder   := %s" % self.build_folder)
-        self.output.info("source_folder  := %s" % self.source_folder)
         autotools = Autotools(self)
         autotools.install(args=["DESTDIR="])
     
@@ -82,16 +79,25 @@ class open_mpi_recipe(ConanFile):
         self.cpp_info.libs = ['mpi', 'open-rte', 'open-pal']
         if self.settings.os == "Linux":
             self.cpp_info.system_libs = ["dl", "pthread", "rt", "util"]
-        self.output.info("Creating MPI_HOME environment variable: {}".format(self.package_folder))
+        
+        self.output.info(f"Creating MPI_HOME environment variable: {self.package_folder}")
         self.runenv_info.define_path("MPI_HOME", self.package_folder)
-        self.output.info("Creating OPAL_PREFIX environment variable: {}".format(self.package_folder))
+        self.buildenv_info.define_path("MPI_HOME", self.package_folder)
+        
+        self.output.info(f"Creating OPAL_PREFIX environment variable: {self.package_folder}")
         self.runenv_info.define_path("OPAL_PREFIX", self.package_folder)
-        mpi_bin = os.path.join(self.package_folder, 'bin')
-        self.output.info("Creating CC environment variable: {}/mpicc".format(mpi_bin))
-        self.runenv_info.append("CC", "{}/mpicc".format(mpi_bin))
-        self.output.info("Creating CXX environment variable: {}/mpicxx".format(mpi_bin))
-        self.runenv_info.append( "CXX", "{}/mpicxx".format(mpi_bin))
-        self.output.info("Creating FC environment variable: {}/mpif90".format(mpi_bin))
-        self.runenv_info.append("FC", "{}/mpif90".format(mpi_bin))
+        self.buildenv_info.define_path("OPAL_PREFIX", self.package_folder)
+        
+        self.output.info(f"Creating CC environment variable: {self.package_folder}/bin/mpicc")
+        self.runenv_info.define_path("CC", f"{self.package_folder}/bin/mpicc")
+        self.buildenv_info.define_path("CC", f"{self.package_folder}/bin/mpicc")
+
+        self.output.info("Creating CXX environment variable: f{self.package_folder}/bin/mpicxx")
+        self.runenv_info.define_path( "CXX", f"{self.package_folder}/bin/mpicxx")
+        self.buildenv_info.define_path( "CXX", f"{self.package_folder}/bin/mpicxx")
+        
+        self.output.info("Creating FC environment variable: {}/bin/mpif90")
+        self.runenv_info.define_path("FC", f"{self.package_folder}/bin/mpif90")
+        self.buildenv_info.define_path("FC", f"{self.package_folder}/bin/mpif90")
 
 
