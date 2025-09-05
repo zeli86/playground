@@ -11,10 +11,9 @@ add_library( ${TARGET} SHARED
   GPUtilsComplexWavefunction.hpp
   GPUtilsComplexWavefunction.cpp
   MyParameterHandler.cpp 
-  MyLogging.cpp 
 )
 
 DEAL_II_SETUP_TARGET( ${TARGET} )
 
-TARGET_LINK_LIBRARIES( ${TARGET} m Boost::headers Boost::log Boost::log_setup)
+TARGET_LINK_LIBRARIES( ${TARGET} m Boost::headers)
 

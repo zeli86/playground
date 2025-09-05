@@ -1,4 +1,5 @@
 [Bb]uild
+BUILD
 html
 .*/**
 compile_commands.json

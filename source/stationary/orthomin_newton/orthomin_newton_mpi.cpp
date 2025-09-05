@@ -135,7 +135,7 @@ namespace BreedSolver
     m_oConstraints.clear();
     m_oConstraints.reinit(m_locally_relevant_dofs);
     dealii::DoFTools::make_hanging_node_constraints(m_oDofHandler, m_oConstraints);
-    dealii::VectorTools::interpolate_boundary_values(m_oDofHandler, 0, ZeroFunction<dim>(), m_oConstraints);
+    dealii::VectorTools::interpolate_boundary_values(m_oDofHandler, 0, dealii::Functions::ZeroFunction<dim>(), m_oConstraints);
     m_oConstraints.close();
 
     dealii::DynamicSparsityPattern csp(m_locally_relevant_dofs);
@@ -255,8 +255,8 @@ namespace BreedSolver
 
     do
     {
-      BOOST_LOG_TRIVIAL(info) << std::string('-', 80);
-      BOOST_LOG_TRIVIAL(info) << "- " << path << " - " << m_counter;
+      deallog << std::string('-', 80);
+      deallog << "- " << path << " - " << m_counter;
 
       this->m_Workspace[0] = this->m_Psi_Ref;
       assemble_jacobian<dim>(dynamic_cast<IRealWavefunction<dim>*>(this), this->m_Workspace[0], Potential, this->m_System_Matrix, m_rMu, m_rG);
@@ -336,8 +336,8 @@ namespace BreedSolver
     // Standard Newton
     // do
     // {
-    //   BOOST_LOG_TRIVIAL(info) << std::string('-', 80);
-    //   BOOST_LOG_TRIVIAL(info) << "-- " << path << " - " << m_counter;
+    //   deallog << std::string('-', 80);
+    //   deallog << "-- " << path << " - " << m_counter;
 
     //   m_Workspace[0] = m_Psi_Ref;
     //   assemble_jacobian<dim>(...);
@@ -445,11 +445,11 @@ namespace BreedSolver
       // sqrt((m_rMu*N-T)/(4.0*m_gs*W)); if this->m_Psi[1] == m_Psi_1
       // m_ti = sqrt((m_rMu * N - T) / (m_rG * W));
 
-      // BOOST_LOG_TRIVIAL(info) << "T = " << T;
-      // BOOST_LOG_TRIVIAL(info) << "N = " << N;
-      // BOOST_LOG_TRIVIAL(info) << "W = " << W;
-      // BOOST_LOG_TRIVIAL(info) << "m_rMu = " << m_rMu;
-      // BOOST_LOG_TRIVIAL(info) << "m_ti = " << m_ti;
+      // deallog << "T = " << T;
+      // deallog << "N = " << N;
+      // deallog << "W = " << W;
+      // deallog << "m_rMu = " << m_rMu;
+      // deallog << "m_ti = " << m_ti;
 
       status = DoIter(path);
 
@@ -487,9 +487,9 @@ namespace BreedSolver
       // m_Workspace[0] = m_Psi[0];
       // Compute_E_lin(mpi_communicator, m_oDofHandler, m_oFe, this->m_constraints, Potential, this->m_Workspace[0], T, N, W);
 
-      // BOOST_LOG_TRIVIAL(info) << "T = " << T << endl;
-      // BOOST_LOG_TRIVIAL(info) << "N = " << N << endl;
-      // BOOST_LOG_TRIVIAL(info) << "W = " << W << endl;
+      // deallog << "T = " << T << endl;
+      // deallog << "N = " << N << endl;
+      // deallog << "W = " << W << endl;
     }
   }
 
@@ -497,7 +497,7 @@ namespace BreedSolver
   bool MySolver<dim>::solve()
   {
     //TimerOutput::Scope timing_section(m_computing_timer, "");
-    BOOST_LOG_TRIVIAL(info) << "Solving..." << endl;
+    deallog << "Solving..." << endl;
     /*
         SolverControl solver_control;
         PETScWrappers::SparseDirectMUMPS solver(solver_control, mpi_communicator);
@@ -523,7 +523,7 @@ namespace BreedSolver
     }
     catch (ExceptionBase& e)
     {
-      BOOST_LOG_TRIVIAL(error) << e.what() << endl;
+      deallog << e.what() << endl;
       //pcout << "Possible singular matrix!" << endl;
       return false;
     }

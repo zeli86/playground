@@ -1,105 +1,55 @@
-cmake_minimum_required(VERSION 3.10)
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_EXTENSIONS ON)
-set(CONAN_DISABLE_CHECK_COMPILER ON)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
-#execute_process(COMMAND sh -c "module list")
-
-# if(NOT EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-# execute_process(COMMAND conan install ${CMAKE_SOURCE_DIR} -pr Linux_x64_gcc11 WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
-# endif()
-
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-conan_basic_setup()
-
-find_package(deal.II HINTS ${deal.II_DIR} ${DEAL_II_DIR} ../ ../../ $ENV{DEAL_II_DIR})
-if(NOT ${deal.II_FOUND})
-  message(FATAL_ERROR "\n"
-    "*** Could not locate a (sufficiently recent) version of deal.II. ***\n\n"
-    "You may want to either pass a flag -DDEAL_II_DIR=/path/to/deal.II to cmake\n"
-    "or set an environment variable \"DEAL_II_DIR\" that contains this path."
-    )
-endif ()
-
-#
-# Are all dependencies fulfilled?
-#
-if(NOT DEAL_II_WITH_PETSC OR DEAL_II_PETSC_WITH_COMPLEX) # keep in one line
-  message(FATAL_ERROR "
-Error! This tutorial requires a deal.II library that was configured with the following options:
-    DEAL_II_WITH_PETSC = ON
-    DEAL_II_PETSC_WITH_COMPLEX = OFF
-However, the deal.II library found at ${DEAL_II_PATH} was configured with these options
-    DEAL_II_WITH_PETSC = ${DEAL_II_WITH_PETSC}
-    DEAL_II_PETSC_WITH_COMPLEX = ${DEAL_II_PETSC_WITH_COMPLEX}
-which conflict with the requirements."
-    )
-endif()
-
-DEAL_II_INITIALIZE_CACHED_VARIABLES()
-
-include(${DEAL_II_FEATURE_CONFIG})
-
-message("${DEAL_II_FEATURE_CONFIG}")
+cmake_minimum_required(VERSION 3.24)
 
 project(atus-playground)
 
-#enable_testing()
-include(CTest)
+set(CMAKE_VERBOSE_MAKEFILE OFF)
+set(CMAKE_FIND_DEBUG_MODE OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-### nlopt
-find_package(NLopt REQUIRED)
-
-### Boost
-set(Boost_VERBOSE ON)
-find_package(Boost REQUIRED COMPONENTS log log_setup program_options filesystem HINTS ${DEAL_II_BOOST_DIR})
-#include_directories( ${DEAL_II_BOOST_INCLUDE_DIRS} )
-
+option( ENABLE_TESTS "3D - in the future this is going to be removed" OFF)
 option( BUILD_3D "3D - in the future this is going to be removed" OFF )
 option( BUILD_HTRAP "3D" OFF )
 option( BUILD_NEHARI "Disables the initial point in function space being set to the Nehari value" ON )
 option( BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" ${DOXYGEN_FOUND})
 
-set( HOME $ENV{HOME} CACHE STRING INTERNAL )
+if(ENABLE_TESTS)
+  enable_testing()
+  find_package(Catch2 3 REQUIRED)
+  include(CTest)
+  include(Catch)
+endif()
+
+find_package(deal.II REQUIRED CONFIG)
+
+### nlopt
+find_package(NLopt REQUIRED CONFIG)
+
+### Boost
+set(Boost_VERBOSE ON)
+find_package(Boost 1.82.0 EXACT REQUIRED COMPONENTS program_options)
+
 set( DIR_INC ${PROJECT_SOURCE_DIR}/include CACHE STRING INTERNAL )
 set( DIR_INC_2 ${PROJECT_SOURCE_DIR}/source/lib CACHE STRING INTERNAL )
 
-# set( EXECUTABLE_OUTPUT_PATH  ${HOME}/out/bin )
-# set( LIBRARY_OUTPUT_PATH  ${HOME}/out/bin/lib )
-#SET( EXECUTABLE_INSTALL_PATH  ${HOME}/bin )
-
-
 ### doxygen
-find_package(Doxygen)
+#find_package(Doxygen)
 
-find_package(Catch2 3 REQUIRED)
-include(CTest)
-include(Catch)
-find_package(GTest REQUIRED)
-
-
-
-# set include dirs
-include_directories( ${DIR_INC} ${DIR_INC_2} ${NLOPT_INCLUDE_DIR} ${DEAL_II_MUPARSER_INCLUDE_DIRS} ${DEAL_II_GSL_INCLUDE_DIRS} ${DEAL_II_INCLUDE_DIRS} )
+include_directories( ${DIR_INC} ${DIR_INC_2} ) # ${NLOPT_INCLUDE_DIR} ${DEAL_II_MUPARSER_INCLUDE_DIRS} ${DEAL_II_GSL_INCLUDE_DIRS} ${DEAL_II_INCLUDE_DIRS} )
 
 if( BUILD_HTRAP )
   add_definitions( -DPOTENTIAL=1 )
-  message(STATUS "*** Building harmonic trap" )
+  message(STATUS "Building harmonic trap" )
 else()
 add_definitions( -DPOTENTIAL=2 )
-  message(STATUS "*** Building gravito optical trap" )
+  message(STATUS "Building gravito optical trap" )
 endif()
 
 if( BUILD_3D )
   add_definitions( -DSPATIAL_DIM=3 )
-  message(STATUS "*** Building 3D" )
+  message(STATUS "Building 3D" )
 else()
   add_definitions( -DSPATIAL_DIM=2 )
-  message(STATUS "*** Building 2D" )
+  message(STATUS "Building 2D" )
 endif()
 
 if( BUILD_NEHARI )
@@ -114,7 +64,7 @@ add_subdirectory( source/stationary )
 #add_subdirectory( source/oct )
 #add_subdirectory( source/utils )
 #add_subdirectory( source/edu )
-add_subdirectory( tests/lib )
+#add_subdirectory( tests/lib )
 
 
 if(BUILD_DOCUMENTATION)

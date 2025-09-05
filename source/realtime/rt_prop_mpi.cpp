@@ -368,7 +368,7 @@ namespace realtime_propagation
     m_Psi_t = m_Psi;
     m_res = 0;
     assemble_rhs();
-    BOOST_LOG_TRIVIAL(info) << "m_res = " << m_res;
+    deallog << "m_res = " << m_res;
     do
     {
       assemble_system();
@@ -380,7 +380,7 @@ namespace realtime_propagation
       m_Psi_t = system_rhs;   
 
       assemble_rhs();
-      BOOST_LOG_TRIVIAL(info) << "m_res = " << m_res;
+      deallog << "m_res = " << m_res;
     }
     while( m_res >  1e-16 ); 
     m_t += m_dt;
@@ -400,23 +400,23 @@ namespace realtime_propagation
     output_results("");
 
     double N = MyComplexTools::MPI::Particle_Number( mpi_communicator, dof_handler, fe, m_Psi );
-    BOOST_LOG_TRIVIAL(info) << "N == " << N << endl;
+    deallog << "N == " << N << endl;
     
     MyComplexTools::MPI::Expectation_value_position( mpi_communicator, dof_handler, fe, m_Psi, pos );
     MyComplexTools::MPI::Expectation_value_width( mpi_communicator, dof_handler, fe, m_Psi, pos, var );
     MyComplexTools::MPI::Expectation_value_position( mpi_communicator, dof_handler, fe, m_Psi, p );
 
-    BOOST_LOG_TRIVIAL(info) << "t == " << m_t;
-    BOOST_LOG_TRIVIAL(info) << "N == " << N;
-    BOOST_LOG_TRIVIAL(info) << "p == " << p[0]/N << ", " << p[1]/N << ", " << p[2]/N;
-    BOOST_LOG_TRIVIAL(info) << "pos == " << pos[0]/N << ", " << pos[1]/N << ", " << pos[2]/N;
-    BOOST_LOG_TRIVIAL(info) << "var == " << var[0]/N << ", " << var[1]/N << ", " << var[2]/N;
+    deallog << "t == " << m_t;
+    deallog << "N == " << N;
+    deallog << "p == " << p[0]/N << ", " << p[1]/N << ", " << p[2]/N;
+    deallog << "pos == " << pos[0]/N << ", " << pos[1]/N << ", " << pos[2]/N;
+    deallog << "var == " << var[0]/N << ", " << var[1]/N << ", " << var[2]/N;
 
     for( unsigned i=1; i<=m_NA; ++i )
     {
       for( unsigned j=1; j<=m_NK; ++j )
       {
-        BOOST_LOG_TRIVIAL(info) << "t == " << m_t << endl;
+        deallog << "t == " << m_t << endl;
         DoIter();
       }
       
@@ -425,10 +425,10 @@ namespace realtime_propagation
       MyComplexTools::MPI::Expectation_value_width( mpi_communicator, dof_handler, fe, m_Psi, pos, var );
       MyComplexTools::MPI::Expectation_value_position( mpi_communicator, dof_handler, fe, m_Psi, p );
 
-      BOOST_LOG_TRIVIAL(info) << "N == " << N;
-      BOOST_LOG_TRIVIAL(info) << "p == " << p[0]/N << ", " << p[1]/N << ", " << p[2]/N;
-      BOOST_LOG_TRIVIAL(info) << "pos == " << pos[0]/N << ", " << pos[1]/N << ", " << pos[2]/N;
-      BOOST_LOG_TRIVIAL(info) << "var == " << var[0]/N << ", " << var[1]/N << ", " << var[2]/N;
+      deallog << "N == " << N;
+      deallog << "p == " << p[0]/N << ", " << p[1]/N << ", " << p[2]/N;
+      deallog << "pos == " << pos[0]/N << ", " << pos[1]/N << ", " << pos[2]/N;
+      deallog << "var == " << var[0]/N << ", " << var[1]/N << ", " << var[2]/N;
 
       output_results("");
     }

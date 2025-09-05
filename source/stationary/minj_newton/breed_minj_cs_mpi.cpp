@@ -370,7 +370,7 @@ namespace BreedSolver
     solve();
 
     m_workspace_1 = newton_update;
-    VectorTools::integrate_difference(dof_handler, m_workspace_1, ZeroFunction<dim>(2), m_error_per_cell, QGauss<dim>(fe.degree + 2), VectorTools::L2_norm);
+    VectorTools::integrate_difference(dof_handler, m_workspace_1, dealii::Functions::ZeroFunction<dim>(2), m_error_per_cell, QGauss<dim>(fe.degree + 2), VectorTools::L2_norm);
     const double total_local_error = m_error_per_cell.l2_norm();
     err = std::sqrt(Utilities::MPI::sum(total_local_error * total_local_error, MPI_COMM_WORLD));
 
@@ -701,10 +701,10 @@ namespace BreedSolver
     constraints.clear();
     constraints.reinit(locally_relevant_dofs);
     DoFTools::make_hanging_node_constraints(dof_handler, constraints);
-    VectorTools::interpolate_boundary_values(dof_handler, 1, ZeroFunction<dim>(), constraints, ComponentMask(mask));
+    VectorTools::interpolate_boundary_values(dof_handler, 1, dealii::Functions::ZeroFunction<dim>(), constraints, ComponentMask(mask));
     if (m_QN1[2] > 0)
     {
-      VectorTools::interpolate_boundary_values(dof_handler, 0, ZeroFunction<dim>(), constraints, ComponentMask(mask));
+      VectorTools::interpolate_boundary_values(dof_handler, 0, dealii::Functions::ZeroFunction<dim>(), constraints, ComponentMask(mask));
     }
     constraints.close();
 

@@ -12,6 +12,8 @@ namespace solver::mpi::stationary
 
   enum Status { SUCCESS, FAILED, ZERO_SOL, SLOW_CONV };
 
+
+
   template <int dim>
   class CSobolevGradient : public utils::real_wavefunction::IRealWavefunction<dim>
   {

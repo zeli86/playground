@@ -12,6 +12,12 @@ public:
 
   void run2b();
 
+  template <typename Visitable, typename Visitor>
+  static void accept(Visitable& p, Visitor& v)
+  {
+    v.visit(p);
+  }
+
 protected:
 
   void setup_system();

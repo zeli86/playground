@@ -127,7 +127,7 @@ namespace BreedSolver_1
     m_constraints.clear();
     m_constraints.reinit(m_locally_relevant_dofs);
     DoFTools::make_hanging_node_constraints(m_oDofHandler, m_constraints);
-    VectorTools::interpolate_boundary_values(m_oDofHandler, 0, ZeroFunction<dim>(), m_constraints);
+    VectorTools::interpolate_boundary_values(m_oDofHandler, 0, dealii::Functions::ZeroFunction<dim>(), m_constraints);
     m_constraints.close();
 
     DynamicSparsityPattern dsp(ndofs);
@@ -239,7 +239,7 @@ namespace BreedSolver_1
     try
     {
       nlopt::result result = opt.optimize(t, minf);
-      //BOOST_LOG_TRIVIAL(debug) << "found minimum at f(" << t[0] << "," << t[1] << ") = " << std::setprecision(10) << minf;
+      deallog << "found minimum at f(" << t[0] << "," << t[1] << ") = " << std::setprecision(10) << minf;
       // std::cout << "result " << result << std::endl;
     }
     catch (std::exception& e)
@@ -353,7 +353,7 @@ namespace BreedSolver_1
   void MySolver<dim>::solve()
   {
     map<types::global_dof_index, double> boundary_values;
-    VectorTools::interpolate_boundary_values(m_oDofHandler, 0, ZeroFunction<dim>(), boundary_values);
+    VectorTools::interpolate_boundary_values(m_oDofHandler, 0, dealii::Functions::ZeroFunction<dim>(), boundary_values);
     MatrixTools::apply_boundary_values(boundary_values, m_System_Matrix, m_Search_Direction, m_System_RHS);
 
     SparseDirectUMFPACK A_direct;

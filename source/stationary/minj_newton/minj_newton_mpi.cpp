@@ -167,7 +167,7 @@ namespace BreedSolver
     solve();
 
     this->m_Workspace[0] = this->m_Search_Direction;
-    VectorTools::integrate_difference(this->m_DOF_Handler, this->m_Workspace[0], ZeroFunction<dim>(2), this->m_error_per_cell, QGauss<dim>(this->m_FE.degree + 2), VectorTools::L2_norm);
+    VectorTools::integrate_difference(this->m_DOF_Handler, this->m_Workspace[0], dealii::Functions::ZeroFunction<dim>(2), this->m_error_per_cell, QGauss<dim>(this->m_FE.degree + 2), VectorTools::L2_norm);
     const double total_local_error = this->m_error_per_cell.l2_norm();
     err = std::sqrt(Utilities::MPI::sum(total_local_error * total_local_error, MPI_COMM_WORLD));
 
@@ -409,8 +409,8 @@ namespace BreedSolver
     m_counter = 0;
     do
     {
-      BOOST_LOG_TRIVIAL(info) << std::string('-', 80);
-      BOOST_LOG_TRIVIAL(info) << "- " << path << " - " << m_counter << endl;
+      deallog << std::string('-', 80);
+      deallog << "- " << path << " - " << m_counter << endl;
 
       assemble_system();
       solve();
@@ -500,11 +500,11 @@ namespace BreedSolver
       // nehari
       m_ti = sqrt((m_rMu * N - T) / (m_rG * W));
 
-      BOOST_LOG_TRIVIAL(info) << "T = " << T;
-      BOOST_LOG_TRIVIAL(info) << "N = " << N;
-      BOOST_LOG_TRIVIAL(info) << "W = " << W;
-      BOOST_LOG_TRIVIAL(info) << "m_rMu = " << m_rMu;
-      BOOST_LOG_TRIVIAL(info) << "m_ti = " << m_ti;
+      deallog << "T = " << T;
+      deallog << "N = " << N;
+      deallog << "W = " << W;
+      deallog << "m_rMu = " << m_rMu;
+      deallog << "m_ti = " << m_ti;
 
       status = DoIter(path);
 

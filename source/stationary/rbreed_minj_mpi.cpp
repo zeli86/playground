@@ -21,7 +21,6 @@
 #include "functions.h"
 #include "MyParameterHandler.h"
 #include "MyRealTools.h"
-#include "MyLogging.h"
 
 namespace BreedSolver
 {
@@ -110,7 +109,7 @@ namespace BreedSolver
     try
     {
       nlopt::result result = opt.optimize(t, minf);
-      BOOST_LOG_TRIVIAL(debug) << "found minimum at f(" << t[0] << "," << t[1] << ") = " << std::setprecision(10) << minf;
+      deallog << "found minimum at f(" << t[0] << "," << t[1] << ") = " << std::setprecision(10) << minf;
       // std::cout << "result " << result << std::endl;
     }
     catch (std::exception& e)
@@ -142,8 +141,8 @@ namespace BreedSolver
 
     do
     {
-      BOOST_LOG_TRIVIAL(info) << std::string('-', 80);
-      BOOST_LOG_TRIVIAL(info) << "- " << path << " - " << m_counter;
+      deallog << std::string('-', 80);
+      deallog << "- " << path << " - " << m_counter;
 
       this->m_Workspace[0] = this->m_Psi_Ref;
       MyRealTools::MPI::AssembleSystem_Jacobian<dim> (this->m_DOF_Handler, this->m_FE, this->m_constraints, this->m_Workspace[0], Potential, m_rMu, m_rG, this->m_System_Matrix);
@@ -207,8 +206,8 @@ namespace BreedSolver
     // Standard Newton
     do
     {
-      BOOST_LOG_TRIVIAL(info) << std::string('-', 80);
-      BOOST_LOG_TRIVIAL(info) << "-- " << path << " - " << m_counter << endl;
+      deallog << std::string('-', 80);
+      deallog << "-- " << path << " - " << m_counter << endl;
 
       this->m_Workspace[0] = this->m_Psi_Ref;
       MyRealTools::MPI::AssembleSystem_Jacobian<dim> (this->m_DOF_Handler, this->m_FE, this->m_constraints, this->m_Workspace[0], Potential, m_rMu, m_rG, this->m_System_Matrix);
@@ -307,11 +306,11 @@ namespace BreedSolver
       // nehari
       m_ti = sqrt((m_rMu * N - T) / (m_rG * W));
 
-      BOOST_LOG_TRIVIAL(info) << "T = " << T;
-      BOOST_LOG_TRIVIAL(info) << "N = " << N;
-      BOOST_LOG_TRIVIAL(info) << "W = " << W;
-      BOOST_LOG_TRIVIAL(info) << "m_rMu = " << m_rMu;
-      BOOST_LOG_TRIVIAL(info) << "m_ti = " << m_ti;
+      deallog << "T = " << T;
+      deallog << "N = " << N;
+      deallog << "W = " << W;
+      deallog << "m_rMu = " << m_rMu;
+      deallog << "m_ti = " << m_ti;
 
       status = DoIter(path);
 

@@ -19,15 +19,12 @@
 */
 
 #include <iostream>
-#include <iomanip>
 #include <cstdlib>
-#include <limits>
 #include <cmath>
 
 #include "mpi.h"
 #include "functions.h"
 #include "MyParameterHandler.h"
-#include "MyLogging.h"
 
 #include "sobolev_gradient_mpi.hpp"
 
@@ -192,7 +189,7 @@ namespace solver::mpi::stationary
     m_oMatrix.compress(VectorOperation::add);
     m_vRhs.compress(VectorOperation::add);
 
-    BOOST_LOG_TRIVIAL(info) << "Solving..." << endl;
+    deallog << "Solving..." << endl;
     SolverControl solver_control;
     PETScWrappers::SparseDirectMUMPS solver(solver_control, mpi_communicator);
     solver.set_symmetric_mode(false);
@@ -216,7 +213,7 @@ namespace solver::mpi::stationary
   template <int dim>
   void CSobolevGradient<dim>::solve()
   {
-    BOOST_LOG_TRIVIAL(info) << "Solving..." << endl;
+    deallog << "Solving..." << endl;
 
     SolverControl solver_control;
 
@@ -284,7 +281,7 @@ namespace solver::mpi::stationary
     m_oConstraints.clear();
     m_oConstraints.reinit(m_oLocallyRelevantDofs);
     dealii::DoFTools::make_hanging_node_constraints(m_oDofHandler, m_oConstraints);
-    dealii::VectorTools::interpolate_boundary_values(m_oDofHandler, 0, ZeroFunction<dim>(), m_oConstraints);
+    dealii::VectorTools::interpolate_boundary_values(m_oDofHandler, 0, dealii::Functions::ZeroFunction<dim>(), m_oConstraints);
     m_oConstraints.close();
 
     dealii::DynamicSparsityPattern csp(m_oLocallyRelevantDofs);
@@ -309,8 +306,8 @@ namespace solver::mpi::stationary
 
     for (int iCounter = 0; iCounter < m_iMaxIter; ++iCounter)
     {
-      BOOST_LOG_TRIVIAL(info) << std::string('-', 80);
-      BOOST_LOG_TRIVIAL(info) << "- " << iCounter;
+      deallog << std::string('-', 80);
+      deallog << "- " << iCounter;
 
       assemble_system();
       solve();

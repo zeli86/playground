@@ -1,7 +1,6 @@
 //#include "default_includes.h"
 
 #include <az_aztec.h>
-#include <boost/log/trivial.hpp>
 #include <deal.II/base/mpi.h>
 #include <fstream>
 #include <iostream>

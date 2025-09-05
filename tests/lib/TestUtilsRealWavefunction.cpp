@@ -47,7 +47,7 @@ public:
     m_oConstraints.reinit(oLocallyRelevantDofs);
     dealii::DoFTools::make_hanging_node_constraints(m_oDofHandler, m_oConstraints);
     dealii::VectorTools::interpolate_boundary_values(
-      m_oDofHandler, 0, dealii::ZeroFunction<iDim>(), m_oConstraints);
+      m_oDofHandler, 0, dealii::Functions::ZeroFunction<iDim>(), m_oConstraints);
     m_oConstraints.close();
   }
   dealii::DoFHandler<iDim>& get_dof_handler() { return m_oDofHandler; }

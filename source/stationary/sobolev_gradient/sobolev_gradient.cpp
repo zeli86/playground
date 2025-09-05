@@ -128,7 +128,7 @@ namespace solver::stationary
     m_oConstraints.clear();
     m_oConstraints.reinit(m_oLocallyRelevantDofs);
     dealii::DoFTools::make_hanging_node_constraints(dof_handler, m_oConstraints);
-    dealii::VectorTools::interpolate_boundary_values(dof_handler, 0, ZeroFunction<dim>(), m_oConstraints);
+    dealii::VectorTools::interpolate_boundary_values(dof_handler, 0, dealii::Functions::ZeroFunction<dim>(), m_oConstraints);
     m_oConstraints.close();
 
     DynamicSparsityPattern dsp(dof_handler.n_dofs(), dof_handler.n_dofs());
@@ -267,7 +267,7 @@ namespace solver::stationary
   void CSobolevGradient<dim>::solve()
   {
     map<types::global_dof_index, double> boundary_values;
-    VectorTools::interpolate_boundary_values(dof_handler, 0, ZeroFunction<dim>(), boundary_values);
+    VectorTools::interpolate_boundary_values(dof_handler, 0, dealii::Functions::ZeroFunction<dim>(), boundary_values);
     MatrixTools::apply_boundary_values(boundary_values, m_system_matrix, m_solution, m_vL2Gradient);
 
     SparseDirectUMFPACK A_direct;

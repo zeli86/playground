@@ -2,7 +2,6 @@
 --style=allman
 
 --convert-tabs
---indent-preprocessor
 --indent-preproc-block 
 --indent=spaces=2
 --indent-namespaces

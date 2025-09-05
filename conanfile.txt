@@ -1,9 +1,10 @@
 [requires]
-openmpi/4.1.4@atus/stable
+openmpi/5.0.1@atus/stable
 nlopt/2.7.1@atus/stable
-dealii/9.4.0@atus/stable
-catch2/3.0.1@atus/stable
+dealii/9.5.2@atus/stable
+catch2/3.5.2@atus/stable
+boost/1.82.0@atus/stable
 
 [generators]
-cmake
-virtualrunenv
+CMakeToolchain
+

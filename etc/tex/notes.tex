@@ -7,8 +7,6 @@
 \usepackage{physics}
 \usepackage{xcolor}
 
-
-
 \author{Želimir Marojević}
 
 \newcommand{\RE}{\ensuremath{\operatorname{Re}}}
@@ -19,7 +17,88 @@
 \newcommand{\fz}{\ensuremath{{\color{blue}t_0}}}
 \newcommand{\fo}{\ensuremath{{\color{red}t_1}}}
 
+\newcommand{\dV}{\ensuremath{\mathrm{dV}}}
+
 \begin{document}
+
+\section{A}
+
+\begin{equation}
+\iu \hbar \partial_t \Psi = \left( \frac{\hbar^2}{2m} \grad^2 + V + \frac{4\pi\hbar^2a_S}{m} \vert \Psi \vert^2 \right) \Psi
+\end{equation}
+
+\begin{equation}
+E = \int \frac{\hbar^2}{2m} \vert \grad \Psi \vert^2 + V \vert \Psi \vert^2 + \frac{g}{2} \vert \Psi \vert^4
+\end{equation}
+
+\section{B}
+\begin{equation}
+H\left[\phi\right] := \int \frac{1}{2} \left( \grad \phi \right)^2 + \frac{1}{2} (V-\mu)\phi^2
+\end{equation}
+
+\begin{equation}
+F\left[\phi\right] := H\left[\phi\right] + \frac{\gamma}{4}\int\phi^4 \dV
+\end{equation}
+
+\begin{equation}
+F^\prime\left[\phi\right] h = H^\prime\left[\phi\right] h + \gamma \int \phi^3 h \dV
+\end{equation}
+
+\begin{equation}
+F^{\prime\prime}\left[\phi\right] h g = H^{\prime\prime}\left[\phi\right] h g + 3 \gamma \int \phi^2 h g \dV
+\end{equation}
+
+\begin{equation}
+\phi^n := t^n_0 \theta_0 + t^n_1 \theta^n_1
+\end{equation}
+
+\begin{equation}
+F^{\prime\prime}\left[\phi\right] h g d = -F^\prime\left[\phi\right] h
+\end{equation}
+
+
+\begin{equation}
+F\left[\phi^n\right] = t^n_0 H\left[\theta_0\right] + t^n_1 H\left[\theta^n_1\right] + \frac{\gamma}{4} \int \left(t^n_0 \theta_0 + t^n_1 \theta^n_1\right)^4 \dV
+\end{equation}
+
+\begin{equation}
+F^\prime\left[\phi^n\right] h = t^n_0 H^\prime\left[\theta_0\right] h + t^n_1 H^\prime\left[\theta^n_1\right] h + \gamma \int \left(t^n_0 \theta_0 + t^n_1 \theta^n_1\right)^3 h \dV
+\end{equation}
+
+\begin{align}
+\frac{d}{d t^n_0} F^\prime\left[\phi^n\right] h &= H^\prime\left[\theta_0\right] h + 3\gamma \int\left(t^n_0 \theta_0 + t^n_1 \theta^n_1\right)^2 \theta_0 h \dV  \\
+\frac{d}{d t^n_1} F^\prime\left[\phi^n\right] h &= H^\prime\left[\theta^n_1\right] h + 3\gamma \int\left(t^n_0 \theta_0 + t^n_1 \theta^n_1\right)^2 \theta^n_1 h \dV
+\end{align}
+
+\begin{align}
+\frac{d}{d t^n_0} F^\prime\left[\phi^n\right] h &= H^\prime\left[\theta_0\right] h + 3\gamma \int \left((t^n_0 \theta_0)^2 + 2 t^n_0 t^n_1 \theta_0 \theta^n_1 + (t^n_1 \theta^n_1)^2 \right) \theta_0 h \dV  \\
+\frac{d}{d t^n_1} F^\prime\left[\phi^n\right] h &= H^\prime\left[\theta^n_1\right] h + 3\gamma \int \left((t^n_0 \theta_0)^2 + 2 t^n_0 t^n_1 \theta_0 \theta^n_1 + (t^n_1 \theta^n_1)^2 \right) \theta^n_1 h \dV
+\end{align}
+
+\begin{align}
+\frac{d^2}{d t^n_0 d t^n_0} F^\prime\left[\phi^n\right] h &= 3\gamma \int \left(2 t^n_0 (\theta_0)^2 + 2 t^n_1 \theta_0 \theta^n_1 \right) \theta_0 h \dV  \\
+\frac{d^2}{d t^n_1 d t^n_0 } F^\prime\left[\phi^n\right] h &= 3\gamma \int \left(2 t^n_0 \theta_0 \theta^n_1 + 2 t^n_1 (\theta^n_1)^2 \right) \theta_0 h \dV  \\
+\frac{d^2}{d t^n_0 d t^n_1} F^\prime\left[\phi^n\right] h &= 3\gamma \int \left(2 t^n_0 (\theta_0)^2 + 2 t^n_0 \theta_0 \theta^n_1 \right) \theta^n_1 h \dV \\
+\frac{d^1}{d t^n_1 d t^n_1} F^\prime\left[\phi^n\right] h &= 3\gamma \int \left(2 t^n_1 \theta_0 \theta^n_1 + 2 t^n_1 (\theta^n_1)^2  \right) \theta^n_1 h \dV
+\end{align}
+
+\section{C}
+
+\begin{equation}
+F\left[\phi^n+sd\right] = H\left[\phi^n\right] + s H\left[d\right] + \frac{\gamma}{4} \int \left(\phi^n+sd\right)^4 \dV
+\end{equation}
+
+\begin{multline}
+F\left[\phi^n+sd\right] = F\left[\phi^n\right] + s H\left[d\right] \\ + \gamma\int s (\phi^n)^3 d + \frac{3 s^2}{2} (\phi^n)^2 d^2 + s^3 (\phi^n) d^3 + \frac{s^4}{4} d^4 \dV
+\end{multline}
+
+\begin{equation}
+F\left[\phi^n+sd\right] = F\left[\phi^n\right] + F\left[sd\right] + \gamma\int s (\phi^n)^3 d + \frac{3 s^2}{2} (\phi^n)^2 d^2 + s^3 (\phi^n) d^3 \dV
+\end{equation}
+
+%\begin{equation}
+%\phi^{n+1} = t^{n+1}_0 \theta_0 + t^{n+1}_1 \left(t^n_1\theta^n_1 - \tau d\right)
+%\end{equation}
 
 
 %\begin{align}
@@ -78,5 +157,13 @@
 \begin{multline}
 ( \bar{u}_0^2 u_1^2 + u_0^2 \bar{u}_1^2 ) = 8 \RE(u_0) \RE(u_1) \IM(u_0) \IM(u_1) + \\ 2 (\RE(u_0)^2 - \IM(u_0)^2) (\RE(u_1)^2 - \IM(u_1)^2)
 \end{multline}
+
+\section{soboloev}
+
+\section{non linear contributions}
+
+\begin{equation}
+\langle g | h \rangle_{H^1} = \langle \grad g | \grad h \rangle_{L_2} + \langle g | h \rangle_{L_2} 
+\end{equation}
 
 \end{document}

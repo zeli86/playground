@@ -265,7 +265,7 @@ namespace BreedSolver
     solve();
 
     this->m_Workspace[0] = this->m_Search_Direction;
-    VectorTools::integrate_difference(this->m_DOF_Handler, this->m_Workspace[0], ZeroFunction<dim>(), this->m_error_per_cell, QGauss<dim>(this->m_FE.degree + 2), VectorTools::L2_norm);
+    VectorTools::integrate_difference(this->m_DOF_Handler, this->m_Workspace[0], dealii::Functions::ZeroFunction<dim>(), this->m_error_per_cell, QGauss<dim>(this->m_FE.degree + 2), VectorTools::L2_norm);
     const double total_local_error = this->m_error_per_cell.l2_norm();
     err = std::sqrt(Utilities::MPI::sum(total_local_error * total_local_error, MPI_COMM_WORLD));
 
